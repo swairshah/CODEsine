@@ -1,14 +1,19 @@
 // app.js: an endless zoom through the machines.
-// Level L is continuous: floor(L) is the machine in front of you, frac(L) is how far
-// you have travelled into its portal. One level is one portal's worth of magnification.
+// Level L is continuous: floor(L) is the machine in front of you and frac(L) is how far you have
+// travelled toward the next one. Each machine says how it leads on:
+//   screen  the next machine hides in the screen as a small easter egg; you zoom into it
+//   inside  the shell peels away, you zoom into the chip, and the chip becomes the next machine
+//   die     as inside, but the next machine is etched into the silicon
+//   assemble  you zoom into a chip, and the next machine's parts fly in and close around it
 'use strict';
 
 (function () {
-  const { smooth, clamp, hex, mix, css, makePal, mixPal, gougePoly, fillPoly, drawPlate } = Ink;
-  const DEV = window.DEVICES;
+  const { smooth, clamp, hex, mix, css, makePal, mixPal, drawPlate } = Ink;
+  const DEV = window.Machines.list;
   const N = DEV.length;
   const mod = (a, n) => ((a % n) + n) % n;
   const ease = (x) => x * x * (3 - 2 * x);
+  const easeOut = (x) => 1 - Math.pow(1 - x, 3);
   const easeInOut = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -16,90 +21,67 @@
   const ctx = cv.getContext('2d');
   let W = 0, H = 0, DPR = 1;
 
-  // ---------- complex numbers: a camera is z ↦ A·z + B ----------
-  const C = (re, im = 0) => ({ re, im });
-  const add = (a, b) => C(a.re + b.re, a.im + b.im);
-  const sub = (a, b) => C(a.re - b.re, a.im - b.im);
-  const mul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
-  const div = (a, b) => {
-    const d = b.re * b.re + b.im * b.im;
-    return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d);
-  };
-  const cabs = (a) => Math.hypot(a.re, a.im);
-  const clog = (a) => C(Math.log(cabs(a)), Math.atan2(a.im, a.re));
-  const cexp = (a) => { const m = Math.exp(a.re); return C(m * Math.cos(a.im), m * Math.sin(a.im)); };
-  const scale = (a, s) => C(a.re * s, a.im * s);
-  const C0 = C(500, 500);
-
-  function portalMap(dev) {
-    const P = dev.portal;
-    const c = (P.m * Math.min(P.w, P.h)) / 1000;
-    const r = P.rot || 0;
-    return { u: C(c * Math.cos(r), c * Math.sin(r)), P: C(P.cx, P.cy), c };
-  }
-  const levelLn = (k) => -Math.log(portalMap(DEV[mod(k, N)]).c);
-
+  // ---------- cameras: affine maps from a machine's 1000 × 1000 frame to the screen ----------
   function stage() {
     const top = W < 640 ? 150 : 132, bottom = W < 640 ? 96 : 92;
     const size = Math.max(160, Math.min(W - 32, H - top - bottom));
-    return { c: C(W / 2, top + (H - top - bottom) / 2), s: size / 940, size };
+    return { cx: W / 2, cy: top + (H - top - bottom) / 2, s: size / 940, size };
   }
-
-  // Camera for machine k at progress t. Rest (t=0) frames the machine on the stage;
-  // t=1 frames its portal's contents exactly as the next machine's rest. In between is
-  // a pure zoom about the one point that both framings agree on.
-  function camAt(k, t) {
+  function rest() {
     const st = stage();
-    const A0 = C(st.s), B0 = sub(st.c, scale(C0, st.s));
-    if (t <= 0) return { A: A0, B: B0 };
-    const pm = portalMap(DEV[mod(k, N)]);
-    const A1 = div(A0, pm.u);
-    const B1 = sub(st.c, mul(A1, pm.P));
-    const F = div(sub(B1, B0), sub(A0, A1));
-    const SF = add(mul(A0, F), B0);
-    const At = mul(A0, cexp(scale(clog(div(A1, A0)), t)));
-    return { A: At, B: sub(SF, mul(At, F)) };
+    return [st.s, 0, 0, st.s, st.cx - 500 * st.s, st.cy - 500 * st.s];
   }
-  function childCam(cam, pm) {
-    return { A: mul(cam.A, pm.u), B: add(mul(cam.A, sub(pm.P, mul(pm.u, C0))), cam.B) };
-  }
-  function setT(cam) {
-    ctx.setTransform(DPR * cam.A.re, DPR * cam.A.im, -DPR * cam.A.im, DPR * cam.A.re, DPR * cam.B.re, DPR * cam.B.im);
+  function setM(m) {
+    ctx.setTransform(DPR * m[0], DPR * m[1], DPR * m[2], DPR * m[3], DPR * m[4], DPR * m[5]);
   }
   const screenT = () => ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // child frame → this machine's frame
+  const portalMap = (dev) => Af.mul(dev.marks.portal, Af.S(1 / 1000));
+  // the chip, unsheared and centred, at the size you see it when you have zoomed in
+  function hero(dev) {
+    const F = dev.marks.focus;
+    const a = Math.hypot(F[0], F[1]) / Math.hypot(F[2], F[3]);
+    let w = 620, h = w / a;
+    if (h > 460) { h = 460; w = h * a; }
+    return [w, 0, 0, h, 500 - w / 2, 500 - h / 2];
+  }
+  function levelLn(k) {
+    const dev = DEV[mod(k, N)].build();
+    if (dev.next.type === 'assemble') return 2.6;
+    return -Math.log(Af.scaleOf(portalMap(dev)));
+  }
 
   // ---------- palettes ----------
   let BASE = null;
   function readPalette() {
     const cs = getComputedStyle(document.documentElement);
     const g = (n) => hex(cs.getPropertyValue(n).trim() || '#000000');
-    BASE = makePal({ paper: g('--paper'), warm: g('--warm'), light: g('--light'), ink: g('--ink'), umber: g('--umber'), earth: g('--earth'), tint: g('--earth'), graphite: g('--graphite'), graphite2: g('--graphite2') });
+    BASE = makePal({ paper: g('--paper'), warm: g('--warm'), light: g('--light'), ink: g('--ink'), umber: g('--umber'), earth: g('--earth'), tint: g('--earth'), tint2: g('--earth'), graphite: g('--graphite'), graphite2: g('--graphite2') });
     grain = makeGrain();
   }
   function withTint(pal, dev) {
-    let t = hex(dev.tint);
-    if (pal.tintTo) t = mix(t, pal.tintTo, pal.tintAmt);
+    let t = hex(dev.tint), t2 = hex(dev.tint2 || dev.tint);
+    if (pal.tintTo) { t = mix(t, pal.tintTo, pal.tintAmt); t2 = mix(t2, pal.tintTo, pal.tintAmt); }
     const p = Object.create(pal);
     p.tint = css(t);
-    p.rgb = Object.assign({}, pal.rgb, { tint: t });
+    p.tint2 = css(t2);
+    p.rgb = Object.assign({}, pal.rgb, { tint: t, tint2: t2 });
     return p;
   }
-  // Inside a circuit board or a die the next machine is printed in reverse: silkscreen on solder mask.
+  // Etched into a die, the next machine is printed in reverse: light lines on dark silicon.
   function invertPal(pal, dev, amt) {
     if (amt <= 0) return pal;
-    const bg = hex(dev.portal.type === 'pcb' ? dev.board : dev.dieBg);
-    const fg = hex(dev.silk);
-    const target = makePal({ paper: bg, warm: mix(bg, fg, 0.08), light: mix(bg, fg, 0.16), ink: fg, umber: mix(fg, bg, 0.12), earth: mix(fg, bg, 0.3), tint: fg, graphite: mix(fg, bg, 0.35), graphite2: mix(fg, bg, 0.55) });
+    const bg = hex(dev.next.bg), fg = hex(dev.next.fg);
+    const target = makePal({ paper: bg, warm: mix(bg, fg, 0.08), light: mix(bg, fg, 0.16), ink: fg, umber: mix(fg, bg, 0.12), earth: mix(fg, bg, 0.3), tint: fg, tint2: fg, graphite: mix(fg, bg, 0.35), graphite2: mix(fg, bg, 0.55) });
     const out = mixPal(pal, target, amt);
     out.tintTo = fg;
     out.tintAmt = amt;
     return out;
   }
   function portalBg(dev, pal) {
-    const P = dev.portal;
-    if (P.type === 'pcb') return hex(dev.board);
-    if (P.type === 'die') return hex(dev.dieBg);
-    return pal.rgb[P.bg || 'light'];
+    const b = dev.next.bg;
+    if (b && b[0] === '#') return hex(b);
+    return pal.rgb[b || 'paper'];
   }
 
   // Paper tooth: a fixed scatter of faint graphite fibres laid over everything, like the sheet itself.
@@ -110,9 +92,9 @@
     const g = c.getContext('2d');
     const r = Ink.rng(77);
     g.fillStyle = css(BASE.rgb.graphite);
-    for (let i = 0; i < 1400; i++) {
+    for (let i = 0; i < 1300; i++) {
       const x = r() * 320, y = r() * 320, a = r() * Math.PI, l = 1 + r() * 5;
-      g.globalAlpha = 0.05 + r() * 0.12;
+      g.globalAlpha = 0.04 + r() * 0.1;
       g.save();
       g.translate(x, y);
       g.rotate(a);
@@ -130,109 +112,125 @@
   const pointers = new Map();
 
   // ---------- drawing ----------
-  function drawScanlines(dev, s) {
-    const P = dev.portal, x0 = P.cx - P.w / 2, y0 = P.cy - P.h / 2;
-    ctx.fillStyle = s.pal.ink;
-    ctx.globalAlpha = s.a * 0.09;
-    for (let y = y0 + 2; y < y0 + P.h; y += 4.5) ctx.fillRect(x0, y, P.w, 1);
-    if (!reduceMotion.matches) {
-      const band = y0 + ((s.time * 38) % (P.h + 40)) - 20;
-      ctx.fillStyle = s.pal.paper;
-      for (let i = 0; i < 3; i++) {
-        ctx.globalAlpha = s.a * (0.5 - i * 0.14);
-        fillPoly(ctx, gougePoly([[x0, band + i * 6], [P.cx, band + i * 6 + 1.5], [x0 + P.w, band + i * 6]], 3 - i * 0.6, { seg: 2, taper: 0.05 }));
-      }
+  const detailOf = (cam) => Af.scaleOf(cam) / 0.7;
+
+  // Draw a machine's parts. fn(part) may return { ink, pencil, T } to fade or move a part.
+  function drawParts(dev, cam, pal, fn, only) {
+    const detail = detailOf(cam);
+    for (const part of dev.parts) {
+      if (part.name === 'glass') continue;
+      if (only && !only(part)) continue;
+      const r = fn ? fn(part) : null;
+      const ink = r ? r.ink ?? 1 : 1, pencil = r ? r.pencil ?? ink : ink;
+      if (ink < 0.003 && pencil < 0.003) continue;
+      const m = r && r.T ? Af.mul(cam, r.T) : cam;
+      setM(m);
+      drawPlate(ctx, part.plate, pal, ink, detailOf(m), pencil);
     }
-    ctx.globalAlpha = 1;
+    return detail;
   }
-
-  function drawPixels(dev, s) {
-    const a = s.a * smooth(1.5, 3.2, s.detail) * 0.32;
-    if (a < 0.01) return;
-    const P = dev.portal, x0 = P.cx - P.w / 2, y0 = P.cy - P.h / 2;
-    ctx.globalAlpha = a;
-    ctx.fillStyle = s.pal.earth;
-    for (let x = x0; x < x0 + P.w; x += 3) ctx.fillRect(x, y0, 0.5, P.h);
-    for (let y = y0; y < y0 + P.h; y += 3) ctx.fillRect(x0, y, P.w, 0.5);
-    ctx.globalAlpha = 1;
+  function drawGlass(dev, cam, pal, a) {
+    const g = dev.parts.find((p) => p.name === 'glass');
+    if (!g || a < 0.003) return;
+    setM(cam);
+    drawPlate(ctx, g.plate, pal, a, detailOf(cam));
   }
-
-  // Draw machine j and, when you are travelling into it, the machine inside its portal.
-  // `ink` and `pencil` fade the two media separately: a machine arrives sketched, then inked.
-  function drawLevel(j, cam, tp, pal0, depth, ink = 1, pencil = 1) {
-    const dev = DEV[mod(j, N)];
-    const pl = dev.build();
-    const pal = withTint(pal0, dev);
-    const detail = cabs(cam.A) / 0.7;
-    setT(cam);
-    const bodyA = 1 - smooth(0.8, 1, tp);
-    if (bodyA > 0.003) drawPlate(ctx, pl.body, pal, bodyA * ink, detail, bodyA * pencil);
-
-    const e = ease(tp);
+  function drawExtras(dev, cam, pal, a) {
+    if (!dev.extras || !dev.screen || a < 0.01) return;
+    setM(Af.mul(cam, dev.screen.M));
     ctx.save();
-    ctx.clip(pl.portal);
-    ctx.globalAlpha = ink;
-    ctx.fillStyle = css(mix(portalBg(dev, pal), pal.rgb.paper, e));
-    ctx.fill(pl.portal);
-    ctx.globalAlpha = 1;
-    const s = { a: ink * (1 - smooth(0.25, 0.85, tp)) * Ink.lodAlpha(0.5, detail), time: S.time, pal, detail, tp };
-    if (s.a > 0.01) {
-      if (dev.crt) drawScanlines(dev, s);
-      if (dev.retina) drawPixels(dev, s);
-      if (dev.extras) dev.extras(ctx, s);
-    }
-    // The next machine is not there until you start to travel in: first in pencil, then in ink.
-    if (depth === 0 && tp > 0) {
-      const pm = portalMap(dev);
-      const cc = childCam(cam, pm);
-      const childPal = dev.portal.type === 'pcb' || dev.portal.type === 'die' ? invertPal(pal0, dev, 1 - e) : pal0;
-      const pA = smooth(0.02, 0.32, tp), iA = smooth(0.24, 0.66, tp);
-      if (pA > 0.003 && 1000 * cabs(cc.A) > 10) drawLevel(j + 1, cc, 0, childPal, depth + 1, iA, pA);
-    }
-    setT(cam);
-    const glassA = ink * (1 - smooth(0.45, 0.95, tp));
-    if (glassA > 0.003 && pl.glass.layers.length) drawPlate(ctx, pl.glass, pal, glassA, detail);
+    dev.extras(ctx, { a, time: S.time, pal, W: dev.screen.w, H: dev.screen.h });
     ctx.restore();
-    setT(cam);
-    if (bodyA > 0.003 && pl.over.layers.length) drawPlate(ctx, pl.over, pal, ink * bodyA * (1 - smooth(0.5, 0.9, tp)), detail);
-  }
-
-  function resample(pts, step) {
-    const out = [];
-    const n = pts.length;
-    let carry = 0;
-    for (let i = 0; i < n; i++) {
-      const a = pts[i], b = pts[(i + 1) % n];
-      const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      let s = carry;
-      while (s < d) {
-        out.push([a[0] + ((b[0] - a[0]) * s) / d, a[1] + ((b[1] - a[1]) * s) / d]);
-        s += step;
-      }
-      carry = s - d;
-    }
-    return out;
-  }
-
-  // While you travel, faint pencil rings run out from the portal edge.
-  function drawRipples(dev, cam, amt, dir) {
-    if (amt < 0.02) return;
-    setT(cam);
-    ctx.fillStyle = BASE.graphite;
-    const P = dev.portal;
-    for (let r = 0; r < 3; r++) {
-      let prog = (S.time * 0.9 + r / 3) % 1;
-      if (dir < 0) prog = 1 - prog;
-      const d = 10 + prog * 120;
-      const shape = window.DeviceGeom.portalShape({ ...P, w: P.w + 2 * d, h: P.h + 2 * d, r: (P.r || 0) + d });
-      const pts = resample(shape, 14);
-      ctx.globalAlpha = amt * Math.sin(Math.PI * prog) * 0.45;
-      const n = pts.length;
-      for (let i = 0; i < n; i += 5) {
-        fillPoly(ctx, gougePoly([pts[i], pts[(i + 1) % n], pts[(i + 2) % n], pts[(i + 3) % n]], 1.1, { seg: 3, taper: 0.2 }));
-      }
-    }
     ctx.globalAlpha = 1;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
+  // A machine standing still, with whatever its screen shows.
+  function drawAtRest(dev, cam, pal0, ink = 1, pencil = ink) {
+    const pal = withTint(pal0, dev);
+    drawParts(dev, cam, pal, () => ({ ink, pencil }));
+    drawExtras(dev, cam, pal, ink);
+    drawGlass(dev, cam, pal, ink);
+  }
+
+  function clipTo(M) {
+    const q = [[0, 0], [1, 0], [1, 1], [0, 1]].map((p) => Af.apply(M, p));
+    ctx.beginPath();
+    ctx.moveTo(q[0][0], q[0][1]);
+    for (let i = 1; i < 4; i++) ctx.lineTo(q[i][0], q[i][1]);
+    ctx.closePath();
+  }
+
+  // screen, inside, die: zoom into a marked rectangle; the next machine appears in it, pencil first.
+  function renderPortal(dev, nxt, t) {
+    const Mp = portalMap(dev);
+    const cam = Af.mul(rest(), Af.pow(Af.inv(Mp), t));
+    const pal = withTint(BASE, dev);
+    const bodyA = 1 - smooth(0.8, 1, t);
+    const peeled = (part) => {
+      let a = bodyA;
+      let T = null;
+      if (part.peel) {
+        const k = smooth(part.peel[0], part.peel[1], t);
+        a *= 1 - k;
+        if (part.lift) T = Af.T(part.lift[0] * k, part.lift[1] * k);
+      }
+      return { ink: a, pencil: a, T };
+    };
+    drawParts(dev, cam, pal, peeled);
+    drawExtras(dev, cam, pal, bodyA * (1 - smooth(0.25, 0.8, t)));
+    const pA = smooth(0.03, 0.3, t), iA = smooth(0.22, 0.62, t);
+    if (pA > 0.003) {
+      setM(cam);
+      ctx.save();
+      const clipM = dev.marks.clip || dev.marks.portal;
+      clipTo(clipM);
+      ctx.clip();
+      ctx.globalAlpha = smooth(0.12, 0.42, t);
+      ctx.fillStyle = css(mix(portalBg(dev, pal), BASE.rgb.paper, ease(t)));
+      clipTo(clipM);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      const childPal = dev.next.type === 'die' ? invertPal(BASE, dev, 1 - ease(t)) : BASE;
+      drawAtRest(nxt, Af.mul(cam, Mp), childPal, iA, pA);
+      ctx.restore();
+    }
+    drawGlass(dev, cam, pal, bodyA * (1 - smooth(0.35, 0.9, t)));
+  }
+
+  // assemble: zoom into the focus chip, then the next machine's parts fly in and close around it.
+  const SPLIT = 0.38;
+  function renderAssemble(dev, nxt, t) {
+    const H = hero(dev);
+    const Mf = dev.marks.focus, Ma = nxt.marks.anchor;
+    const pal = withTint(BASE, dev), npal = withTint(BASE, nxt);
+    if (t <= SPLIT) {
+      const cam = Af.mul(rest(), Af.pow(Af.mul(H, Af.inv(Mf)), t / SPLIT));
+      drawParts(dev, cam, pal, (part) => (part.name === 'focus' ? null : { ink: 1 - 0.55 * smooth(0.5, 1, t / SPLIT) }));
+      return;
+    }
+    const u = (t - SPLIT) / (1 - SPLIT);
+    const camC = Af.mul(rest(), Af.pow(Af.mul(H, Af.inv(Ma)), 1 - u));
+    const camP = Af.chain(camC, Ma, Af.inv(Mf));
+    drawParts(dev, camP, pal, () => ({ ink: 0.45 * (1 - smooth(0, 0.18, u)) }), (p) => p.name !== 'focus');
+    const flight = (part) => {
+      if (!part.fly) return { ink: smooth(0, 0.35, u), pencil: smooth(0, 0.2, u) };
+      const f = part.fly;
+      const q = easeOut(clamp((u - f.at[0]) / (f.at[1] - f.at[0]), 0, 1));
+      const k = 1 - q;
+      const c = part.c;
+      const T = Af.chain(Af.T(c[0] + k * f.d[0], c[1] + k * f.d[1]), Af.R(k * (f.r || 0)), Af.S(1 + k * ((f.s || 1) - 1)), Af.T(-c[0], -c[1]));
+      return { ink: smooth(0.3, 0.85, q), pencil: smooth(0, 0.3, q), T };
+    };
+    // the next machine's parts in their own order; the old chip sits on top of the parts that stay put
+    const lastCore = nxt.parts.reduce((k, p, i) => (!p.fly && p.name !== 'glass' ? i : k), -1);
+    nxt.parts.forEach((part, i) => {
+      if (part.name === 'glass') return;
+      drawParts(nxt, camC, npal, flight, (p) => p === part);
+      if (i === lastCore) drawParts(dev, camP, pal, () => ({ ink: 1 - smooth(0.12, 0.45, u) }), (p) => p.name === 'focus');
+    });
+    const settled = smooth(0.9, 1, u);
+    drawExtras(nxt, camC, npal, settled);
+    drawGlass(nxt, camC, npal, settled);
   }
 
   function render() {
@@ -242,13 +240,12 @@
     ctx.globalAlpha = 1;
     ctx.fillStyle = BASE.paper;
     ctx.fillRect(0, 0, W, H);
-    const cam = camAt(K, t);
-    drawLevel(K, cam, t, BASE, 0);
-    if (!reduceMotion.matches) {
-      drawRipples(DEV[mod(K, N)], cam, smooth(0.15, 1.2, Math.abs(S.vel)) * (1 - smooth(0.55, 0.85, t)), Math.sign(S.vel));
-    }
+    const dev = DEV[mod(K, N)].build(), nxt = DEV[mod(K + 1, N)].build();
+    if (t <= 0) drawAtRest(dev, rest(), BASE);
+    else if (dev.next.type === 'assemble') renderAssemble(dev, nxt, t);
+    else renderPortal(dev, nxt, t);
     screenT();
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.85;
     ctx.fillStyle = grain;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
@@ -373,13 +370,6 @@
   $('b-in').addEventListener('click', () => go(1));
   $('b-out').addEventListener('click', () => go(-1));
   ui.play.addEventListener('click', togglePlay);
-  $('b-theme').addEventListener('click', () => {
-    const root = document.documentElement;
-    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-    root.dataset.theme = dark ? 'light' : 'dark';
-    readPalette();
-  });
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readPalette);
 
   function togglePlay() {
     S.playing = !S.playing;
@@ -475,6 +465,7 @@
     if (found >= 0) S.L = S.Lt = found;
     prevL = S.L;
     DEV[mod(Math.floor(S.L), N)].build();
+    DEV[mod(Math.floor(S.L) + 1, N)].build();
     requestAnimationFrame(frame);
     // Engrave the rest of the plates while the page is idle.
     let k = 0;

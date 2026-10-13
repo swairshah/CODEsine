@@ -15,6 +15,11 @@
     };
   }
 
+  const mulM = (m, n) => [
+    m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
+    m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+    m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5],
+  ];
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const smooth = (a, b, x) => {
     const t = clamp((x - a) / (b - a), 0, 1);
@@ -151,6 +156,18 @@
       this.layers = [];
       this.r = rng(seed);
       this.lod = 0;
+      this.M = null;
+    }
+    // Draw in another coordinate system (a face of a 3D model, a screen): every point passes through M.
+    withM(M, fn) {
+      const prev = this.M;
+      this.M = prev ? mulM(prev, M) : M;
+      try { fn(); } finally { this.M = prev; }
+    }
+    tx(pts) {
+      const M = this.M;
+      if (!M) return pts;
+      return pts.map(([x, y]) => [M[0] * x + M[2] * y + M[4], M[1] * x + M[3] * y + M[5]]);
     }
     rand(a = 0, b = 1) {
       return a + (b - a) * this.r();
@@ -164,13 +181,13 @@
       return L;
     }
     fill(role, pts, lod = this.lod) {
-      if (pts && pts.length >= 3) addPoly(this.layer(role, lod).path, pts, 1);
+      if (pts && pts.length >= 3) addPoly(this.layer(role, lod).path, this.tx(pts), 1);
     }
     ring(role, pts, w, lod = this.lod) {
       const [A, B] = offsetRing(area(pts) < 0 ? pts.slice().reverse() : pts, w);
       const L = this.layer(role, lod);
-      addPoly(L.path, A, 1);
-      addPoly(L.path, B, -1);
+      addPoly(L.path, this.tx(A), 1);
+      addPoly(L.path, this.tx(B), -1);
     }
     gouge(role, pts, w, o = {}) {
       const poly = gougePoly(pts, w, o);
@@ -339,10 +356,13 @@
       const T = typeof tone === 'function' ? tone : () => tone;
       const c = centroid(poly);
       const t0 = T(c[0], c[1]);
-      const base = o.fill ?? (t0 < 0.45 ? 'ink' : t0 > 0.9 ? 'light' : 'paper');
+      const base = o.dark ? o.fill || 'ink' : o.fill ?? (t0 < 0.45 ? 'ink' : t0 > 0.9 ? 'light' : 'paper');
       this.fill(base, poly, o.lod ?? 0);
       const h = { angle: o.angle ?? 0, gap: o.gap ?? 8, w: o.w ?? 2.3, scoop: o.scoop, bow: o.bow, lod: o.hlod ?? 1 };
-      if (base === 'ink') {
+      if (o.dark) {
+        // a dark material: light cuts whose weight follows the light falling on it
+        if (o.hatch !== false) this.hatch(o.cut ?? 'paper', poly, { ...h, tone: (x, y) => clamp(T(x, y) / 0.5, 0, 1.1) });
+      } else if (base === 'ink') {
         this.hatch(o.cut ?? 'paper', poly, { ...h, tone: (x, y) => clamp(T(x, y) / 0.45, 0, 1.15) });
       } else {
         if (o.hatch !== false) this.hatch(o.line ?? 'ink', poly, { ...h, tone: (x, y) => Math.pow(clamp((1 - T(x, y)) / 0.6, 0, 1.15), 1.25) });
@@ -352,6 +372,7 @@
       }
       if (o.edge) this.ring(o.edgeRole ?? 'ink', poly, o.edge, o.edgeLod ?? 0);
       if (o.pencil !== false) this.sketch(poly, { lod: 0.5 });
+      return base;
     }
     dots(role, poly, gap, r, lod = 1) {
       let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
@@ -359,18 +380,18 @@
         xmin = Math.min(xmin, p[0]); xmax = Math.max(xmax, p[0]);
         ymin = Math.min(ymin, p[1]); ymax = Math.max(ymax, p[1]);
       }
-      const L = this.layer(role, lod);
       let row = 0;
       for (let y = ymin + gap / 2; y < ymax; y += gap, row++) {
         for (let x = xmin + gap / 2 + (row % 2) * gap * 0.5; x < xmax; x += gap) {
           if (!inside(poly, x, y)) continue;
-          L.path.moveTo(x + r, y);
-          L.path.arc(x, y, r, 0, Math.PI * 2);
+          const d = [];
+          for (let k = 0; k < 8; k++) d.push([x + r * Math.cos((k * Math.PI) / 4), y + r * Math.sin((k * Math.PI) / 4)]);
+          this.fill(role, d, lod);
         }
       }
     }
     text(role, str, x, y, size, o = {}) {
-      this.layers.push({ kind: 'text', role, lod: o.lod ?? 0.5, str, x, y, size, font: o.font || 'mono', align: o.align || 'center', rot: o.rot || 0, weight: o.weight || 500, italic: !!o.italic, track: o.track || 0 });
+      this.layers.push({ kind: 'text', role, lod: o.lod ?? 0.5, str, x, y, size, font: o.font || 'mono', align: o.align || 'center', rot: o.rot || 0, weight: o.weight || 500, italic: !!o.italic, track: o.track || 0, M: this.M, base: o.base || 'middle' });
     }
   }
 
@@ -385,12 +406,13 @@
 
   function drawText(ctx, L) {
     ctx.save();
+    if (L.M) ctx.transform(L.M[0], L.M[1], L.M[2], L.M[3], L.M[4], L.M[5]);
     ctx.translate(L.x, L.y);
     if (L.rot) ctx.rotate(L.rot);
     ctx.font = fontStr(L);
     ctx.textAlign = L.align;
-    ctx.textBaseline = 'middle';
-    if (L.track && 'letterSpacing' in ctx) ctx.letterSpacing = `${L.track}px`;
+    ctx.textBaseline = L.base;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${L.track || 0}px`;
     ctx.fillText(L.str, 0, 0);
     ctx.restore();
   }
@@ -404,7 +426,11 @@
   // Graphite layers carry their own alpha so a machine can arrive as a pencil sketch before it is inked.
   function drawPlate(ctx, plate, pal, alpha, detail, pencil = alpha) {
     for (const L of plate.layers) {
-      const a = (L.role.startsWith('graphite') ? pencil : alpha) * lodAlpha(L.lod, detail);
+      const graphite = L.role.startsWith('graphite');
+      // pencil shows up sooner than carving, so a small machine reads first as a sketch
+      let a = (graphite ? pencil : alpha) * lodAlpha(graphite ? L.lod * 0.4 : L.lod, detail);
+      // seen very close, carved hatching thins out so surfaces read as clean blocks of colour
+      if (L.kind === 'path' && L.lod >= 1 && !L.role.startsWith('graphite')) a *= 1 - 0.7 * smooth(5, 12, detail);
       if (a < 0.004) continue;
       ctx.globalAlpha = a;
       ctx.fillStyle = pal[L.role] || pal.ink;
