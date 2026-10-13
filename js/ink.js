@@ -140,6 +140,29 @@
     return out;
   }
 
+  // Sutherland–Hodgman against an axis-aligned rectangle [x0, y0, x1, y1].
+  function clipRect(pts, [x0, y0, x1, y1]) {
+    const edges = [(p) => p[0] >= x0, (p) => p[0] <= x1, (p) => p[1] >= y0, (p) => p[1] <= y1];
+    const cut = [
+      (a, b) => [x0, a[1] + ((b[1] - a[1]) * (x0 - a[0])) / (b[0] - a[0])],
+      (a, b) => [x1, a[1] + ((b[1] - a[1]) * (x1 - a[0])) / (b[0] - a[0])],
+      (a, b) => [a[0] + ((b[0] - a[0]) * (y0 - a[1])) / (b[1] - a[1]), y0],
+      (a, b) => [a[0] + ((b[0] - a[0]) * (y1 - a[1])) / (b[1] - a[1]), y1],
+    ];
+    let out = pts;
+    for (let e = 0; e < 4 && out.length; e++) {
+      const inp = out;
+      out = [];
+      for (let i = 0; i < inp.length; i++) {
+        const a = inp[i], b = inp[(i + 1) % inp.length];
+        const ia = edges[e](a), ib = edges[e](b);
+        if (ia) out.push(a);
+        if (ia !== ib) out.push(cut[e](a, b));
+      }
+    }
+    return out;
+  }
+
   function addPoly(path, pts, sign) {
     const rev = (area(pts) < 0) !== (sign < 0);
     const n = pts.length;
@@ -164,7 +187,14 @@
       this.M = prev ? mulM(prev, M) : M;
       try { fn(); } finally { this.M = prev; }
     }
+    // Keep marks inside a rectangle of the current coordinates (a screen): polygons are cut to it.
+    withClip(rect, fn) {
+      const prev = this.clipR;
+      this.clipR = rect;
+      try { fn(); } finally { this.clipR = prev; }
+    }
     tx(pts) {
+      if (this.clipR) pts = clipRect(pts, this.clipR);
       const M = this.M;
       if (!M) return pts;
       return pts.map(([x, y]) => [M[0] * x + M[2] * y + M[4], M[1] * x + M[3] * y + M[5]]);
@@ -181,13 +211,16 @@
       return L;
     }
     fill(role, pts, lod = this.lod) {
-      if (pts && pts.length >= 3) addPoly(this.layer(role, lod).path, this.tx(pts), 1);
+      if (!pts || pts.length < 3) return;
+      const q = this.tx(pts);
+      if (q.length >= 3) addPoly(this.layer(role, lod).path, q, 1);
     }
     ring(role, pts, w, lod = this.lod) {
       const [A, B] = offsetRing(area(pts) < 0 ? pts.slice().reverse() : pts, w);
       const L = this.layer(role, lod);
-      addPoly(L.path, this.tx(A), 1);
-      addPoly(L.path, this.tx(B), -1);
+      const a = this.tx(A), b = this.tx(B);
+      if (a.length >= 3) addPoly(L.path, a, 1);
+      if (b.length >= 3) addPoly(L.path, b, -1);
     }
     gouge(role, pts, w, o = {}) {
       const poly = gougePoly(pts, w, o);

@@ -312,7 +312,9 @@
         const nn = v3.norm(v3.sub(mid, v3.mul(ax, v3.dot(mid, ax))));
         this.face([A[i], A[j], B[j], B[i]], nn, null, mat, { edge: 0, seam: true, hatch: 'axis', axis: ax });
       }
-      this.face(B.slice(), ax, { o: B[0], U: [1, 0, 0], V: [0, 0, 1], w: 0, h: 0 }, o.capMat || mat, { deco: o.cap, edge: o.edge ?? 1 });
+      // the end cap's own axes are centred, so decorations are drawn about (0, 0)
+      const capU = axis === 'x' ? [0, 0, -1] : [1, 0, 0], capV = axis === 'y' ? [0, 0, 1] : [0, -1, 0];
+      this.face(B.slice(), ax, { o: v3.add(c, v3.mul(ax, len)), U: capU, V: capV, w: 0, h: 0 }, o.capMat || mat, { deco: o.cap, edge: o.edge ?? 1 });
       this.face(A.slice().reverse(), v3.mul(ax, -1), null, o.capMat || mat, { edge: o.edge ?? 1 });
       return this;
     }

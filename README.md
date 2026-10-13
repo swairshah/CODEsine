@@ -4,9 +4,9 @@ An endless zoom through thirteen machines, drawn as a relief print with pencil o
 
 | How | Where |
 | --- | --- |
-| A chip becomes a machine. You zoom into a chip, and the next machine's parts fly in and close around it. | Apple I to Apple II (the 6502), Apple M1 to iMac 24″ |
+| A chip becomes a machine. You zoom into a chip, and the next machine's parts fly in and close around it. | Apple I to Apple II (the 6502); Apple M1 to iMac 24″, as an exploded diagram that collapses while the seven iMac colours run past, and the screen says hello |
 | You go inside. The shell lifts away, you zoom onto the chip, and the chip becomes the next thing. | MacBook Air (M1) to Apple M1; Mac mini to the Apple I, etched into the M4's silicon |
-| An easter egg on screen. The next machine hides in that era's screen, and you zoom into it. | Apple II (a lo-res Macintosh after `RUN MACINTOSH`), Macintosh 128K (a PowerBook icon), PowerBook 100 (an iMac icon), iMac G3 (an iPod mounted as a disk), iPod (a block in its hidden Brick game), iPhone (the Mail envelope), MacBook Air (Time Machine in the Dock), iMac 24″ (Displays), MacBook Pro 14″ (AirDrop) |
+| An easter egg on screen. The next machine hides in that era's screen, and you zoom into it. | Apple II (a lo-res Macintosh after `RUN MACINTOSH`), Macintosh 128K (a PowerBook icon), PowerBook 100 (an iMac icon), iMac G3 (an iPod mounted as a disk), iPod (the album cover while “Take California”, the song from the first iPod advert, plays), iPhone (the Mail envelope), MacBook Air (Time Machine in the Dock), iMac 24″ (Displays), MacBook Pro 14″ (AirDrop) |
 
 The machines follow their reference photos: the Apple II with two Disk II drives and a Monitor III, the dark-grey PowerBook 100 with its centred trackball, the G3's white front and Bondi Blue shell, and so on. The 2012 MacBook Pro was swapped for the M1 MacBook Air, so going inside to find the M1 is historically true.
 

@@ -193,11 +193,22 @@
     verb: 'Find the MacBook Pro in Displays',
     tint: '#7d9cc2',
     tint2: '#c48a7c',
+    // the seven colours run past while it is put together, and it settles on blue
+    colors: ['#8fb39a', '#e2c56f', '#e39c6a', '#d98884', '#a597c6', '#b8b8b2', '#7d9cc2'],
     view: { yaw: 24, pitch: 7 },
     fit: [800, 690],
     next: { type: 'screen', bg: 'light' },
     make(m) {
       const x0 = -W2 / 2;
+      // In an exploded view along the depth axis: the coloured back and the stand behind, the board,
+      // then the glass front, keyboard and mouse. They collapse together as you arrive.
+      m.part('back', { fly: { d3: [0, 2, -52], at: [0.46, 0.76] } });
+      shadowOp(m, [[-7.4, 0, -14], [7.4, 0, -14], [7.4, 0, 1], [-7.4, 0, 1]], 6, 3);
+      tableLine(m, [-36, 0, 6], [36, 0, 6]);
+      m.slab(rr2(x0, Y0, W2, H2, 1.3), -0.62, -0.05, { base: 0.92, fill: 'tint', gap: 6, w: 1.3 }, { skip: ['front'] });
+      m.part('stand', { fly: { d3: [0, -2, -92], at: [0.5, 0.82] } });
+      m.box(-7.35, 0.3, -2.4, 14.7, Y0 + 6, 0.6, { base: 0.9, fill: 'tint', gap: 6, w: 1.3 });
+      m.box(-7.35, 0, -14.2, 14.7, 0.32, 13.2, { base: 0.85, fill: 'tint', gap: 6, w: 1.3 });
       // the logic board in the chin, with the M1 facing you
       m.part('board');
       m.box(-12, Y0 + 0.8, -0.55, 24, 4.4, 0.2, { base: 0.9, fill: 'tint2', gap: 5, w: 1, shade: false, pencil: false }, {
@@ -213,15 +224,7 @@
       m.box(-1.28, Y0 + 1.1, -0.35, 2.55, 3.0, 0.16, { base: 0.97, gap: 3, w: 0.9, edge: 1.3 }, {
         faces: { front(F) { F.model.mark('anchor', F, 0, 0, F.w, F.h); F.draw((p) => p.text('earth', 'M1', 1.27, 1.2, 0.6, { weight: 600, lod: 1 })); } },
       });
-      // the coloured back, the stand, the glass front, keyboard and mouse
-      m.part('back', { fly: { d: [900, -160], s: 1.3, r: 0.08, at: [0.05, 0.5] } });
-      shadowOp(m, [[-7.4, 0, -14], [7.4, 0, -14], [7.4, 0, 1], [-7.4, 0, 1]], 6, 3);
-      tableLine(m, [-36, 0, 6], [36, 0, 6]);
-      m.slab(rr2(x0, Y0, W2, H2, 1.3), -0.62, -0.05, { base: 0.92, fill: 'tint', gap: 6, w: 1.3 }, { skip: ['front'] });
-      m.part('stand', { fly: { d: [0, 700], s: 1.2, at: [0.15, 0.6] } });
-      m.box(-7.35, 0.3, -2.4, 14.7, Y0 + 6, 0.6, { base: 0.9, fill: 'tint', gap: 6, w: 1.3 });
-      m.box(-7.35, 0, -14.2, 14.7, 0.32, 13.2, { base: 0.85, fill: 'tint', gap: 6, w: 1.3 });
-      m.part('display', { fly: { d: [0, -500], s: 1.5, at: [0.35, 0.85] } });
+      m.part('display', { fly: { d3: [0, 2, 58], at: [0.52, 0.82] } });
       m.slab(rr2(x0, Y0, W2, H2, 1.3), -0.05, 0.53, { base: 1.0, gap: 8, w: 1.2 }, {
         mats: { side: { base: 0.92, fill: 'tint', gap: 4, w: 1 } },
         faces: {
@@ -257,7 +260,7 @@
           },
         },
       });
-      m.part('keyboard', { fly: { d: [-900, 240], s: 1.4, r: -0.2, at: [0.45, 0.92] } });
+      m.part('keyboard', { fly: { d3: [-18, 0, 50], at: [0.6, 0.88] } });
       m.box(-31, 0, 4, 28, 0.9, 11.5, { base: 0.98, gap: 7, w: 1.2 }, {
         hf: 0.45,
         r: 0.8,
@@ -275,10 +278,27 @@
           },
         },
       });
-      m.part('mouse', { fly: { d: [900, 260], s: 1.4, r: 0.3, at: [0.5, 0.95] } });
+      m.part('mouse', { fly: { d3: [18, 0, 62], at: [0.62, 0.9] } });
       m.box(4, 0, 6.5, 5.7, 0.4, 11.4, { base: 0.88, fill: 'tint', gap: 4, w: 1 }, { r: 2.6 });
       m.box(4.15, 0.4, 6.65, 5.4, 0.55, 11.1, { base: 1.0, gap: 6, w: 1.1 }, { r: 2.5 });
       note(m, [31, 0, 14], '11.5 mm thin', 'right');
+    },
+    extras(ctx, s) {
+      // as it is switched on, it says hello
+      if (!s.hello) return;
+      ctx.globalAlpha = s.hello;
+      ctx.fillStyle = s.pal.light;
+      ctx.fillRect(0, 0, s.W, s.H);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, s.W * (0.22 + 0.62 * s.write), s.H);
+      ctx.clip();
+      ctx.fillStyle = s.pal.tint;
+      ctx.font = `italic 400 96px ${Ink.FONTS.serif}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('hello', s.W / 2, s.H / 2);
+      ctx.restore();
     },
   });
 
@@ -399,18 +419,90 @@
         p.fill('ink', foot);
       }, [[-4.6, 0, -4.6], [4.6, 0, 4.6]]);
       tableLine(m, [-13, 0, 9], [13, 0, 9]);
-      // inside: the board, the fan, the M4 under its lid
-      m.flat([[x0 + 0.4, 0.9, x0 + 0.4], [-x0 - 0.4, 0.9, x0 + 0.4], [-x0 - 0.4, 0.9, -x0 - 0.4], [x0 + 0.4, 0.9, -x0 - 0.4]], { base: 0.9, fill: 'tint2', gap: 5, w: 1, shade: false }, { n: [0, 1, 0] });
-      m.cyl([-2.3, 0.9, -2.3], 2.7, 1.2, 'y', { base: 0.4, dark: true, fill: 'ink', gap: 3, w: 1 }, {
-        cap(F) { F.draw((p) => { for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; p.gouge('paper', [[0, 0], [2.8 * Math.cos(a), 2.8 * Math.sin(a)], [2.9 * Math.cos(a + 0.4), 2.9 * Math.sin(a + 0.4)]], F.px(1), { lod: 0.5 }); } p.fill('earth', ell2(0, 0, 0.9, 0.9, 20)); }); },
+      // inside, from the back: the ports, the blower and its heatsink fins, the storage, the M4
+      const B = x0 + 0.4; // board corner in world units; u runs right, v runs toward you
+      const at = (u, v, y = 0.9) => [B + u, y, B + v];
+      const dark = { base: 0.3, dark: true, fill: 'ink', gap: 3, w: 1 };
+      const metal = { base: 0.86, gap: 3.5, w: 1 };
+      const rndB = Ink.rng(404);
+      m.flat([at(0, 0), at(11.9, 0), at(11.9, 11.9), at(0, 11.9)], { base: 0.9, fill: 'tint2', gap: 6, w: 0.9, shade: false }, {
+        n: [0, 1, 0],
+        frame: { o: at(0, 0), U: [1, 0, 0], V: [0, 0, 1], w: 11.9, h: 11.9 },
+        deco(F) {
+          F.draw((p) => {
+            const k = F.px(1);
+            // traces, routed in right angles with a 45° jog, and their vias
+            for (let i = 0; i < 46; i++) {
+              const u0 = rndB() * 11.4 + 0.2, v0 = rndB() * 11.4 + 0.2, du = (rndB() - 0.5) * 4, dv = (rndB() - 0.5) * 4;
+              const pts = [[u0, v0], [u0 + du * 0.6, v0], [u0 + du * 0.6 + Math.sign(dv) * 0.3, v0 + Math.sign(dv) * 0.3], [u0 + du * 0.6 + Math.sign(dv) * 0.3, v0 + dv]];
+              p.gouge(i % 3 ? 'ink' : 'earth', pts, 0.55 * k, { smooth: false, taper: 0.7, lod: 1 });
+              p.fill('warm', ell2(pts[3][0], pts[3][1], 0.06, 0.06, 6), 2);
+            }
+            for (let u = 0.4; u < 11.6; u += 0.45) for (let v = 9.9; v < 11.0; v += 0.45) p.fill('warm', ell2(u, v, 0.05, 0.05, 6), 2);
+            // silkscreen
+            [['U1000', 6.1, 5.5], ['J3100', 0.6, 1.6], ['U6100', 0.7, 7.7], ['L5300', 10.0, 4.3], ['C2110', 5.4, 9.3], ['820-03185', 4.6, 11.4]].forEach(([t, u, v]) => p.text('light', t, u, v, 0.26, { align: 'left', lod: 2 }));
+            // screw holes
+            for (const [u, v] of [[0.45, 0.45], [11.45, 0.45], [0.45, 11.45], [11.45, 11.45]]) {
+              p.fill('warm', ell2(u, v, 0.32, 0.32, 14));
+              p.fill('ink', ell2(u, v, 0.14, 0.14, 10));
+            }
+          });
+        },
       });
-      for (const [x, z] of [[-4.6, 1.6], [-4.6, 3.4], [3.4, -4.6], [1.6, -4.6]]) m.box(x, 0.9, z, 1.3, 0.16, 1.0, { base: 0.3, dark: true, fill: 'ink', gap: 3, w: 1 });
-      m.box(0.4, 0.9, 0.2, 2.8, 0.22, 2.3, { base: 0.97, gap: 3, w: 0.9, edge: 1.3 }, {
+      // ports along the back: Ethernet, HDMI, three Thunderbolt
+      m.box(...at(0.5, 0.05), 1.6, 1.25, 1.0, metal, { faces: { back(F) { F.draw((p) => p.fill('ink', rr2(0.2, 0.25, 1.2, 0.8, 0.1))); } } });
+      m.box(...at(2.4, 0.05), 1.5, 0.62, 0.9, metal);
+      for (const u of [4.3, 5.4, 6.5]) m.box(...at(u, 0.05), 0.85, 0.42, 0.9, metal);
+      // the blower: a shroud over an impeller of curved blades, ducted back to a stack of fins
+      for (let i = 0; i < 11; i++) m.box(...at(7.9 + i * 0.34, 0.35), 0.12, 1.05, 2.3, i % 2 ? metal : { ...metal, base: 0.7 });
+      m.box(...at(5.6, 1.1), 2.3, 1.0, 1.5, metal);
+      m.cyl(at(3.4, 4.6), 2.6, 1.1, 'y', metal, {
+        cap(F) {
+          F.draw((p) => {
+            const k = F.px(1);
+            p.fill('ink', ell2(0, 0, 1.95, 1.95, 40));
+            for (let i = 0; i < 24; i++) {
+              const a = (i / 24) * Math.PI * 2;
+              const pts = [0.72, 1.1, 1.5, 1.88].map((r, j) => [r * Math.cos(a + j * 0.16), r * Math.sin(a + j * 0.16)]);
+              p.gouge('paper', pts, 1.2 * k, { taper: 0.2, lod: 0.5 });
+            }
+            p.fill('umber', ell2(0, 0, 0.62, 0.62, 24));
+            p.ring('paper', ell2(0, 0, 0.62, 0.62, 24), 0.8 * k, 0.5);
+            p.fill('earth', ell2(0, 0, 0.16, 0.16, 10));
+            p.ring('ink', ell2(0, 0, 1.95, 1.95, 40), 1.2 * k);
+            for (const a of [0.6, 2.7, 4.8]) {
+              p.fill('paper', ell2(2.32 * Math.cos(a), 2.32 * Math.sin(a), 0.16, 0.16, 10));
+              p.gouge('ink', [[2.32 * Math.cos(a) - 0.1, 2.32 * Math.sin(a)], [2.32 * Math.cos(a) + 0.1, 2.32 * Math.sin(a)]], 0.6 * k, { smooth: false });
+            }
+          });
+        },
+      });
+      // storage: two flash packages
+      for (const v of [8.1, 9.95]) m.box(...at(0.7, v), 1.9, 0.16, 1.6, dark, { faces: { top(F) { F.draw((p) => p.text('light', 'NAND', 0.95, 0.8, 0.28, { lod: 2 })); } } });
+      // power: a column of inductors beside the chip, and small capacitors round it
+      for (let i = 0; i < 5; i++) m.box(...at(10.1, 4.6 + i * 1.02), 1.2, 0.48, 0.86, { base: 0.78, gap: 3, w: 0.9 }, { faces: { top(F) { F.draw((p) => p.text('ink', 'R47', 0.6, 0.43, 0.22, { lod: 2 })); } } });
+      for (let i = 0; i < 18; i++) {
+        const a = (i / 18) * Math.PI * 2;
+        m.box(...at(7.75 + 2.2 * Math.cos(a), 7.3 + 1.9 * Math.sin(a)), 0.3, 0.12, 0.16, i % 3 ? { base: 0.7, fill: 'warm', gap: 2, w: 0.6 } : dark);
+      }
+      // front receptacles behind the two USB-C ports and the headphone socket
+      for (const u of [2.3, 3.5]) m.box(...at(u, 11.0), 0.36, 0.95, 0.85, metal);
+      m.cyl(at(8.6, 11.0, 1.6), 0.32, 0.9, 'z', metal);
+      // antenna leads climbing to the corner
+      m.cable([at(10.8, 3.6, 1.0), at(11.3, 3.4, 1.4), at(11.6, 2.6, 2.6), at(11.7, 1.6, 3.8)], 2.2, { core: 'light', taper: 0.3 });
+      m.cable([at(10.4, 3.9, 1.0), at(10.9, 4.2, 1.6), at(11.5, 5.2, 2.8)], 2.2, { core: 'earth', taper: 0.3 });
+      // the M4: substrate, then the lid you zoom into
+      m.box(...at(5.95, 5.75), 3.6, 0.08, 3.1, { base: 0.85, fill: 'tint2', gap: 3, w: 0.8, shade: false });
+      m.box(0.4, 0.98, 0.2, 2.8, 0.2, 2.3, { base: 0.97, gap: 3, w: 0.9, edge: 1.3 }, {
         faces: {
           top(F) {
             F.model.mark('clip', F, 0, 0, F.w, F.h);
             F.model.mark('portal', F, (F.w - 2.5) / 2, (F.h - 2.5) / 2, 2.5, 2.5);
-            F.draw((p) => p.text('earth', 'M4', 1.4, 1.15, 0.6, { weight: 600, lod: 1 }));
+            F.draw((p) => {
+              p.ring('earth', rr2(0.12, 0.12, 2.56, 2.06, 0.1), F.px(0.8), 1);
+              p.text('earth', 'M4', 1.4, 1.0, 0.6, { weight: 600, lod: 1 });
+              p.text('earth', 'APL1206', 1.4, 1.65, 0.2, { lod: 2 });
+            });
           },
         },
       });

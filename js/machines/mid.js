@@ -368,12 +368,12 @@
     year: '2001',
     kind: 'Music player',
     line: 'A 5 GB hard drive and a scroll wheel that really turned. A thousand songs in your pocket.',
-    verb: 'Find the iPhone in its hidden Brick game',
+    verb: 'Look closer at the album art',
     tint: '#c4c4bb',
     tint2: '#b9bca9',
     view: { yaw: 22, pitch: 9 },
     fit: [620, 720],
-    next: { type: 'screen', bg: 'tint2' },
+    next: { type: 'screen', bg: 'paper' },
     make(m) {
       shadowOp(m, [[-3, 0, -1], [3, 0, -1], [3, 0, 1], [-3, 0, 1]], 14, 2);
       tableLine(m, [-7, 0, 3], [9, 0, 3]);
@@ -401,23 +401,24 @@
             screen(F, [1.0, 0.95, 4.14, 3.1], {
               ui: [160, 120],
               bg: 'tint2',
-              portal: [72, 33, 16],
+              portal: [8, 22, 62],
               draw(p, W, H) {
-                // the hidden Brick game, a bonus block among the bricks
-                p.text('ink', 'Brick', W / 2, 7, 8, { weight: 600, lod: 0.5 });
-                p.fill('ink', [[4, 13], [W - 4, 13], [W - 4, 14], [4, 13.9]], 0.5);
+                // Now Playing: the song from the first iPod advert, with an album cover you can fall into
+                p.text('ink', 'Now Playing', W / 2, 7, 8, { weight: 600, lod: 0.5 });
+                p.fill('ink', [[4, 13], [W - 4, 13], [W - 4, 14], [4, 14]], 0.5);
                 p.fill('ink', rr2(W - 20, 4, 12, 6, 1), 0.5);
-                for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++) {
-                  const x = 5 + c * 19 + (r % 2) * 9, y = 20 + r * 9;
-                  if (r === 1 && (c === 3 || c === 4)) continue;
-                  if (x + 16 > W - 4) continue;
-                  p.fill('ink', [[x, y], [x + 16, y], [x + 16, y + 6], [x, y + 6]], 0.5);
-                }
-                p.ring('ink', [[72, 33], [88, 33], [88, 49], [72, 49]], 1.2, 0.5);
-                p.fill('ink', rr2(76.5, 35.5, 7, 11, 1.2), 0.5);
-                p.fill('tint2', rr2(77.5, 37.5, 5, 7, 0.4), 0.5);
-                p.fill('ink', [[60, 108], [96, 108], [96, 111], [60, 111]], 0.5);
-                p.fill('ink', ell2(104, 78, 2.4, 2.4, 10), 0.5);
+                p.text('ink', '1 of 12', 14, 7, 6, { lod: 1, align: 'left' });
+                // the album art, and on it the next machine
+                p.fill('paper', [[8, 22], [70, 22], [70, 84], [8, 84]], 0.5);
+                p.ring('ink', [[8, 22], [70, 22], [70, 84], [8, 84]], 1, 0.5);
+                p.fill('ink', rr2(29, 29, 20, 39, 4), 0.5);
+                p.fill('earth', rr2(31.5, 35, 15, 25, 0.6), 0.5);
+                p.ring('paper', ell2(39, 63.5, 2.2, 2.2, 12), 0.7, 0.5);
+                p.fill('paper', rr2(36.5, 31.5, 5, 0.9, 0.4), 0.5);
+                p.text('ink', 'Take California', 76, 34, 8.5, { weight: 600, align: 'left', lod: 0.5 });
+                p.text('ink', 'Propellerheads', 76, 47, 7.5, { align: 'left', lod: 0.5 });
+                p.text('ink', 'Decksandrumsand…', 76, 59, 6.5, { align: 'left', lod: 1 });
+                p.ring('ink', [[8, 96], [152, 96], [152, 102], [8, 102]], 0.9, 0.5);
               },
             });
           },
@@ -448,6 +449,21 @@
         p.dim(...P([-4.4, 0, 0]), ...P([-4.4, 10.24, 0]), '4 in', { off: -12 });
         p.note(...P([7.6, 2.6, 1]), '5 GB, 1,000 songs');
       }, [[-4.4, 0, 0]]);
+    },
+    extras(ctx, s) {
+      // the song plays on
+      const f = (s.time / 60 + 0.2) % 1;
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = s.pal.ink;
+      ctx.fillRect(9, 97, 142 * f, 4);
+      ctx.font = `500 6px ${Ink.FONTS.mono}`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      const sec = Math.floor(f * 60 * 6);
+      ctx.fillText(`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, 8, 110);
+      ctx.beginPath();
+      ctx.moveTo(146, 106); ctx.lineTo(152, 110); ctx.lineTo(146, 114); ctx.closePath();
+      ctx.fill();
     },
   });
 

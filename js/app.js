@@ -59,8 +59,8 @@
     BASE = makePal({ paper: g('--paper'), warm: g('--warm'), light: g('--light'), ink: g('--ink'), umber: g('--umber'), earth: g('--earth'), tint: g('--earth'), tint2: g('--earth'), graphite: g('--graphite'), graphite2: g('--graphite2') });
     grain = makeGrain();
   }
-  function withTint(pal, dev) {
-    let t = hex(dev.tint), t2 = hex(dev.tint2 || dev.tint);
+  function withTint(pal, dev, over) {
+    let t = over || hex(dev.tint), t2 = hex(dev.tint2 || dev.tint);
     if (pal.tintTo) { t = mix(t, pal.tintTo, pal.tintAmt); t2 = mix(t2, pal.tintTo, pal.tintAmt); }
     const p = Object.create(pal);
     p.tint = css(t);
@@ -135,11 +135,11 @@
     setM(cam);
     drawPlate(ctx, g.plate, pal, a, detailOf(cam));
   }
-  function drawExtras(dev, cam, pal, a) {
+  function drawExtras(dev, cam, pal, a, more) {
     if (!dev.extras || !dev.screen || a < 0.01) return;
     setM(Af.mul(cam, dev.screen.M));
     ctx.save();
-    dev.extras(ctx, { a, time: S.time, pal, W: dev.screen.w, H: dev.screen.h });
+    dev.extras(ctx, { a, time: S.time, pal, W: dev.screen.w, H: dev.screen.h, ...more });
     ctx.restore();
     ctx.globalAlpha = 1;
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
@@ -202,21 +202,37 @@
   function renderAssemble(dev, nxt, t) {
     const H = hero(dev);
     const Mf = dev.marks.focus, Ma = nxt.marks.anchor;
-    const pal = withTint(BASE, dev), npal = withTint(BASE, nxt);
+    const pal = withTint(BASE, dev);
+    let npal = withTint(BASE, nxt);
     if (t <= SPLIT) {
       const cam = Af.mul(rest(), Af.pow(Af.mul(H, Af.inv(Mf)), t / SPLIT));
       drawParts(dev, cam, pal, (part) => (part.name === 'focus' ? null : { ink: 1 - 0.55 * smooth(0.5, 1, t / SPLIT) }));
       return;
     }
     const u = (t - SPLIT) / (1 - SPLIT);
-    const camC = Af.mul(rest(), Af.pow(Af.mul(H, Af.inv(Ma)), 1 - u));
+    if (nxt.colors) {
+      // run through the machine's colours while it comes together, ending on its own
+      const c = nxt.colors, k = smooth(0.22, 0.86, u) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(k));
+      npal = withTint(BASE, nxt, mix(hex(c[i]), hex(c[i + 1]), k - i));
+    }
+    // An exploded assembly pulls back quickly, and further than usual, so the whole diagram fits.
+    const exploded = nxt.parts.some((p) => p.fly && p.fly.d3);
+    const cu = exploded ? 1 - Math.pow(1 - u, 2.6) : u;
+    const back = exploded ? 1 - 0.46 * Math.pow(Math.sin(Math.PI * clamp(u / 0.97, 0, 1)), 1.3) : 1;
+    const Z = Af.chain(Af.T(500, 500), Af.S(back), Af.T(-500, -500));
+    const camC = Af.chain(rest(), Z, Af.pow(Af.mul(H, Af.inv(Ma)), 1 - cu));
     const camP = Af.chain(camC, Ma, Af.inv(Mf));
     drawParts(dev, camP, pal, () => ({ ink: 0.45 * (1 - smooth(0, 0.18, u)) }), (p) => p.name !== 'focus');
     const flight = (part) => {
       if (!part.fly) return { ink: smooth(0, 0.35, u), pencil: smooth(0, 0.2, u) };
       const f = part.fly;
-      const q = easeOut(clamp((u - f.at[0]) / (f.at[1] - f.at[0]), 0, 1));
+      const q = easeInOut(clamp((u - f.at[0]) / (f.at[1] - f.at[0]), 0, 1));
       const k = 1 - q;
+      if (f.d3) {
+        // an exploded view: the part waits along a 3D line, sketched, then slides home
+        const o = nxt.model.PL(f.d3);
+        return { ink: smooth(0.2, 0.55, u), pencil: smooth(0.02, 0.3, u), T: Af.T(o[0] * k, o[1] * k) };
+      }
       const c = part.c;
       const T = Af.chain(Af.T(c[0] + k * f.d[0], c[1] + k * f.d[1]), Af.R(k * (f.r || 0)), Af.S(1 + k * ((f.s || 1) - 1)), Af.T(-c[0], -c[1]));
       return { ink: smooth(0.3, 0.85, q), pencil: smooth(0, 0.3, q), T };
@@ -229,7 +245,9 @@
       if (i === lastCore) drawParts(dev, camP, pal, () => ({ ink: 1 - smooth(0.12, 0.45, u) }), (p) => p.name === 'focus');
     });
     const settled = smooth(0.9, 1, u);
-    drawExtras(nxt, camC, npal, settled);
+    const hello = nxt.colors ? smooth(0.78, 0.84, u) * (1 - smooth(0.94, 1, u)) : 0;
+    if (hello > 0.01) drawExtras(nxt, camC, npal, 1, { hello, write: smooth(0.8, 0.93, u) });
+    else drawExtras(nxt, camC, npal, settled);
     drawGlass(nxt, camC, npal, settled);
   }
 

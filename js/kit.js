@@ -60,7 +60,7 @@
     F.model.screen = { M: Mui, w: W, h: H };
     p.withM(Mui, () => {
       p.fill(o.bg || 'ink', rr2(0, 0, W, H, (o.r || 0) * (W / w)), 0);
-      if (o.draw) o.draw(p, W, H);
+      if (o.draw) p.withClip([0, 0, W, H], () => o.draw(p, W, H));
     });
     if (o.portal) {
       const [x, y, s] = o.portal;
