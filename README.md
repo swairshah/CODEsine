@@ -22,13 +22,22 @@ Open `index.html` in a browser. No build step or server is needed.
 
 ## Sound
 
-When you rest on a machine, it plays period sound effects first: the Apple II's power-on beep and the Disk II seeking, iPod wheel clicks, a MagSafe snap. Then a narrator reads that era's best-known line, such as "1,000 songs in your pocket", with a subtitle naming where the line comes from. If you stay, an original music bed in the style of that era's adverts eases in quietly, and the line returns over it like a tagline. When you scroll on, it fades out and the next machine's sound begins.
+Turn on Sound and each machine has two layers:
 
-None of it is a recording from an Apple event or advert. Those recordings are copyrighted, so the effects and music are made live with Web Audio, and the lines are read by macOS voices: Fred, a voice from the classic Mac era, for the Macintosh's own 1984 "hello", and Samantha for the rest. The clips are in `audio/voice/`.
+- **Background music** follows your scroll. Between two machines, the old track and the new one crossfade on an equal-power curve, so one fades out exactly as the other fades in. While you rest on a machine, its track keeps playing.
+- **A sound bite** plays once each time you arrive, after a short pause. It ducks the music while it plays. It fades out at the end of its clip, after `biteMax` seconds if the clip is long, or quickly as soon as you scroll away.
 
-To use recordings you have the rights to, put them in `audio/custom/` and list them in `CUSTOM` at the top of `js/sound.js`.
+What plays is set in `js/soundtrack.js`, one entry per machine. Each entry has a `bite` and a `music` list, in order of preference, and the first source that can play is used:
 
-`SOUNDTRACK.md` lists, for every stage, the real sound bites with timestamped YouTube links and three or four song options, ready to pick from. `05-bite` replaces the iPod's spoken line and `05-ad` replaces its music.
+- `yt(id, start, end, title, line, source)`: a YouTube clip between two times, in seconds. It plays in a small visible player docked at the bottom right, as YouTube requires.
+- `file(src, { start, end, line, source })`: an audio file in this folder.
+- `synth(song)`: an original placeholder bed made in the browser.
+
+The file is filled in with the real clips and songs from `SOUNDTRACK.md`. Each entry falls back to a narrated line (macOS voices, in `audio/voice/`) and a synth bed. Levels and fade times are at the top of the same file.
+
+YouTube clips only play when the page is served over http, so run `./serve.sh` and open http://localhost:8642. Opened as a file, or inside the claude.ai artifact (which blocks embedded sites), the page uses the fallbacks.
+
+`SOUNDTRACK.md` lists, for every stage, the sound bites with timestamped YouTube links and three or four song options to choose from.
 
 ## How it works
 
@@ -36,7 +45,7 @@ To use recordings you have the rights to, put them in `audio/custom/` and list t
 - `js/geo.js` holds affine maps and a small 3D modeller: boxes (with rounded or sloped tops), extrusions, slabs, lofts and cylinders in centimetres, seen in a fixed orthographic three-quarter view and shaded from one light. Orthographic projection maps every flat face to the page by an exact affine transform.
 - `js/kit.js` holds the machine registry and shared pieces: screens with a hidden portal, keyboards, vents, and period desktop furniture.
 - `js/machines/*.js` are the machines. Each one names its parts. Parts can fly in during an assembly or peel away when you go inside, and each machine marks the rectangles that transitions use: `portal`, `focus`, `anchor`, `chip` and `self`.
-- `js/sound.js` is the soundtrack: a small synth rack (oscillators, FM, plucked strings, drums from noise), a step sequencer for each era's music bed, and the timing for each visit.
+- `js/soundtrack.js` says what plays at each machine. `js/sound.js` decides when: the crossfades, ducking and fades, the YouTube, file and synth sources, and a small synth rack for the placeholders.
 - `js/app.js` holds the camera. A camera is an affine map from a machine's 1000 × 1000 frame to the screen. Every transition interpolates along the one-parameter path `pow(M, t)` from the identity to the map that frames the target, which reads as a camera moving in and turning square to a screen or chip. On screens, the next machine arrives in pencil first and is then inked.
 
 To add a machine, call `Kit.add` in a machine file with a `make(model)` and a `next` that says how it leads on.

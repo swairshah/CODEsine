@@ -122,6 +122,22 @@
     transition: opacity 0.9s ease, transform 0.9s ease;
   }
   .sound-line.on { opacity: 1; transform: none; }
+
+  /* YouTube sources play in small players that stay visible while they are heard */
+  .yt-dock {
+    position: fixed;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    z-index: 5;
+  }
+  .yt-dock.off { display: none; }
+  .yt-card { display: none; margin: 0; padding: 6px; background: var(--paper); border: 1px solid var(--ink); border-radius: 2px; }
+  .yt-card.on { display: block; }
+  .yt-card iframe { display: block; width: 200px; height: 200px; }
+  .yt-card figcaption { width: 200px; margin-top: 4px; font: 400 0.6rem/1.3 var(--f-mono); color: var(--earth); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sound-line q { font-style: italic; }
   .sound-line span { display: block; margin-top: 2px; font-family: var(--f-mono); font-size: 0.66rem; letter-spacing: 0.06em; color: var(--earth); }
 
@@ -220,6 +236,7 @@
 <script src="js/ink.js"></script>
 <script src="js/geo.js"></script>
 <script src="js/kit.js"></script>
+<script src="js/soundtrack.js"></script>
 <script src="js/sound.js"></script>
 <script src="js/machines/early.js"></script>
 <script src="js/machines/mid.js"></script>

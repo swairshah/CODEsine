@@ -377,7 +377,6 @@
     const onOff = window.Sound ? Sound.toggle() : false;
     soundBtn.setAttribute('aria-pressed', onOff ? 'true' : 'false');
     soundBtn.querySelector('span').textContent = onOff ? 'Sound on' : 'Sound off';
-    if (onOff) Sound.preload();
     touched();
   });
 
@@ -466,7 +465,7 @@
     updateUI();
     if (window.Sound) {
       const r = Math.round(S.L);
-      Sound.update(!S.anim && Math.abs(S.L - r) < 0.04 ? mod(r, N) : null, now);
+      Sound.update(S.L, !S.anim && Math.abs(S.L - r) < 0.04 ? mod(r, N) : null, now);
     }
     requestAnimationFrame(frame);
   }

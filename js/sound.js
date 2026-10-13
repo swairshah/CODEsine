@@ -1,37 +1,21 @@
-// sound.js: what each stage sounds like. Nothing here is a recording from an event or an advert.
-// Each stage plays period sound effects made with Web Audio, then that era's best-known line read
-// by a narrator, then, if you stay, an original music bed in the style of the period's adverts.
-// To use your own recordings, put them in audio/custom/ and list them in CUSTOM below.
-// Keys are the stage number and 'bite' (replaces the spoken line) or 'ad' (replaces the music).
+// sound.js: the soundtrack engine. What plays is set in soundtrack.js; this file decides when.
+//
+// Background music follows your scroll: between two machines the old track and the new one are
+// crossfaded on an equal-power curve, so one fades out exactly as the other fades in, and at rest
+// a machine's track simply keeps playing. A sound bite plays once each time you arrive, ducks the
+// music while it plays, and fades out at its end, after `biteMax` seconds, or as soon as you leave.
+//
+// Sources are YouTube clips (in small visible players), audio files, or the synth rack below, which
+// makes original placeholder music and period sound effects in the browser.
 'use strict';
 
 (function (global) {
-  const CUSTOM = {
-    // '05-bite': 'audio/custom/05-bite.mp3',
-    // '05-ad': 'audio/custom/05-ad.mp3',
-  };
+  const CFG = global.SOUNDTRACK || { stages: [] };
   const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
-  let ac = null, out = null, verb = null, noiseBuf = null;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  let ac = null, out = null, verb = null, noiseBuf = null, curDest = null;
   const bus = {};
   let enabled = false;
-
-  // ---------- stages ----------
-  // line: what the narrator says; source: where the line comes from; song: the music bed.
-  const STAGES = [
-    { voice: '00', line: 'Byte into an Apple.', source: 'Apple Computer advert, 1976', sfx: 'terminal', song: 'kit' },
-    { voice: '01', line: 'Introducing Apple II. The home computer that’s ready to work, play and grow with you.', source: 'Apple II advert, 1977', sfx: 'apple2', song: 'chip' },
-    { voice: '02', line: 'Hello. I’m Macintosh. It sure is great to get out of that bag.', source: 'Macintosh speaking at its launch, 1984', sfx: 'mac', song: 'synth84', tag: '02b', tagLine: 'And you’ll see why 1984 won’t be like “1984”.', tagSource: 'Macintosh advert, 1984' },
-    { voice: '03', line: 'What’s on your PowerBook?', source: 'PowerBook advertising, 1992', sfx: 'chime', song: 'fm91' },
-    { voice: '04', line: 'Say hello to iMac.', source: 'iMac advertising, 1998', sfx: 'imac', song: 'trip98' },
-    { voice: '05', line: '1,000 songs in your pocket.', source: 'iPod launch, 2001', sfx: 'wheel', song: 'bigbeat01' },
-    { voice: '06', line: 'An iPod, a phone and an internet communicator.', source: 'iPhone launch, 2007', sfx: 'unlock', song: 'indie07' },
-    { voice: '07', line: 'The world’s thinnest notebook.', source: 'MacBook Air launch, 2008', sfx: 'envelope', song: 'folk08' },
-    { voice: '08', line: 'One more thing.', source: 'Apple silicon Mac event, 2020', sfx: 'lid', song: 'ambient20' },
-    { voice: '09', line: '16 billion transistors.', source: 'M1 introduction, 2020', sfx: 'shimmer', song: 'pulse20' },
-    { voice: '10', line: 'Hello. In seven vibrant colours.', source: 'iMac introduction, 2021', sfx: 'hello', song: 'pop21' },
-    { voice: '11', line: 'MagSafe is back.', source: 'MacBook Pro introduction, 2021', sfx: 'magsafe', song: 'deep21' },
-    { voice: '12', line: 'Five by five inches.', source: 'Mac mini introduction, 2024', sfx: 'mini', song: 'minimal24' },
-  ];
 
   // ---------- music beds: chords per bar, and what plays on each sixteenth ----------
   const SONGS = {
@@ -64,7 +48,7 @@
     out.connect(comp).connect(ac.destination);
     for (const k of ['music', 'sfx']) {
       bus[k] = ac.createGain();
-      bus[k].gain.value = 0;
+      bus[k].gain.value = 1;
       bus[k].connect(out);
     }
     verb = ac.createConvolver();
@@ -93,7 +77,7 @@
     return Math.max(dur, a + d) + r;
   }
   function route(g, o) {
-    g.connect(o.dest || bus.music);
+    g.connect(o.dest || curDest || bus.music);
     if (o.wet) {
       const w = ac.createGain();
       w.gain.value = o.wet;
@@ -200,8 +184,8 @@
     mini(t) { rim(t, 0.06, bus.sfx); noise(t + 0.2, 1.6, { type: 'lowpass', f: 900, v: 0.02, dest: bus.sfx }); return 1.8; },
   };
 
-  // ---------- the music scheduler ----------
-  let song = null, step = 0, nextT = 0, timer = null;
+
+  // ---------- one sixteenth of a synth music bed ----------
   function playStep(S, s, t) {
     const bar = Math.floor(s / 16) % S.chords.length, i = s % 16, ch = S.chords[bar];
     const spb = 60 / S.bpm, sixteenth = spb / 4;
@@ -233,127 +217,253 @@
     if (on(D.clap)) clap(t, 0.035);
     if (on(D.rim)) rim(t, 0.03);
   }
-  function startSong(name) {
-    stopSong();
-    song = SONGS[name];
-    if (!song) return;
-    step = 0;
-    nextT = ac.currentTime + 0.1;
-    timer = setInterval(() => {
-      while (nextT < ac.currentTime + 0.2) {
-        playStep(song, step, nextT);
-        const swing = song.swing && step % 2 ? song.swing : 0;
-        nextT += (60 / song.bpm / 4) * (1 + swing);
-        step++;
-      }
-    }, 30);
-  }
-  function stopSong() {
-    if (timer) clearInterval(timer);
-    timer = null;
-    song = null;
-  }
 
-  // ---------- spoken lines and custom files (plain audio elements, so they also work from file://) ----------
-  const clips = new Map();
-  function clip(src) {
-    if (!clips.has(src)) {
-      const a = new Audio();
-      a.preload = 'auto';
-      a.src = src;
-      a.ok = null;
-      a.addEventListener('canplaythrough', () => (a.ok = true), { once: true });
-      a.addEventListener('error', () => (a.ok = false), { once: true });
-      clips.set(src, a);
-    }
-    return clips.get(src);
-  }
-  function fadeEl(el, to, ms) {
-    const from = el.volume, t0 = performance.now();
-    clearInterval(el._fade);
-    el._fade = setInterval(() => {
-      const k = Math.min(1, (performance.now() - t0) / ms);
-      el.volume = from + (to - from) * k;
-      if (k >= 1) {
-        clearInterval(el._fade);
-        if (to === 0) el.pause();
-      }
-    }, 30);
-  }
-  function say(el, vol) {
-    if (!el || el.ok === false) return false;
-    try {
-      el.currentTime = 0;
-      el.volume = vol;
-      const p = el.play();
-      if (p && p.catch) p.catch(() => {});
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  // ---------- sources ----------
+  // Every source gives the same small interface: start(), stop(), gain(v), elapsed(), length(), ready.
 
-  // ---------- one visit to a stage ----------
-  let visit = null;
-  const ramp = (g, v, sec) => {
-    const t = ac.currentTime;
-    g.gain.cancelScheduledValues(t);
-    g.gain.setValueAtTime(g.gain.value, t);
-    g.gain.linearRampToValueAtTime(v, t + sec);
-  };
-  const pad2 = (i) => String(i).padStart(2, '0');
-
-  function begin(i) {
-    const st = STAGES[i];
-    if (!st) return;
-    const v = { i, timers: [], els: [] };
-    visit = v;
-    ramp(bus.sfx, 0.9, 0.05);
-    ramp(bus.music, 0, 0.05);
-    const later = (sec, fn) => v.timers.push(setTimeout(() => visit === v && fn(), sec * 1000));
-    const custom = CUSTOM[`${pad2(i)}-bite`] ? clip(CUSTOM[`${pad2(i)}-bite`]) : { ok: false };
-    const ad = CUSTOM[`${pad2(i)}-ad`] ? clip(CUSTOM[`${pad2(i)}-ad`]) : { ok: false };
-    const fx = SFX[st.sfx] ? SFX[st.sfx](ac.currentTime + 0.05) : 0.5;
-    const line = custom.ok ? custom : clip(`audio/voice/${st.voice}.mp3`);
-    later(fx + 0.2, () => {
-      if (say(line, 0.85)) v.els.push(line);
-      caption(st.line, st.source);
-      const len = Number.isFinite(line.duration) ? line.duration : 3;
-      // after the line, the advert: the music bed eases in under everything
-      later(len + 0.8, () => {
-        if (ad.ok) {
-          ad.loop = true;
-          if (say(ad, 0)) { v.els.push(ad); fadeEl(ad, 0.35, 4000); }
-        } else {
-          startSong(st.song);
-          ramp(bus.music, 0.9, 4);
+  // a synth music bed, with its own volume
+  class SynthSource {
+    constructor(spec) { this.song = SONGS[spec.song]; this.g = ac.createGain(); this.g.gain.value = 0; this.g.connect(out); this.ready = !!this.song; this.timer = null; }
+    start() {
+      if (this.timer || !this.song) return;
+      let stepN = 0, next = ac.currentTime + 0.08;
+      this.t0 = ac.currentTime;
+      this.timer = setInterval(() => {
+        while (next < ac.currentTime + 0.2) {
+          curDest = this.g;
+          playStep(this.song, stepN, next);
+          curDest = null;
+          next += 60 / this.song.bpm / 4;
+          stepN++;
         }
-        caption(null);
-        // and, like an advert, the tagline comes back over the music
-        later(16, () => {
-          const tag = clip(`audio/voice/${st.tag || st.voice}.mp3`);
-          ramp(bus.music, 0.45, 0.6);
-          if (say(tag, 0.7)) v.els.push(tag);
-          caption(st.tagLine || st.line, st.tagSource || st.source);
-          const tl = Number.isFinite(tag.duration) ? tag.duration : 3;
-          later(tl + 0.4, () => { ramp(bus.music, 0.9, 1.5); caption(null); });
-        });
-      });
-    });
-  }
-  function end() {
-    const v = visit;
-    visit = null;
-    if (!v) return;
-    v.timers.forEach(clearTimeout);
-    v.els.forEach((el) => fadeEl(el, 0, 900));
-    if (ac) {
-      ramp(bus.music, 0, 1.2);
-      ramp(bus.sfx, 0, 0.6);
-      const s = song;
-      setTimeout(() => { if (song === s) stopSong(); }, 1300);
+      }, 30);
     }
+    stop() { clearInterval(this.timer); this.timer = null; }
+    gain(v) { this.g.gain.setTargetAtTime(v, ac.currentTime, 0.03); }
+    elapsed() { return this.timer ? ac.currentTime - this.t0 : 0; }
+    length() { return Infinity; }
+  }
+
+  // an audio file; plain <audio> so it also works when the page is opened from disk
+  class FileSource {
+    constructor(spec, loop) {
+      this.spec = spec;
+      this.loop = loop;
+      this.el = new Audio();
+      this.el.preload = 'auto';
+      this.el.src = spec.src;
+      this.el.volume = 0;
+      this.ready = true;
+      this.el.addEventListener('error', () => (this.ready = false));
+      this.el.addEventListener('timeupdate', () => {
+        const end = this.spec.end;
+        if (end != null && this.el.currentTime >= end) {
+          if (this.loop) this.el.currentTime = this.spec.start || 0;
+          else this.el.pause();
+        }
+      });
+      this.el.loop = loop && this.spec.end == null;
+    }
+    start() {
+      try { this.el.currentTime = this.spec.start || 0; } catch (e) {}
+      const p = this.el.play();
+      if (p && p.catch) p.catch(() => {});
+      if (this.spec.sfx && SFX[this.spec.sfx]) SFX[this.spec.sfx](ac.currentTime + 0.02);
+    }
+    stop() { this.el.pause(); }
+    gain(v) { this.el.volume = clamp(v, 0, 1); }
+    elapsed() { return this.el.currentTime - (this.spec.start || 0); }
+    length() {
+      const end = this.spec.end != null ? this.spec.end : this.el.duration;
+      return Number.isFinite(end) ? end - (this.spec.start || 0) : 4;
+    }
+  }
+
+  // a YouTube clip, in a small player that stays visible in the dock while it is heard
+  let ytApi = null;
+  function loadYouTube() {
+    if (ytApi) return ytApi;
+    ytApi = new Promise((resolve, reject) => {
+      if (global.YT && global.YT.Player) return resolve(global.YT);
+      const prev = global.onYouTubeIframeAPIReady;
+      global.onYouTubeIframeAPIReady = () => { if (prev) prev(); resolve(global.YT); };
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      s.onerror = reject;
+      document.head.appendChild(s);
+      setTimeout(() => reject(new Error('YouTube did not load')), 8000);
+    });
+    return ytApi;
+  }
+  const canYouTube = () => CFG.preferYouTube && /^https?:$/.test(location.protocol);
+  class YouTubeSource {
+    constructor(spec, loop, label) {
+      this.spec = spec;
+      this.loop = loop;
+      this.ready = false;
+      this.failed = false;
+      this.want = false;
+      this.vol = 0;
+      this.card = document.createElement('figure');
+      this.card.className = 'yt-card';
+      const box = document.createElement('div');
+      const cap = document.createElement('figcaption');
+      cap.textContent = `${label} · ${spec.title || ''}`;
+      this.card.append(box, cap);
+      dock().appendChild(this.card);
+      loadYouTube().then((YT) => {
+        this.player = new YT.Player(box, {
+          width: 200,
+          height: 200,
+          videoId: spec.id,
+          playerVars: { start: spec.start || 0, end: spec.end || undefined, controls: 1, modestbranding: 1, rel: 0, playsinline: 1 },
+          events: {
+            onReady: () => { this.ready = true; this.player.setVolume(0); if (this.want) this.start(); },
+            onError: () => { this.failed = true; this.card.remove(); },
+            onStateChange: (e) => {
+              // play the clip's span; music loops back to its start
+              if (e.data === YT.PlayerState.ENDED && this.loop && this.want) { this.player.seekTo(this.spec.start || 0, true); this.player.playVideo(); }
+            },
+          },
+        });
+      }).catch(() => { this.failed = true; this.card.remove(); });
+    }
+    start() {
+      this.want = true;
+      this.card.classList.add('on');
+      if (!this.ready) return;
+      this.player.seekTo(this.spec.start || 0, true);
+      this.player.playVideo();
+      this.t0 = performance.now();
+    }
+    stop() {
+      this.want = false;
+      this.card.classList.remove('on');
+      if (this.ready) this.player.pauseVideo();
+    }
+    gain(v) {
+      const n = Math.round(clamp(v, 0, 1) * 100);
+      if (this.ready && n !== this.vol) { this.player.setVolume(n); this.vol = n; }
+    }
+    elapsed() {
+      if (!this.ready || !this.player.getCurrentTime) return 0;
+      return this.player.getCurrentTime() - (this.spec.start || 0);
+    }
+    length() {
+      const end = this.spec.end != null ? this.spec.end : this.ready && this.player.getDuration ? this.player.getDuration() : null;
+      return end ? end - (this.spec.start || 0) : 30;
+    }
+  }
+
+  let dockEl = null;
+  function dock() {
+    if (!dockEl) {
+      dockEl = document.createElement('div');
+      dockEl.className = 'yt-dock';
+      dockEl.setAttribute('aria-label', 'Now playing');
+      document.body.appendChild(dockEl);
+    }
+    return dockEl;
+  }
+
+  // Pick the first source in a list that can play here.
+  function make(list, loop, label) {
+    for (const spec of list || []) {
+      if (spec.kind === 'youtube' && canYouTube()) return new YouTubeSource(spec, loop, label);
+      if (spec.kind === 'file') return new FileSource(spec, loop);
+      if (spec.kind === 'synth') return new SynthSource(spec);
+    }
+    return null;
+  }
+  // the next choice after one that failed
+  function fallback(list, failed, loop, label) {
+    const i = list.indexOf(failed.spec);
+    return make(list.slice(i + 1), loop, label);
+  }
+
+  // ---------- the mix ----------
+  const musics = new Map(); // stage → { src, level, idle }
+  let bite = null; // { i, src, t0, level, leaving, spec }
+  let held = { i: null, since: 0 };
+  let last = 0;
+
+  function musicFor(i) {
+    let m = musics.get(i);
+    if (!m) {
+      const st = CFG.stages[i];
+      m = { src: make(st && st.music, true, 'music'), level: 0, idle: 0, playing: false };
+      musics.set(i, m);
+    }
+    if (m.src && m.src.failed) { m.src = fallback(CFG.stages[i].music, m.src, true, 'music'); m.playing = false; }
+    return m;
+  }
+
+  function startBite(i) {
+    const st = CFG.stages[i];
+    let src = make(st && st.bite, false, 'sound bite');
+    if (!src) return;
+    bite = { i, src, t0: performance.now(), level: 0, leaving: false, spec: src.spec || {} };
+    src.start();
+    caption(bite.spec.line, bite.spec.source);
+  }
+  function endBite() {
+    if (bite) { bite.src.stop(); if (bite.src.card) bite.src.card.remove(); }
+    bite = null;
     caption(null);
+  }
+
+  function step(L, rest, now) {
+    const dt = Math.min(0.1, (now - (last || now)) / 1000);
+    last = now;
+    const N = CFG.stages.length;
+    const mod = (a) => ((a % N) + N) % N;
+
+    // bites: start after resting a moment; fade in, then out at the end, after biteMax, or on leaving
+    if (rest !== held.i) {
+      held = { i: rest, since: now };
+      if (bite) bite.leaving = true;
+    }
+    if (bite && bite.src.failed) {
+      const next = fallback(CFG.stages[bite.i].bite, bite.src, false, 'sound bite');
+      bite.src.card && bite.src.card.remove();
+      if (next) { bite.src = next; bite.spec = next.spec || {}; next.start(); caption(bite.spec.line, bite.spec.source); }
+      else endBite();
+    }
+    if (!bite && rest != null && !held.done && now - held.since > CFG.biteDelay * 1000) {
+      held.done = true;
+      startBite(rest);
+    }
+    let duck = 1;
+    if (bite) {
+      const el = bite.src.elapsed(), len = Math.min(bite.src.length(), CFG.biteMax);
+      let target = CFG.biteLevel;
+      if (el < CFG.biteFadeIn) target *= Math.max(0, el) / CFG.biteFadeIn;
+      if (el > len - CFG.biteFadeOut) target *= clamp((len - el) / CFG.biteFadeOut, 0, 1);
+      const k = bite.leaving ? dt / CFG.leaveFadeOut : 1;
+      bite.level = bite.leaving ? Math.max(0, bite.level - CFG.biteLevel * k) : target;
+      bite.src.gain(bite.level);
+      duck = 1 - (1 - CFG.duck) * (bite.level / CFG.biteLevel);
+      if ((bite.leaving && bite.level <= 0.001) || el >= len) endBite();
+    }
+
+    // music: an equal-power crossfade between the machine you are leaving and the one ahead
+    const K = Math.floor(L), t = L - K;
+    const want = new Map([[mod(K), Math.cos((t * Math.PI) / 2)]]);
+    if (t > 0.0005) want.set(mod(K + 1), Math.sin((t * Math.PI) / 2));
+    for (const i of new Set([...want.keys(), ...musics.keys()])) {
+      const w = want.get(i) || 0;
+      if (w <= 0 && !musics.has(i)) continue;
+      const m = musicFor(i);
+      if (!m.src) continue;
+      const target = w * CFG.musicLevel * duck;
+      m.level += (target - m.level) * (1 - Math.exp(-dt / 0.12));
+      if (target > 0.001 && !m.playing) { m.src.start(); m.playing = true; }
+      m.src.gain(m.level);
+      if (w <= 0 && m.level < 0.002) {
+        m.idle += dt;
+        if (m.playing && m.idle > 1.5) { m.src.stop(); m.playing = false; }
+      } else m.idle = 0;
+    }
   }
 
   // ---------- the subtitle ----------
@@ -363,12 +473,11 @@
     if (!capEl) return;
     if (!line) { capEl.classList.remove('on'); return; }
     capEl.querySelector('q').textContent = line;
-    capEl.querySelector('span').textContent = source ? ` ${source}, read aloud` : '';
+    capEl.querySelector('span').textContent = source || '';
     capEl.classList.add('on');
   }
 
   // ---------- what the page calls ----------
-  let held = { i: null, since: 0 };
   const Sound = {
     get on() { return enabled; },
     toggle() {
@@ -376,26 +485,25 @@
         if (!init()) return false;
         if (ac.state === 'suspended') ac.resume();
         enabled = true;
-        held.since = performance.now() - 400;
+        held = { i: null, since: 0 };
+        if (canYouTube()) loadYouTube().catch(() => {});
       } else {
         enabled = false;
-        end();
+        endBite();
+        for (const m of musics.values()) if (m.src) { m.src.gain(0); m.src.stop(); m.playing = false; m.level = 0; }
       }
+      dock().classList.toggle('off', !enabled);
       return enabled;
     },
-    // Called every frame with the stage you are resting on, or null while you travel.
-    update(i, now) {
-      if (i !== held.i) {
-        held = { i, since: now };
-        if (visit) end();
-      }
-      if (!enabled || i == null || visit) return;
-      if (now - held.since > 700) begin(i);
+    // every frame: L is the continuous level, rest the machine you are resting on (or null)
+    update(L, rest, now) {
+      if (enabled) step(L, rest, now);
     },
-    // warm the spoken lines so they start on time
-    preload() {
-      STAGES.forEach((s) => { clip(`audio/voice/${s.voice}.mp3`); if (s.tag) clip(`audio/voice/${s.tag}.mp3`); });
-      Object.values(CUSTOM).forEach(clip);
+    preload() {},
+    // for checking the mix: each live source's level and position
+    debug() {
+      const row = (src, level) => src && { kind: src.constructor.name, id: src.spec && (src.spec.id || src.spec.src || src.spec.song), level: +level.toFixed(3), at: +src.elapsed().toFixed(1), ready: src.ready, vol: src.vol };
+      return { bite: bite && { i: bite.i, ...row(bite.src, bite.level), leaving: bite.leaving }, music: [...musics.entries()].map(([i, m]) => ({ i, playing: m.playing, ...row(m.src, m.level) })) };
     },
   };
   global.Sound = Sound;
