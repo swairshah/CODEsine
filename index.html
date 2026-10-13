@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Engraved Machines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IM+Fell+English:ital@0;1&display=swap">
+<style>
+  /* Layout: a full-bleed relief print; caption top-left, tools top-right, a year rail along the foot. */
+  :root {
+    --paper: #efe5d4;
+    --warm: #e3d4bc;
+    --light: #f7f0e4;
+    --ink: #16110d;
+    --umber: #2b1f16;
+    --earth: #5a4330;
+    --rule: #16110d33;
+    --f-display: "IM Fell English", "Iowan Old Style", Georgia, serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17120e; --warm: #231b14; --light: #0e0b08; --ink: #eadfca; --umber: #d4c4a8; --earth: #a8957a; --rule: #eadfca33;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #17120e; --warm: #231b14; --light: #0e0b08; --ink: #eadfca; --umber: #d4c4a8; --earth: #a8957a; --rule: #eadfca33;
+    color-scheme: dark;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-mono);
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: fixed; inset: 0; display: block; cursor: zoom-in; }
+
+  .cap {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    left: 28px;
+    max-width: min(34rem, calc(100vw - 230px));
+    pointer-events: none;
+    display: grid;
+    gap: 6px;
+    will-change: opacity, transform;
+  }
+  .meta {
+    margin: 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--earth);
+    font-variant-numeric: tabular-nums;
+  }
+  .meta .sep { margin: 0 0.6em; }
+  h1 {
+    margin: 0;
+    font-family: var(--f-display);
+    font-weight: 400;
+    font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+    line-height: 1;
+    text-wrap: balance;
+  }
+  .line {
+    margin: 2px 0 0;
+    font-family: var(--f-display);
+    font-style: italic;
+    font-size: 1.04rem;
+    line-height: 1.35;
+    color: var(--umber);
+    max-width: 30rem;
+  }
+  .next {
+    margin: 4px 0 0;
+    font-size: 0.72rem;
+    color: var(--earth);
+  }
+  .next b { font-weight: 600; color: var(--ink); }
+
+  .tools {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    right: 24px;
+    display: flex;
+    gap: 6px;
+  }
+  .tools button {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    background: var(--paper);
+    color: var(--ink);
+    font: 500 0.95rem/1 var(--f-mono);
+    cursor: pointer;
+  }
+  .tools button:hover { background: var(--ink); color: var(--paper); }
+  .tools button:focus-visible, .rail button:focus-visible { outline: 2px solid var(--earth); outline-offset: 2px; }
+  #b-play span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  #b-play[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  .hint {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+    margin: 0;
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--earth);
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  .hint.gone { opacity: 0; }
+
+  .rail {
+    position: fixed;
+    left: 16px; right: 16px;
+    bottom: 0;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    border-top: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .rail ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(13, minmax(0, 1fr));
+  }
+  .rail button {
+    width: 100%;
+    padding: 10px 2px 6px;
+    background: none;
+    border: 0;
+    color: var(--earth);
+    font: 400 0.68rem/1.25 var(--f-mono);
+    cursor: pointer;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .rail button .n {
+    font-size: 0.6rem;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.8;
+  }
+  .rail button:hover, .rail button.on { color: var(--ink); }
+  .rail button.on .y { font-weight: 600; }
+  .track { position: absolute; top: -5px; left: calc(50% / 13); right: calc(50% / 13); height: 9px; pointer-events: none; }
+  .cursor { position: absolute; top: 0; width: 2px; height: 9px; margin-left: -1px; background: var(--ink); }
+
+  @media (max-width: 900px) { .rail button .n { display: none; } }
+  @media (max-width: 640px) {
+    .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 66px); }
+    .tools { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); }
+    .line { font-size: 0.95rem; }
+    .rail { left: 8px; right: 8px; }
+    .rail button { font-size: 0.56rem; padding-inline: 0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="A relief print of a computer. Zoom in to travel into its screen and find the next machine."></canvas>
+
+<header class="cap" id="cap" aria-live="polite">
+  <p class="meta"><span id="m-year">1976</span><span class="sep">·</span><span id="m-idx">01</span> of <span id="m-total">13</span><span class="sep">·</span><span id="m-kind">Circuit board</span></p>
+  <h1 id="title">Apple I</h1>
+  <p class="line" id="line"></p>
+  <p class="next"><span id="verb">Zoom into the silkscreen</span> to reach <b id="next">Apple II</b></p>
+</header>
+
+<div class="tools">
+  <button type="button" id="b-out" aria-label="Zoom out to the previous machine">−</button>
+  <button type="button" id="b-in" aria-label="Zoom in to the next machine">+</button>
+  <button type="button" id="b-play" aria-pressed="false"><span>Play</span></button>
+  <button type="button" id="b-theme" aria-label="Switch between light and dark">◐</button>
+</div>
+
+<p class="hint" id="hint">Pinch or scroll to zoom. Drag up and down, double-click, or use the arrow keys.</p>
+
+<footer class="rail">
+  <ol id="ticks"></ol>
+  <div class="track"><div class="cursor" id="cursor"></div></div>
+</footer>
+
+<script src="js/ink.js"></script>
+<script src="js/devices.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
