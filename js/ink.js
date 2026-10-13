@@ -116,6 +116,25 @@
     return [A, B];
   }
 
+  function resampleOpen(pts, step) {
+    const out = [pts[0]];
+    let carry = step;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      let s = carry;
+      while (s < d) {
+        out.push([a[0] + ((b[0] - a[0]) * s) / d, a[1] + ((b[1] - a[1]) * s) / d]);
+        s += step;
+      }
+      carry = s - d;
+    }
+    const last = pts[pts.length - 1], prev = out[out.length - 1];
+    if (Math.hypot(last[0] - prev[0], last[1] - prev[1]) > step * 0.25) out.push(last);
+    else out[out.length - 1] = last;
+    return out;
+  }
+
   function addPoly(path, pts, sign) {
     const rev = (area(pts) < 0) !== (sign < 0);
     const n = pts.length;
@@ -237,7 +256,84 @@
         }
       }
     }
-    // A shaded surface: solid block plus carved hatching whose weight follows tone.
+    // A graphite line: thin, a little unsteady, running past its ends like a construction stroke.
+    pencil(pts, o = {}) {
+      let P = pts.length > 2 && o.curve ? catmull(pts, 4) : pts.slice();
+      if (P.length < 2) return;
+      const ov = o.over ?? 5;
+      if (ov > 0) {
+        const ext = (a, b, e) => {
+          const d = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
+          return [a[0] + ((a[0] - b[0]) / d) * e, a[1] + ((a[1] - b[1]) / d) * e];
+        };
+        P.unshift(ext(P[0], P[1], ov * this.rand(0.3, 1.3)));
+        P.push(ext(P[P.length - 1], P[P.length - 2], ov * this.rand(0.3, 1.3)));
+      }
+      const Q = resampleOpen(P, o.step ?? 9);
+      const amp = o.wob ?? 0.6, p1 = this.rand(0, 6), p2 = this.rand(0, 6), f1 = this.rand(0.05, 0.09), f2 = this.rand(0.18, 0.3);
+      let s = 0;
+      const W = Q.map((q, i) => {
+        if (i) s += Math.hypot(q[0] - Q[i - 1][0], q[1] - Q[i - 1][1]);
+        const a = Q[Math.max(0, i - 1)], b = Q[Math.min(Q.length - 1, i + 1)];
+        const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1;
+        const off = amp * (0.65 * Math.sin(s * f1 + p1) + 0.35 * Math.sin(s * f2 + p2));
+        return [q[0] - (dy / d) * off, q[1] + (dx / d) * off];
+      });
+      this.gouge(o.role || 'graphite', W, o.w ?? 0.85, { smooth: false, taper: o.taper ?? 0.3, pow: 0.3, lod: o.lod ?? 0.5 });
+    }
+    // Outline a shape the way a draughtsman finds it: broken runs, two passes, overshooting corners.
+    sketch(poly, o = {}) {
+      const n = poly.length;
+      if (n < 2) return;
+      const closed = o.closed ?? true;
+      const turn = (i) => {
+        const a = poly[(i - 1 + n) % n], b = poly[i], c = poly[(i + 1) % n];
+        const t1 = Math.atan2(b[1] - a[1], b[0] - a[0]), t2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
+        return Math.abs(Math.atan2(Math.sin(t2 - t1), Math.cos(t2 - t1)));
+      };
+      let start = 0;
+      if (closed) for (let i = 0; i < n; i++) if (turn(i) > 0.6) { start = i; break; }
+      const seq = [];
+      for (let k = 0; k <= (closed ? n : n - 1); k++) seq.push(k === n ? start : (start + k) % n);
+      const passes = o.passes ?? 2;
+      for (let pass = 0; pass < passes; pass++) {
+        const jx = pass ? this.rand(-1.4, 1.4) : 0, jy = pass ? this.rand(-1.4, 1.4) : 0;
+        let run = [], len = 0, maxLen = this.rand(110, 210);
+        const flush = () => {
+          if (run.length >= 2) this.pencil(run.map(([x, y]) => [x + jx, y + jy]), { role: pass ? 'graphite2' : 'graphite', w: pass ? 0.8 : o.w ?? 1.1, over: pass ? 7 : o.over ?? 4, lod: o.lod ?? 0.5, wob: o.wob });
+        };
+        for (let k = 0; k < seq.length; k++) {
+          const i = seq[k], p = poly[i];
+          if (run.length) len += Math.hypot(p[0] - run[run.length - 1][0], p[1] - run[run.length - 1][1]);
+          run.push(p);
+          const corner = closed && k > 0 && k < seq.length - 1 && turn(i) > 0.6;
+          if (corner || len > maxLen) {
+            flush();
+            run = [p];
+            len = 0;
+            maxLen = this.rand(110, 210);
+          }
+        }
+        flush();
+      }
+    }
+    // A pencilled dimension: a line with end ticks and a small italic label.
+    dim(x1, y1, x2, y2, label, o = {}) {
+      const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
+      const nx = -dy / d, ny = dx / d, t = o.tick ?? 6;
+      const lod = o.lod ?? 1;
+      this.pencil([[x1, y1], [x2, y2]], { role: 'graphite', w: 0.7, over: 3, lod });
+      for (const [x, y] of [[x1, y1], [x2, y2]]) this.pencil([[x - nx * t, y - ny * t], [x + nx * t, y + ny * t]], { role: 'graphite', w: 0.7, over: 1, lod });
+      let a = Math.atan2(dy, dx);
+      if (a > Math.PI / 2) a -= Math.PI;
+      if (a < -Math.PI / 2) a += Math.PI;
+      const off = o.off ?? 11;
+      this.text('graphite', label, (x1 + x2) / 2 + nx * off, (y1 + y2) / 2 + ny * off, o.size ?? 13, { font: 'serif', italic: true, weight: 400, rot: a, lod });
+    }
+    note(x, y, str, o = {}) {
+      this.text('graphite', str, x, y, o.size ?? 15, { font: 'serif', italic: true, weight: 400, align: o.align || 'left', rot: o.rot || 0, lod: o.lod ?? 1 });
+    }
+    // A shaded surface: solid block, carved hatching whose weight follows tone, then pencil over it.
     // tone: 0 = black, 1 = white (number or fn(x, y)).
     face(poly, tone, o = {}) {
       const T = typeof tone === 'function' ? tone : () => tone;
@@ -248,10 +344,14 @@
       const h = { angle: o.angle ?? 0, gap: o.gap ?? 8, w: o.w ?? 2.3, scoop: o.scoop, bow: o.bow, lod: o.hlod ?? 1 };
       if (base === 'ink') {
         this.hatch(o.cut ?? 'paper', poly, { ...h, tone: (x, y) => clamp(T(x, y) / 0.45, 0, 1.15) });
-      } else if (o.hatch !== false) {
-        this.hatch(o.line ?? 'ink', poly, { ...h, tone: (x, y) => Math.pow(clamp((1 - T(x, y)) / 0.6, 0, 1.15), 1.25) });
+      } else {
+        if (o.hatch !== false) this.hatch(o.line ?? 'ink', poly, { ...h, tone: (x, y) => Math.pow(clamp((1 - T(x, y)) / 0.6, 0, 1.15), 1.25) });
+        if (o.shade !== false) {
+          this.hatch('graphite2', poly, { angle: (o.angle ?? 0) + 0.85, gap: o.pgap ?? 4.4, w: 0.85, scoop: [50, 110], bow: 0.5, taper: 0.2, minW: 0.18, lod: 1, inset: 1, tone: (x, y) => clamp((0.95 - T(x, y)) / 0.45, 0, 1) });
+        }
       }
       if (o.edge) this.ring(o.edgeRole ?? 'ink', poly, o.edge, o.edgeLod ?? 0);
+      if (o.pencil !== false) this.sketch(poly, { lod: 0.5 });
     }
     dots(role, poly, gap, r, lod = 1) {
       let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
@@ -301,9 +401,10 @@
     return smooth(lod * 0.16, lod * 0.42, detail);
   }
 
-  function drawPlate(ctx, plate, pal, alpha, detail) {
+  // Graphite layers carry their own alpha so a machine can arrive as a pencil sketch before it is inked.
+  function drawPlate(ctx, plate, pal, alpha, detail, pencil = alpha) {
     for (const L of plate.layers) {
-      const a = alpha * lodAlpha(L.lod, detail);
+      const a = (L.role.startsWith('graphite') ? pencil : alpha) * lodAlpha(L.lod, detail);
       if (a < 0.004) continue;
       ctx.globalAlpha = a;
       ctx.fillStyle = pal[L.role] || pal.ink;
@@ -339,5 +440,5 @@
     return makePal(rgb);
   }
 
-  global.Ink = { rng, clamp, smooth, area, centroid, inside, catmull, gougePoly, Plate, drawPlate, fillPoly, lodAlpha, hex, mix, css, makePal, mixPal, FONTS };
+  global.Ink = { rng, clamp, smooth, area, centroid, inside, catmull, resampleOpen, gougePoly, Plate, drawPlate, fillPoly, lodAlpha, hex, mix, css, makePal, mixPal, FONTS };
 })(window);

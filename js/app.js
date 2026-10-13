@@ -73,7 +73,8 @@
   function readPalette() {
     const cs = getComputedStyle(document.documentElement);
     const g = (n) => hex(cs.getPropertyValue(n).trim() || '#000000');
-    BASE = makePal({ paper: g('--paper'), warm: g('--warm'), light: g('--light'), ink: g('--ink'), umber: g('--umber'), earth: g('--earth'), tint: g('--earth') });
+    BASE = makePal({ paper: g('--paper'), warm: g('--warm'), light: g('--light'), ink: g('--ink'), umber: g('--umber'), earth: g('--earth'), tint: g('--earth'), graphite: g('--graphite'), graphite2: g('--graphite2') });
+    grain = makeGrain();
   }
   function withTint(pal, dev) {
     let t = hex(dev.tint);
@@ -88,7 +89,7 @@
     if (amt <= 0) return pal;
     const bg = hex(dev.portal.type === 'pcb' ? dev.board : dev.dieBg);
     const fg = hex(dev.silk);
-    const target = makePal({ paper: bg, warm: mix(bg, fg, 0.08), light: mix(bg, fg, 0.16), ink: fg, umber: mix(fg, bg, 0.12), earth: mix(fg, bg, 0.3), tint: fg });
+    const target = makePal({ paper: bg, warm: mix(bg, fg, 0.08), light: mix(bg, fg, 0.16), ink: fg, umber: mix(fg, bg, 0.12), earth: mix(fg, bg, 0.3), tint: fg, graphite: mix(fg, bg, 0.35), graphite2: mix(fg, bg, 0.55) });
     const out = mixPal(pal, target, amt);
     out.tintTo = fg;
     out.tintAmt = amt;
@@ -101,29 +102,34 @@
     return pal.rgb[P.bg || 'light'];
   }
 
+  // Paper tooth: a fixed scatter of faint graphite fibres laid over everything, like the sheet itself.
+  let grain = null;
+  function makeGrain() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 320;
+    const g = c.getContext('2d');
+    const r = Ink.rng(77);
+    g.fillStyle = css(BASE.rgb.graphite);
+    for (let i = 0; i < 1400; i++) {
+      const x = r() * 320, y = r() * 320, a = r() * Math.PI, l = 1 + r() * 5;
+      g.globalAlpha = 0.05 + r() * 0.12;
+      g.save();
+      g.translate(x, y);
+      g.rotate(a);
+      g.fillRect(-l / 2, -0.35, l, 0.7);
+      g.restore();
+    }
+    return ctx.createPattern(c, 'repeat');
+  }
+
   // ---------- state ----------
   const S = {
     L: 0, Lt: 0, anim: null, lastInput: -1e9, playing: false, playNext: 0,
     vel: 0, time: 0, idx: -1, touched: false, dir: 0,
   };
   const pointers = new Map();
-  const flecks = [];
 
   // ---------- drawing ----------
-  function drawYear(j, alpha, pal) {
-    if (alpha < 0.01) return;
-    const st = stage();
-    screenT();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = pal.warm;
-    ctx.font = `400 ${Math.round(st.size * 0.6)}px ${Ink.FONTS.serif}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-    ctx.fillText(DEV[mod(j, N)].year, st.c.re, st.c.im + st.size * 0.04);
-    ctx.globalAlpha = 1;
-  }
-
   function drawScanlines(dev, s) {
     const P = dev.portal, x0 = P.cx - P.w / 2, y0 = P.cy - P.h / 2;
     ctx.fillStyle = s.pal.ink;
@@ -151,66 +157,44 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawLevel(j, cam, tp, pal0, depth) {
+  // Draw machine j and, when you are travelling into it, the machine inside its portal.
+  // `ink` and `pencil` fade the two media separately: a machine arrives sketched, then inked.
+  function drawLevel(j, cam, tp, pal0, depth, ink = 1, pencil = 1) {
     const dev = DEV[mod(j, N)];
     const pl = dev.build();
     const pal = withTint(pal0, dev);
     const detail = cabs(cam.A) / 0.7;
     setT(cam);
     const bodyA = 1 - smooth(0.8, 1, tp);
-    if (bodyA > 0.003) drawPlate(ctx, pl.body, pal, bodyA, detail);
+    if (bodyA > 0.003) drawPlate(ctx, pl.body, pal, bodyA * ink, detail, bodyA * pencil);
 
     const e = ease(tp);
     ctx.save();
     ctx.clip(pl.portal);
+    ctx.globalAlpha = ink;
     ctx.fillStyle = css(mix(portalBg(dev, pal), pal.rgb.paper, e));
     ctx.fill(pl.portal);
-    const s = { a: (1 - smooth(0.25, 0.85, tp)) * Ink.lodAlpha(0.5, detail), time: S.time, pal, detail, tp };
+    ctx.globalAlpha = 1;
+    const s = { a: ink * (1 - smooth(0.25, 0.85, tp)) * Ink.lodAlpha(0.5, detail), time: S.time, pal, detail, tp };
     if (s.a > 0.01) {
       if (dev.crt) drawScanlines(dev, s);
       if (dev.retina) drawPixels(dev, s);
       if (dev.extras) dev.extras(ctx, s);
     }
-    const pm = portalMap(dev);
-    const cc = childCam(cam, pm);
-    const childPal = dev.portal.type === 'pcb' || dev.portal.type === 'die' ? invertPal(pal0, dev, 1 - e) : pal0;
-    if (depth === 0) {
-      drawYear(j + 1, smooth(0.35, 1, tp), withTint(childPal, DEV[mod(j + 1, N)]));
+    // The next machine is not there until you start to travel in: first in pencil, then in ink.
+    if (depth === 0 && tp > 0) {
+      const pm = portalMap(dev);
+      const cc = childCam(cam, pm);
+      const childPal = dev.portal.type === 'pcb' || dev.portal.type === 'die' ? invertPal(pal0, dev, 1 - e) : pal0;
+      const pA = smooth(0.02, 0.32, tp), iA = smooth(0.24, 0.66, tp);
+      if (pA > 0.003 && 1000 * cabs(cc.A) > 10) drawLevel(j + 1, cc, 0, childPal, depth + 1, iA, pA);
     }
-    if (1000 * cabs(cc.A) > 10 && depth < 5) drawLevel(j + 1, cc, 0, childPal, depth + 1);
     setT(cam);
-    const glassA = 1 - smooth(0.45, 0.95, tp);
+    const glassA = ink * (1 - smooth(0.45, 0.95, tp));
     if (glassA > 0.003 && pl.glass.layers.length) drawPlate(ctx, pl.glass, pal, glassA, detail);
     ctx.restore();
     setT(cam);
-    if (bodyA > 0.003 && pl.over.layers.length) drawPlate(ctx, pl.over, pal, bodyA * (1 - smooth(0.5, 0.9, tp)), detail);
-  }
-
-  // Heat rising off the machine, in the manner of a skillet: wavy carved lines that drift and fade.
-  function drawHeat(dev, cam, amt) {
-    if (!dev.heat || amt < 0.02) return;
-    setT(cam);
-    ctx.fillStyle = BASE.ink;
-    for (const e of dev.heat) {
-      for (let i = 0; i < 7; i++) {
-        const r = Ink.rng(dev.index * 131 + i * 17)();
-        const x0 = e.x + (i / 6 - 0.5) * e.w + (r - 0.5) * 20;
-        const speed = 0.22 + r * 0.12;
-        const prog = (S.time * speed + r) % 1;
-        const f = Math.sin(Math.PI * prog) * amt;
-        if (f < 0.04) continue;
-        const pts = [];
-        const hgt = 90 + r * 70;
-        for (let k = 0; k <= 8; k++) {
-          const sN = k / 8;
-          const y = e.y - 14 - prog * 50 - sN * hgt;
-          pts.push([x0 + (6 + 8 * sN) * Math.sin(sN * 2.6 * Math.PI * 2 - S.time * 2.4 + i), y]);
-        }
-        ctx.globalAlpha = f * 0.55;
-        fillPoly(ctx, gougePoly(pts, 3.2, { seg: 3, taper: 0.03 }));
-      }
-    }
-    ctx.globalAlpha = 1;
+    if (bodyA > 0.003 && pl.over.layers.length) drawPlate(ctx, pl.over, pal, ink * bodyA * (1 - smooth(0.5, 0.9, tp)), detail);
   }
 
   function resample(pts, step) {
@@ -230,83 +214,44 @@
     return out;
   }
 
-  // While you travel, carved rings run out from the portal edge like ripples in hot oil.
+  // While you travel, faint pencil rings run out from the portal edge.
   function drawRipples(dev, cam, amt, dir) {
     if (amt < 0.02) return;
     setT(cam);
-    ctx.fillStyle = BASE.ink;
+    ctx.fillStyle = BASE.graphite;
     const P = dev.portal;
     for (let r = 0; r < 3; r++) {
-      let prog = (S.time * 1.1 + r / 3) % 1;
+      let prog = (S.time * 0.9 + r / 3) % 1;
       if (dir < 0) prog = 1 - prog;
       const d = 10 + prog * 120;
       const shape = window.DeviceGeom.portalShape({ ...P, w: P.w + 2 * d, h: P.h + 2 * d, r: (P.r || 0) + d });
       const pts = resample(shape, 14);
-      ctx.globalAlpha = amt * Math.sin(Math.PI * prog) * 0.5;
+      ctx.globalAlpha = amt * Math.sin(Math.PI * prog) * 0.45;
       const n = pts.length;
       for (let i = 0; i < n; i += 5) {
-        fillPoly(ctx, gougePoly([pts[i], pts[(i + 1) % n], pts[(i + 2) % n], pts[(i + 3) % n]], 3.4 - prog * 1.6, { seg: 3, taper: 0.05 }));
+        fillPoly(ctx, gougePoly([pts[i], pts[(i + 1) % n], pts[(i + 2) % n], pts[(i + 3) % n]], 1.1, { seg: 3, taper: 0.2 }));
       }
     }
     ctx.globalAlpha = 1;
   }
 
-  // Ink flecks thrown outward when you break through into the next machine.
-  function spatter(n) {
-    if (reduceMotion.matches) return;
-    const st = stage();
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = 380 + Math.random() * 900;
-      const r0 = st.size * (0.18 + Math.random() * 0.25);
-      flecks.push({
-        x: st.c.re + Math.cos(a) * r0, y: st.c.im + Math.sin(a) * r0,
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 160,
-        age: 0, life: 0.45 + Math.random() * 0.5,
-        len: 10 + Math.random() * 22, w: 1.6 + Math.random() * 2.6, bead: Math.random() < 0.55, br: 2 + Math.random() * 3.5,
-      });
-    }
-  }
-  function drawFlecks(dt) {
-    screenT();
-    ctx.fillStyle = BASE.ink;
-    for (let i = flecks.length - 1; i >= 0; i--) {
-      const f = flecks[i];
-      f.age += dt;
-      if (f.age > f.life) { flecks.splice(i, 1); continue; }
-      f.vy += 900 * dt;
-      f.x += f.vx * dt;
-      f.y += f.vy * dt;
-      const fade = Math.sin((Math.PI * f.age) / f.life);
-      const v = Math.hypot(f.vx, f.vy) || 1, ux = f.vx / v, uy = f.vy / v;
-      ctx.globalAlpha = fade;
-      fillPoly(ctx, gougePoly([[f.x - ux * f.len, f.y - uy * f.len], [f.x - ux * f.len * 0.5 - uy * 1.5, f.y - uy * f.len * 0.5 + ux * 1.5], [f.x, f.y]], f.w, { seg: 3, skew: 0.75, taper: 0.05 }));
-      if (f.bead) {
-        ctx.beginPath();
-        ctx.arc(f.x + ux * f.br * 0.6, f.y + uy * f.br * 0.6, f.br * fade, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function render(dt) {
+  function render() {
     const K = Math.floor(S.L);
     const t = S.L - K;
     screenT();
     ctx.globalAlpha = 1;
     ctx.fillStyle = BASE.paper;
     ctx.fillRect(0, 0, W, H);
-    drawYear(K, 1 - smooth(0, 0.6, t), withTint(BASE, DEV[mod(K, N)]));
     const cam = camAt(K, t);
     drawLevel(K, cam, t, BASE, 0);
-    const dev = DEV[mod(K, N)];
     if (!reduceMotion.matches) {
-      drawHeat(dev, cam, 1 - smooth(0, 0.3, t));
-      const v = Math.abs(S.vel);
-      drawRipples(dev, cam, smooth(0.15, 1.2, v) * (1 - smooth(0.55, 0.85, t)), Math.sign(S.vel));
+      drawRipples(DEV[mod(K, N)], cam, smooth(0.15, 1.2, Math.abs(S.vel)) * (1 - smooth(0.55, 0.85, t)), Math.sign(S.vel));
     }
-    drawFlecks(dt);
+    screenT();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = grain;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
   }
 
   // ---------- input ----------
@@ -516,9 +461,8 @@
     }
     const v = (S.L - prevL) / dt;
     S.vel += (v - S.vel) * (1 - Math.exp(-dt / 0.12));
-    if (Math.floor(S.L) !== Math.floor(prevL) && Math.abs(S.L - prevL) < 1) spatter(Math.abs(S.vel) > 1.5 ? 34 : 22);
     prevL = S.L;
-    render(dt);
+    render();
     updateUI();
     requestAnimationFrame(frame);
   }
