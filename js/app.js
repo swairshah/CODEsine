@@ -71,7 +71,7 @@
   // Etched into a die, the next machine is printed in reverse: light lines on dark silicon.
   function invertPal(pal, dev, amt) {
     if (amt <= 0) return pal;
-    const bg = hex(dev.next.bg), fg = hex(dev.next.fg);
+    const bg = hex(dev.next.inkBg || dev.next.bg), fg = hex(dev.next.fg);
     const target = makePal({ paper: bg, warm: mix(bg, fg, 0.08), light: mix(bg, fg, 0.16), ink: fg, umber: mix(fg, bg, 0.12), earth: mix(fg, bg, 0.3), tint: fg, tint2: fg, graphite: mix(fg, bg, 0.35), graphite2: mix(fg, bg, 0.55) });
     const out = mixPal(pal, target, amt);
     out.tintTo = fg;
@@ -160,7 +160,51 @@
     ctx.closePath();
   }
 
-  // screen, inside, die: zoom into a marked rectangle; the next machine appears in it, pencil first.
+  // The next machine, drawn in the portal (a screen's easter egg, or a chip once you can see it).
+  // On a screen it is there from the start, as a tiny version of the real drawing, so zooming in
+  // only ever enlarges it; nothing is swapped. depth stops machines nesting forever.
+  function drawPortalChild(dev, cam, t, pal0, ink, pencil, depth) {
+    const nxt = DEV[mod(dev.index + 1, N)].build();
+    const Mp = portalMap(dev);
+    const childCam = Af.mul(cam, Mp);
+    if (Af.scaleOf(childCam) * 1000 < 8) return;
+    const onScreen = dev.next.type === 'screen';
+    const a = onScreen ? 1 : smooth(0.12, 0.34, t);
+    if (a < 0.003) return;
+    setM(cam);
+    ctx.save();
+    const clipM = dev.marks.clip || dev.marks.portal;
+    clipTo(clipM);
+    ctx.clip();
+    // On a screen the egg is a small print of the next machine, on the same paper it will rest on,
+    // so the card simply grows to fill the view. A chip is reached by going inside: there the
+    // machine is revealed, drawn in pencil and then inked.
+    ctx.globalAlpha = onScreen ? ink : a * ink;
+    ctx.fillStyle = onScreen ? BASE.paper : css(mix(portalBg(dev, withTint(pal0, dev)), BASE.rgb.paper, ease(t)));
+    clipTo(clipM);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    const childPal = dev.next.fg ? invertPal(pal0, dev, 1 - ease(t)) : pal0;
+    if (onScreen) drawMachine(nxt, childCam, childPal, ink, pencil, depth + 1);
+    else drawAtRest(nxt, childCam, childPal, ink * smooth(0.22, 0.62, t), pencil * smooth(0.03, 0.3, t));
+    ctx.restore();
+    if (onScreen) {
+      // the card's edge, which is the edge of the view by the time you arrive
+      ctx.save();
+      clipTo(clipM);
+      ctx.globalAlpha = ink * (1 - smooth(0.2, 0.7, t));
+      ctx.strokeStyle = BASE.ink;
+      ctx.lineWidth = 1.4 / Af.scaleOf(cam);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  function drawMachine(dev, cam, pal0, ink = 1, pencil = ink, depth = 0) {
+    drawAtRest(dev, cam, pal0, ink, pencil);
+    if (depth < 2 && dev.next.type === 'screen') drawPortalChild(dev, cam, 0, pal0, ink, pencil, depth);
+  }
+
+  // screen, inside, die: zoom into a marked rectangle with the next machine in it.
   function renderPortal(dev, nxt, t) {
     const Mp = portalMap(dev);
     const cam = Af.mul(rest(), Af.pow(Af.inv(Mp), t));
@@ -178,22 +222,7 @@
     };
     drawParts(dev, cam, pal, peeled);
     drawExtras(dev, cam, pal, bodyA * (1 - smooth(0.25, 0.8, t)));
-    const pA = smooth(0.03, 0.3, t), iA = smooth(0.22, 0.62, t);
-    if (pA > 0.003) {
-      setM(cam);
-      ctx.save();
-      const clipM = dev.marks.clip || dev.marks.portal;
-      clipTo(clipM);
-      ctx.clip();
-      ctx.globalAlpha = smooth(0.12, 0.42, t);
-      ctx.fillStyle = css(mix(portalBg(dev, pal), BASE.rgb.paper, ease(t)));
-      clipTo(clipM);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      const childPal = dev.next.type === 'die' ? invertPal(BASE, dev, 1 - ease(t)) : BASE;
-      drawAtRest(nxt, Af.mul(cam, Mp), childPal, iA, pA);
-      ctx.restore();
-    }
+    drawPortalChild(dev, cam, t, BASE, 1, 1, 0);
     drawGlass(dev, cam, pal, bodyA * (1 - smooth(0.35, 0.9, t)));
   }
 
@@ -248,6 +277,7 @@
     const hello = nxt.colors ? smooth(0.78, 0.84, u) * (1 - smooth(0.94, 1, u)) : 0;
     if (hello > 0.01) drawExtras(nxt, camC, npal, 1, { hello, write: smooth(0.8, 0.93, u) });
     else drawExtras(nxt, camC, npal, settled);
+    if (nxt.next.type === 'screen' && settled > 0.003) drawPortalChild(nxt, camC, 0, BASE, settled, settled, 1);
     drawGlass(nxt, camC, npal, settled);
   }
 
@@ -259,7 +289,8 @@
     ctx.fillStyle = BASE.paper;
     ctx.fillRect(0, 0, W, H);
     const dev = DEV[mod(K, N)].build(), nxt = DEV[mod(K + 1, N)].build();
-    if (t <= 0) drawAtRest(dev, rest(), BASE);
+    if (t <= 0 && dev.next.type === 'assemble') drawAtRest(dev, rest(), BASE);
+    else if (t <= 0) renderPortal(dev, nxt, 0);
     else if (dev.next.type === 'assemble') renderAssemble(dev, nxt, t);
     else renderPortal(dev, nxt, t);
     screenT();

@@ -401,8 +401,25 @@
       let cx = 0, cy = 0;
       for (const q of pts) { cx += q[0]; cy += q[1]; }
       cx /= pts.length; cy /= pts.length;
-      const span = 400;
-      const tone = (x, y) => clamp(t0 + 0.06 * ((cx - x) * 0.7 + (cy - y) * 0.7) / span, 0, 1);
+      let ext = 30;
+      for (const q of pts) ext = Math.max(ext, Math.hypot(q[0] - cx, q[1] - cy));
+      // light across the page, and up, as screen directions
+      const l3 = this.cam(LIGHT), up3 = this.cam([0, 1, 0]);
+      const ll = Math.hypot(l3[0], l3[1]) || 1, ul = Math.hypot(up3[0], up3[1]) || 1;
+      const Lx = l3[0] / ll, Ly = l3[1] / ll, Ux = up3[0] / ul, Uy = up3[1] / ul;
+      const vertical = Math.abs(f.n[1]) < 0.35;
+      // Each face brightens toward the light, darkens toward its foot (light trapped where it meets
+      // what it stands on), and polished metal carries a soft band of reflection.
+      const tone = (x, y) => {
+        const dx = (x - cx) / ext, dy = (y - cy) / ext;
+        let t = t0 + 0.12 * (dx * Lx + dy * Ly);
+        if (vertical) t -= 0.1 * Math.pow(clamp((1 - (dx * Ux + dy * Uy)) / 2, 0, 1), 1.6);
+        if (mat.sheen) {
+          const s = dx * -Ly + dy * Lx;
+          t += mat.sheen * Math.exp(-Math.pow((s + 0.2) / 0.28, 2));
+        }
+        return clamp(t, 0, 1);
+      };
       if (!mat.none) {
         p.face(pts, tone, {
           fill: mat.fill,
@@ -415,6 +432,26 @@
           pencil: f.seam ? false : mat.pencil,
           edge: f.edge === 0 || f.seam ? 0 : f.edge ?? mat.edge ?? 1.1,
         });
+      }
+      // edges: a fine bright line where an edge turns toward the light, a dark one where it turns away
+      if (!f.seam && f.edge !== 0 && !mat.none && pts.length >= 3) {
+        const l3 = this.cam(LIGHT), ll = Math.hypot(l3[0], l3[1]) || 1;
+        const Lx = l3[0] / ll, Ly = l3[1] / ll;
+        const dark = t0 < 0.45 || mat.dark;
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length];
+          const ex = b[0] - a[0], ey = b[1] - a[1], len = Math.hypot(ex, ey);
+          if (len < 10) continue;
+          let nx = ey / len, ny = -ex / len;
+          const mx = (a[0] + b[0]) / 2 - cx, my = (a[1] + b[1]) / 2 - cy;
+          if (nx * mx + ny * my < 0) { nx = -nx; ny = -ny; }
+          const lit = nx * Lx + ny * Ly;
+          const ux = ex / len, uy = ey / len, trim = Math.min(4, len * 0.15), inset = 1.8;
+          const A = [a[0] + ux * trim - nx * inset, a[1] + uy * trim - ny * inset];
+          const B = [b[0] - ux * trim - nx * inset, b[1] - uy * trim - ny * inset];
+          if (lit > 0.25) p.gouge(dark ? 'paper' : 'light', [A, B], (dark ? 1.6 : 2.2) * lit, { smooth: false, taper: 0.12, lod: 0.5 });
+          else if (lit < -0.3 && !dark) p.gouge('ink', [A, B], 1.3 * -lit, { smooth: false, taper: 0.12, lod: 0.5 });
+        }
       }
       if (f.deco && f.frame) {
         const { o, U, V } = f.frame;

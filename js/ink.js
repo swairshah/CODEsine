@@ -245,7 +245,8 @@
         vmin = Math.min(vmin, v);
         vmax = Math.max(vmax, v);
       }
-      for (let v = vmin + (o.phase ?? this.rand(0.3, 0.7) * gap); v < vmax; v += gap) {
+      const jit = o.jitter ?? 0;
+      for (let v = vmin + (o.phase ?? this.rand(0.3, 0.7) * gap); v < vmax; v += gap * (1 + (this.r() - 0.5) * 2 * jit)) {
         const us = [];
         for (let i = 0, n = poly.length; i < n; i++) {
           const p = poly[i], q = poly[(i + 1) % n];
@@ -391,14 +392,21 @@
       const t0 = T(c[0], c[1]);
       const base = o.dark ? o.fill || 'ink' : o.fill ?? (t0 < 0.45 ? 'ink' : t0 > 0.9 ? 'light' : 'paper');
       this.fill(base, poly, o.lod ?? 0);
-      const h = { angle: o.angle ?? 0, gap: o.gap ?? 8, w: o.w ?? 2.3, scoop: o.scoop, bow: o.bow, lod: o.hlod ?? 1 };
-      if (o.dark) {
-        // a dark material: light cuts whose weight follows the light falling on it
-        if (o.hatch !== false) this.hatch(o.cut ?? 'paper', poly, { ...h, tone: (x, y) => clamp(T(x, y) / 0.5, 0, 1.1) });
-      } else if (base === 'ink') {
-        this.hatch(o.cut ?? 'paper', poly, { ...h, tone: (x, y) => clamp(T(x, y) / 0.45, 0, 1.15) });
+      const h = { angle: o.angle ?? 0, gap: o.gap ?? 8, w: o.w ?? 2.3, scoop: o.scoop, bow: o.bow, lod: o.hlod ?? 1, jitter: 0.14 };
+      if (o.dark || base === 'ink') {
+        // white-line work on a dark surface: long cuts that swell where the light falls and thin away in shadow
+        if (o.hatch !== false) {
+          const lim = o.dark ? 0.5 : 0.45;
+          this.hatch(o.cut ?? 'paper', poly, { ...h, jitter: 0.05, w: h.w * 0.9, scoop: [60, 170], tone: (x, y) => Math.pow(clamp(T(x, y) / lim, 0, 1.1), 1.5) });
+        }
       } else {
-        if (o.hatch !== false) this.hatch(o.line ?? 'ink', poly, { ...h, tone: (x, y) => Math.pow(clamp((1 - T(x, y)) / 0.6, 0, 1.15), 1.25) });
+        // engraving on a light surface: lines along the form, a crossing layer in shadow, a third in deep shadow
+        if (o.hatch !== false) {
+          const line = o.line ?? 'ink';
+          this.hatch(line, poly, { ...h, tone: (x, y) => Math.pow(clamp((1 - T(x, y)) / 0.6, 0, 1.15), 1.25) });
+          this.hatch(line, poly, { ...h, angle: h.angle + 1.0, gap: h.gap * 1.2, w: h.w * 0.72, scoop: [40, 110], tone: (x, y) => clamp((0.62 - T(x, y)) / 0.3, 0, 1) });
+          this.hatch(line, poly, { ...h, angle: h.angle - 0.6, gap: h.gap * 1.35, w: h.w * 0.6, scoop: [30, 90], tone: (x, y) => clamp((0.38 - T(x, y)) / 0.24, 0, 1) });
+        }
         if (o.shade !== false) {
           this.hatch('graphite2', poly, { angle: (o.angle ?? 0) + 0.85, gap: o.pgap ?? 4.4, w: 0.85, scoop: [50, 110], bow: 0.5, taper: 0.2, minW: 0.18, lod: 1, inset: 1, tone: (x, y) => clamp((0.95 - T(x, y)) / 0.45, 0, 1) });
         }
@@ -462,8 +470,10 @@
       const graphite = L.role.startsWith('graphite');
       // pencil shows up sooner than carving, so a small machine reads first as a sketch
       let a = (graphite ? pencil : alpha) * lodAlpha(graphite ? L.lod * 0.4 : L.lod, detail);
-      // seen very close, carved hatching thins out so surfaces read as clean blocks of colour
-      if (L.kind === 'path' && L.lod >= 1 && !L.role.startsWith('graphite')) a *= 1 - 0.7 * smooth(5, 12, detail);
+      // Seen close up, marks drawn for normal size would turn into scratches: pencil fades out, and
+      // carved hatching thins so surfaces read as clean blocks of colour with crisp edges.
+      if (graphite) a *= 1 - smooth(1.8, 3.6, detail);
+      else if (L.kind === 'path' && L.lod >= 1) a *= 1 - 0.85 * smooth(2.6, 6, detail);
       if (a < 0.004) continue;
       ctx.globalAlpha = a;
       ctx.fillStyle = pal[L.role] || pal.ink;

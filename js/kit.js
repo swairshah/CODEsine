@@ -87,7 +87,11 @@
           if (kx + kww <= x + w + 0.01) {
             p.fill(o.cap || 'umber', rr2(kx, ky, kww, khh, Math.min(kww, khh) * 0.18), 0.5);
             if (o.shadow !== false) p.gouge(o.shadowRole || 'ink', [[kx + 0.05, ky + khh], [kx + kww / 2, ky + khh + 0.04], [kx + kww - 0.05, ky + khh]], 1.6 * k, { lod: 1, taper: 0.2 });
-            if (o.hi) p.gouge(o.hi, [[kx + kww * 0.12, ky + khh * 0.18], [kx + kww * 0.88, ky + khh * 0.18]], 0.9 * k, { lod: 1, smooth: false, taper: 0.3 });
+            if (o.hi) {
+              // light catches the top and left of each cap
+              p.gouge(o.hi, [[kx + kww * 0.1, ky + khh * 0.12], [kx + kww * 0.9, ky + khh * 0.12]], 1.1 * k, { lod: 1, smooth: false, taper: 0.3 });
+              p.gouge(o.hi, [[kx + kww * 0.08, ky + khh * 0.2], [kx + kww * 0.08, ky + khh * 0.82]], 0.8 * k, { lod: 1, smooth: false, taper: 0.4 });
+            }
           }
           cx += unit * kw;
         }

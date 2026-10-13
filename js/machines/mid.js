@@ -200,7 +200,7 @@
               [1.75, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.75],
               [2.25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.25],
               [1, 1, 1, 5.5, 1, 1, 1, 1, 1],
-            ], { cap: 'ink', hi: 'paper', shadow: false });
+            ], { cap: 'tint', hi: 'paper', shadow: false });
           },
           front(F) { slots(F, 20.5, 1.0, 3.6, 1.2, 9, { role: 'ink' }); },
           left(F) {
@@ -362,7 +362,7 @@
 
   // ---------- iPod, 2001 ----------
   const white = { base: 1.0, gap: 8, w: 1.2 };
-  const steel = { base: 0.86, fill: 'tint', gap: 3.2, w: 1.1 };
+  const steel = { base: 0.86, fill: 'tint', gap: 3.2, w: 1.1, sheen: 0.22 };
   add({
     name: 'iPod',
     year: '2001',
@@ -469,7 +469,7 @@
 
   // ---------- iPhone, 2007 ----------
   const glass = { base: 0.16, dark: true, fill: 'ink', gap: 10, w: 1.0 };
-  const alu = { base: 0.88, fill: 'tint', gap: 3, w: 1.0 };
+  const alu = { base: 0.88, fill: 'tint', gap: 3, w: 1.0, sheen: 0.18 };
   const apps = ['Text', 'Calendar', 'Photos', 'Camera', 'YouTube', 'Stocks', 'Maps', 'Weather', 'Clock', 'Calculator', 'Notes', 'Settings'];
   add({
     name: 'iPhone',
@@ -536,7 +536,7 @@
 
   // ---------- MacBook Air, 2008 ----------
   // Aluminium, tapering from 0.76 inches to 0.16, lying on the interoffice envelope it came out of.
-  const air = { base: 0.95, gap: 7, w: 1.3 };
+  const air = { base: 0.95, gap: 7, w: 1.3, sheen: 0.16 };
   add({
     name: 'MacBook Air',
     year: '2008',

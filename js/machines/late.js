@@ -33,7 +33,7 @@
   // ---------- MacBook Air (M1), 2020 ----------
   // The same wedge as 2008, and inside it the first Apple silicon Mac chip, with no fan at all.
   // Zooming in lifts the lid and the keyboard away and drops you onto the M1.
-  const silver = { base: 0.96, gap: 7, w: 1.3 };
+  const silver = { base: 0.96, gap: 7, w: 1.3, sheen: 0.16 };
   const W1 = 30.41, D1 = 21.24, H1 = 1.61, F1 = 0.41;
   add({
     name: 'MacBook Air (M1)',
@@ -250,10 +250,7 @@
                 p.fill('tint', rr2(176, 104, 110, 66, 3), 0.5);
                 p.ring('ink', rr2(176, 104, 110, 66, 3), 1.2, 0.5);
                 p.text('light', 'iMac', 231, 137, 9, { weight: 600, lod: 0.5 });
-                // the easter egg
-                p.fill('paper', rr2(304, 120, 42, 28, 2), 0.5);
-                p.ring('ink', rr2(304, 120, 42, 28, 2), 1.2, 0.5);
-                p.fill('ink', [[298, 148], [352, 148], [356, 154], [294, 154]], 0.5);
+                // the easter egg: the MacBook Pro itself, drawn into the portal by the app
                 p.text('ink', 'MacBook Pro', 325, 166, 6.5, { weight: 600, lod: 0.5 });
               },
             });
@@ -303,7 +300,7 @@
   });
 
   // ---------- MacBook Pro 14-inch, 2021 ----------
-  const spaceGrey = { base: 0.66, gap: 6, w: 1.6 };
+  const spaceGrey = { base: 0.66, gap: 6, w: 1.6, sheen: 0.12 };
   const W3 = 31.26, D3 = 22.12;
   add({
     name: 'MacBook Pro 14″',
@@ -423,7 +420,7 @@
       const B = x0 + 0.4; // board corner in world units; u runs right, v runs toward you
       const at = (u, v, y = 0.9) => [B + u, y, B + v];
       const dark = { base: 0.3, dark: true, fill: 'ink', gap: 3, w: 1 };
-      const metal = { base: 0.86, gap: 3.5, w: 1 };
+      const metal = { base: 0.86, gap: 3.5, w: 1, sheen: 0.18 };
       const rndB = Ink.rng(404);
       m.flat([at(0, 0), at(11.9, 0), at(11.9, 11.9), at(0, 11.9)], { base: 0.9, fill: 'tint2', gap: 6, w: 0.9, shade: false }, {
         n: [0, 1, 0],
