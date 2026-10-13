@@ -295,60 +295,35 @@
     if (d) go(d);
   }
 
+  // Travel is a scroll, up and down, and nothing else: pinches and browser zoom are swallowed.
   addEventListener('wheel', (e) => {
     if (e.target.closest && e.target.closest('.rail')) return;
     e.preventDefault();
+    if (e.ctrlKey) return;
     let d = e.deltaY;
     if (e.deltaMode === 1) d *= 18;
     else if (e.deltaMode === 2) d *= 400;
-    nudge(-d * (e.ctrlKey ? 0.011 : 0.0028));
+    nudge(d * 0.0028);
   }, { passive: false });
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) addEventListener(ev, (e) => e.preventDefault());
 
-  let gScale = 1;
-  addEventListener('gesturestart', (e) => { e.preventDefault(); gScale = 1; });
-  addEventListener('gesturechange', (e) => {
-    e.preventDefault();
-    if (pointers.size < 2) nudge(Math.log(e.scale / gScale));
-    gScale = e.scale;
-  });
-
-  let pinchD = 0, lastTap = 0, tapStart = null;
-  const pinchDist = () => {
-    const [a, b] = [...pointers.values()];
-    return Math.hypot(a.x - b.x, a.y - b.y);
-  };
+  // On a touch screen, one finger swiping up and down is the same scroll.
   cv.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'touch') return;
     cv.setPointerCapture(e.pointerId);
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.size === 2) pinchD = pinchDist();
-    tapStart = pointers.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
+    pointers.set(e.pointerId, { y: e.clientY });
     S.lastInput = performance.now();
   });
   cv.addEventListener('pointermove', (e) => {
     const p = pointers.get(e.pointerId);
-    if (!p) return;
+    if (!p || pointers.size > 1) return;
     const dy = e.clientY - p.y;
-    p.x = e.clientX;
     p.y = e.clientY;
-    if (pointers.size >= 2) {
-      const d = pinchDist();
-      if (pinchD > 0) nudge(Math.log(d / pinchD));
-      pinchD = d;
-    } else if (tapStart && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) > 6) {
-      nudge(-dy * 0.007);
-    }
+    nudge(-dy * 0.0075);
   });
   const up = (e) => {
-    if (!pointers.has(e.pointerId)) return;
     pointers.delete(e.pointerId);
-    pinchD = pointers.size >= 2 ? pinchDist() : 0;
     S.lastInput = performance.now();
-    if (tapStart && e.type === 'pointerup' && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 6 && performance.now() - tapStart.t < 300) {
-      const now = performance.now();
-      if (now - lastTap < 320) { go(e.shiftKey ? -1 : 1); lastTap = 0; }
-      else lastTap = now;
-    }
-    if (pointers.size === 0) tapStart = null;
   };
   cv.addEventListener('pointerup', up);
   cv.addEventListener('pointercancel', up);
@@ -388,6 +363,23 @@
   $('b-in').addEventListener('click', () => go(1));
   $('b-out').addEventListener('click', () => go(-1));
   ui.play.addEventListener('click', togglePlay);
+  // the notes beside each machine can be put away
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const notesBtn = $('b-notes'), soundBtn = $('b-sound');
+  const setNotes = (onOff) => {
+    document.body.classList.toggle('notes-off', !onOff);
+    notesBtn.setAttribute('aria-pressed', onOff ? 'true' : 'false');
+    store.set('em-notes', onOff ? '1' : '0');
+  };
+  setNotes(store.get('em-notes') !== '0');
+  notesBtn.addEventListener('click', () => setNotes(document.body.classList.contains('notes-off')));
+  soundBtn.addEventListener('click', () => {
+    const onOff = window.Sound ? Sound.toggle() : false;
+    soundBtn.setAttribute('aria-pressed', onOff ? 'true' : 'false');
+    soundBtn.querySelector('span').textContent = onOff ? 'Sound on' : 'Sound off';
+    if (onOff) Sound.preload();
+    touched();
+  });
 
   function togglePlay() {
     S.playing = !S.playing;
@@ -472,6 +464,10 @@
     prevL = S.L;
     render();
     updateUI();
+    if (window.Sound) {
+      const r = Math.round(S.L);
+      Sound.update(!S.anim && Math.abs(S.L - r) < 0.04 ? mod(r, N) : null, now);
+    }
     requestAnimationFrame(frame);
   }
 

@@ -36,7 +36,7 @@
     user-select: none;
     -webkit-font-smoothing: antialiased;
   }
-  #stage { position: fixed; inset: 0; display: block; cursor: zoom-in; }
+  #stage { position: fixed; inset: 0; display: block; cursor: ns-resize; }
 
   .cap {
     position: fixed;
@@ -101,8 +101,29 @@
   }
   .tools button:hover { background: var(--ink); color: var(--paper); }
   .tools button:focus-visible, .rail button:focus-visible { outline: 2px solid var(--earth); outline-offset: 2px; }
-  #b-play span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
-  #b-play[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .tools button span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  body.notes-off .cap { opacity: 0 !important; visibility: hidden; }
+  body.notes-off .hint { display: none; }
+
+  .sound-line {
+    position: fixed;
+    left: 28px;
+    right: 28px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+    margin: 0;
+    text-align: center;
+    font-family: var(--f-display);
+    font-size: 1.05rem;
+    color: var(--umber);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
+  }
+  .sound-line.on { opacity: 1; transform: none; }
+  .sound-line q { font-style: italic; }
+  .sound-line span { display: block; margin-top: 2px; font-family: var(--f-mono); font-size: 0.66rem; letter-spacing: 0.06em; color: var(--earth); }
 
   .hint {
     position: fixed;
@@ -162,7 +183,8 @@
   @media (max-width: 900px) { .rail button .n { display: none; } }
   @media (max-width: 640px) {
     .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 66px); }
-    .tools { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); }
+    .tools { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 32px); }
+    .tools button { min-width: 34px; height: 34px; padding: 0 8px; }
     .line { font-size: 0.95rem; }
     .rail { left: 8px; right: 8px; }
     .rail button { font-size: 0.56rem; padding-inline: 0; }
@@ -183,9 +205,12 @@
   <button type="button" id="b-out" aria-label="Zoom out to the previous machine">−</button>
   <button type="button" id="b-in" aria-label="Zoom in to the next machine">+</button>
   <button type="button" id="b-play" aria-pressed="false"><span>Play</span></button>
+  <button type="button" id="b-notes" aria-pressed="true"><span>Notes</span></button>
+  <button type="button" id="b-sound" aria-pressed="false"><span>Sound off</span></button>
 </div>
 
-<p class="hint" id="hint">Pinch or scroll to zoom. Drag up and down, double-click, or use the arrow keys.</p>
+<p class="hint" id="hint">Scroll down to travel into each machine, and up to come back out.</p>
+<p class="sound-line" id="sound-line" aria-live="polite"><q></q><span></span></p>
 
 <footer class="rail">
   <ol id="ticks"></ol>
@@ -195,6 +220,7 @@
 <script src="js/ink.js"></script>
 <script src="js/geo.js"></script>
 <script src="js/kit.js"></script>
+<script src="js/sound.js"></script>
 <script src="js/machines/early.js"></script>
 <script src="js/machines/mid.js"></script>
 <script src="js/machines/late.js"></script>
