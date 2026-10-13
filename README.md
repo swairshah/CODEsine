@@ -26,7 +26,9 @@ When you rest on a machine, it plays period sound effects first: the Apple II's 
 
 None of it is a recording from an Apple event or advert. Those recordings are copyrighted, so the effects and music are made live with Web Audio, and the lines are read by macOS voices: Fred, a voice from the classic Mac era, for the Macintosh's own 1984 "hello", and Samantha for the rest. The clips are in `audio/voice/`.
 
-To use recordings you have the rights to, put them in `audio/custom/` and list them in `CUSTOM` at the top of `js/sound.js`. `05-bite` replaces the iPod's spoken line and `05-ad` replaces its music.
+To use recordings you have the rights to, put them in `audio/custom/` and list them in `CUSTOM` at the top of `js/sound.js`.
+
+`SOUNDTRACK.md` lists, for every stage, the real sound bites with timestamped YouTube links and three or four song options, ready to pick from. `05-bite` replaces the iPod's spoken line and `05-ad` replaces its music.
 
 ## How it works
 
