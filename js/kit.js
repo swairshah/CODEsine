@@ -45,7 +45,8 @@
   }
 
   // A screen on a face. rect is in the face's units; ui = [W, H] are the screen's own units.
-  // o.draw(p, W, H) paints what is on it; o.portal = [x, y, s] is the easter egg's square box in ui units.
+  // o.draw(p, W, H) paints what is on it; o.portal = [x, y, s] is the square the next machine is drawn
+  // into, in ui units (the machine's own 1000 × 1000 frame).
   function screen(F, rect, o) {
     const [u, v, w, h] = rect;
     const p = F.p;
@@ -65,6 +66,10 @@
     if (o.portal) {
       const [x, y, s] = o.portal;
       F.model.marks.portal = Af.mul(Mui, [s, 0, 0, s, x, y]);
+      // o.clip = [x, y, w, h] is the window the machine is seen through (the portal square if left out);
+      // o.round makes that window a circle
+      if (o.clip) F.model.marks.clip = Af.mul(Mui, [o.clip[2], 0, 0, o.clip[3], o.clip[0], o.clip[1]]);
+      if (o.round) F.model.marks.clipShape = 'circle';
     }
   }
 

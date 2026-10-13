@@ -373,16 +373,16 @@
       const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
       const nx = -dy / d, ny = dx / d, t = o.tick ?? 6;
       const lod = o.lod ?? 1;
-      this.pencil([[x1, y1], [x2, y2]], { role: 'graphite', w: 0.7, over: 3, lod });
-      for (const [x, y] of [[x1, y1], [x2, y2]]) this.pencil([[x - nx * t, y - ny * t], [x + nx * t, y + ny * t]], { role: 'graphite', w: 0.7, over: 1, lod });
+      this.pencil([[x1, y1], [x2, y2]], { role: 'graphiteNote', w: 0.7, over: 3, lod });
+      for (const [x, y] of [[x1, y1], [x2, y2]]) this.pencil([[x - nx * t, y - ny * t], [x + nx * t, y + ny * t]], { role: 'graphiteNote', w: 0.7, over: 1, lod });
       let a = Math.atan2(dy, dx);
       if (a > Math.PI / 2) a -= Math.PI;
       if (a < -Math.PI / 2) a += Math.PI;
       const off = o.off ?? 11;
-      this.text('graphite', label, (x1 + x2) / 2 + nx * off, (y1 + y2) / 2 + ny * off, o.size ?? 13, { font: 'serif', italic: true, weight: 400, rot: a, lod });
+      this.text('graphiteNote', label, (x1 + x2) / 2 + nx * off, (y1 + y2) / 2 + ny * off, o.size ?? 13, { font: 'serif', italic: true, weight: 400, rot: a, lod });
     }
     note(x, y, str, o = {}) {
-      this.text('graphite', str, x, y, o.size ?? 15, { font: 'serif', italic: true, weight: 400, align: o.align || 'left', rot: o.rot || 0, lod: o.lod ?? 1 });
+      this.text('graphiteNote', str, x, y, o.size ?? 15, { font: 'serif', italic: true, weight: 400, align: o.align || 'left', rot: o.rot || 0, lod: o.lod ?? 1 });
     }
     // A shaded surface: solid block, carved hatching whose weight follows tone, then pencil over it.
     // tone: 0 = black, 1 = white (number or fn(x, y)).
@@ -392,20 +392,21 @@
       const t0 = T(c[0], c[1]);
       const base = o.dark ? o.fill || 'ink' : o.fill ?? (t0 < 0.45 ? 'ink' : t0 > 0.9 ? 'light' : 'paper');
       this.fill(base, poly, o.lod ?? 0);
-      const h = { angle: o.angle ?? 0, gap: o.gap ?? 8, w: o.w ?? 2.3, scoop: o.scoop, bow: o.bow, lod: o.hlod ?? 1, jitter: 0.14 };
+      const h = { angle: o.angle ?? 0, gap: o.gap ?? 8, w: o.w ?? 2.3, scoop: o.scoop, bow: o.bow, lod: o.hlod ?? 1, jitter: 0.03 };
       if (o.dark || base === 'ink') {
         // white-line work on a dark surface: long cuts that swell where the light falls and thin away in shadow
         if (o.hatch !== false) {
+          // the cuts vanish into solid colour on the shadow side and only open up toward the light
           const lim = o.dark ? 0.5 : 0.45;
-          this.hatch(o.cut ?? 'paper', poly, { ...h, jitter: 0.05, w: h.w * 0.9, scoop: [60, 170], tone: (x, y) => Math.pow(clamp(T(x, y) / lim, 0, 1.1), 1.5) });
+          this.hatch(o.cut ?? 'paper', poly, { ...h, gap: h.gap * 1.15, w: h.w * 0.9, scoop: [60, 170], tone: (x, y) => Math.pow(clamp((T(x, y) - lim * 0.42) / (lim * 0.8), 0, 1.1), 1.5) });
         }
       } else {
-        // engraving on a light surface: lines along the form, a crossing layer in shadow, a third in deep shadow
+        // engraving on a light surface: even lines along the form, and in real shadow a second,
+        // finer set crossing them at a steady angle
         if (o.hatch !== false) {
           const line = o.line ?? 'ink';
           this.hatch(line, poly, { ...h, tone: (x, y) => Math.pow(clamp((1 - T(x, y)) / 0.6, 0, 1.15), 1.25) });
-          this.hatch(line, poly, { ...h, angle: h.angle + 1.0, gap: h.gap * 1.2, w: h.w * 0.72, scoop: [40, 110], tone: (x, y) => clamp((0.62 - T(x, y)) / 0.3, 0, 1) });
-          this.hatch(line, poly, { ...h, angle: h.angle - 0.6, gap: h.gap * 1.35, w: h.w * 0.6, scoop: [30, 90], tone: (x, y) => clamp((0.38 - T(x, y)) / 0.24, 0, 1) });
+          this.hatch(line, poly, { ...h, angle: h.angle + 0.78, w: h.w * 0.55, tone: (x, y) => clamp((0.52 - T(x, y)) / 0.25, 0, 1) });
         }
         if (o.shade !== false) {
           this.hatch('graphite2', poly, { angle: (o.angle ?? 0) + 0.85, gap: o.pgap ?? 4.4, w: 0.85, scoop: [50, 110], bow: 0.5, taper: 0.2, minW: 0.18, lod: 1, inset: 1, tone: (x, y) => clamp((0.95 - T(x, y)) / 0.45, 0, 1) });
@@ -436,6 +437,8 @@
     }
   }
 
+  Plate.notes = true;
+
   const FONTS = {
     mono: '"IBM Plex Mono", ui-monospace, Menlo, monospace',
     serif: '"IM Fell English", "Iowan Old Style", Georgia, serif',
@@ -445,7 +448,8 @@
     return `${L.italic ? 'italic ' : ''}${L.weight} ${L.size}px ${FONTS[L.font] || L.font}`;
   }
 
-  function drawText(ctx, L) {
+  // halo: a knock-out in the paper colour, so a note never sits on top of a line
+  function drawText(ctx, L, halo) {
     ctx.save();
     if (L.M) ctx.transform(L.M[0], L.M[1], L.M[2], L.M[3], L.M[4], L.M[5]);
     ctx.translate(L.x, L.y);
@@ -454,6 +458,15 @@
     ctx.textAlign = L.align;
     ctx.textBaseline = L.base;
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${L.track || 0}px`;
+    if (halo) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 1.6);
+      ctx.strokeStyle = halo;
+      ctx.lineWidth = L.size * 0.42;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(L.str, 0, 0);
+      ctx.restore();
+    }
     ctx.fillText(L.str, 0, 0);
     ctx.restore();
   }
@@ -474,11 +487,14 @@
       // carved hatching thins so surfaces read as clean blocks of colour with crisp edges.
       if (graphite) a *= 1 - smooth(1.8, 3.6, detail);
       else if (L.kind === 'path' && L.lod >= 1) a *= 1 - 0.85 * smooth(2.6, 6, detail);
+      // annotations (dimensions and notes) follow the Notes toggle
+      const note = L.role === 'graphiteNote';
+      if (note && !Plate.notes) continue;
       if (a < 0.004) continue;
       ctx.globalAlpha = a;
-      ctx.fillStyle = pal[L.role] || pal.ink;
+      ctx.fillStyle = note ? pal.graphite : pal[L.role] || (L.role[0] === '#' ? (pal.mapHex ? pal.mapHex(L.role) : L.role) : pal.ink);
       if (L.kind === 'path') ctx.fill(L.path);
-      else drawText(ctx, L);
+      else drawText(ctx, L, note ? pal.paper : null);
     }
     ctx.globalAlpha = 1;
   }

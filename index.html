@@ -122,6 +122,9 @@
     transition: opacity 0.9s ease, transform 0.9s ease;
   }
   .sound-line.on { opacity: 1; transform: none; }
+  /* the subtitle sits on its own patch of paper so it never runs over a drawing's notes */
+  .sound-line q, .sound-line span { background: var(--paper); box-shadow: 0 0 0 6px var(--paper); }
+  .sound-line span { display: table; margin-left: auto; margin-right: auto; }
 
   /* YouTube sources play in small players that stay visible while they are heard */
   .yt-dock {

@@ -6,7 +6,7 @@ Timestamps come from each video's YouTube transcript, read in October 2026. Capt
 
 ★ marks a song Apple itself used for that product or its launch, in an advert or at the event. Songs without ★ are big hits from the same year. "Fan upload" means someone other than Apple or the artist posted the video, so the link may stop working.
 
-All of this is copyrighted. It can play through YouTube's embedded player (the player has to stay visible), or from audio files you have the rights to, listed in `CUSTOM` at the top of `js/sound.js`.
+All of this is copyrighted. The app now selects one song and a short sound bite per stage, stored in `audio/custom/` and configured in `js/soundtrack.js`. `audio/custom/sources.json` records the exact selections and refined clip times. The original placeholders remain available as fallbacks. Obtain the required permissions before publishing or redistributing the recordings. YouTube playback is optional and uses a visible embedded player.
 
 - [1. Apple I, 1976](#1-apple-i-1976)
 - [2. Apple II, 1977](#2-apple-ii-1977)

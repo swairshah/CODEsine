@@ -223,7 +223,7 @@
 
   // a synth music bed, with its own volume
   class SynthSource {
-    constructor(spec) { this.song = SONGS[spec.song]; this.g = ac.createGain(); this.g.gain.value = 0; this.g.connect(out); this.ready = !!this.song; this.timer = null; }
+    constructor(spec) { this.spec = spec; this.song = SONGS[spec.song]; this.g = ac.createGain(); this.g.gain.value = 0; this.g.connect(out); this.ready = !!this.song; this.timer = null; }
     start() {
       if (this.timer || !this.song) return;
       let stepN = 0, next = ac.currentTime + 0.08;
@@ -250,11 +250,13 @@
       this.spec = spec;
       this.loop = loop;
       this.el = new Audio();
+      this.ready = false;
+      this.failed = false;
       this.el.preload = 'auto';
-      this.el.src = spec.src;
       this.el.volume = 0;
-      this.ready = true;
-      this.el.addEventListener('error', () => (this.ready = false));
+      this.el.addEventListener('canplay', () => (this.ready = true));
+      this.el.addEventListener('error', () => { this.ready = false; this.failed = true; });
+      this.el.src = spec.src;
       this.el.addEventListener('timeupdate', () => {
         const end = this.spec.end;
         if (end != null && this.el.currentTime >= end) {
@@ -267,7 +269,10 @@
     start() {
       try { this.el.currentTime = this.spec.start || 0; } catch (e) {}
       const p = this.el.play();
-      if (p && p.catch) p.catch(() => {});
+      if (p && p.catch) p.catch((error) => {
+        // Pausing while play() is pending is normal when scrolling or muting.
+        if (error.name !== 'AbortError') { this.ready = false; this.failed = true; }
+      });
       if (this.spec.sfx && SFX[this.spec.sfx]) SFX[this.spec.sfx](ac.currentTime + 0.02);
     }
     stop() { this.el.pause(); }
@@ -275,7 +280,7 @@
     elapsed() { return this.el.currentTime - (this.spec.start || 0); }
     length() {
       const end = this.spec.end != null ? this.spec.end : this.el.duration;
-      return Number.isFinite(end) ? end - (this.spec.start || 0) : 4;
+      return Number.isFinite(end) ? end - (this.spec.start || 0) : Infinity;
     }
   }
 
@@ -394,7 +399,11 @@
       m = { src: make(st && st.music, true, 'music'), level: 0, idle: 0, playing: false };
       musics.set(i, m);
     }
-    if (m.src && m.src.failed) { m.src = fallback(CFG.stages[i].music, m.src, true, 'music'); m.playing = false; }
+    if (m.src && m.src.failed) {
+      m.src.stop();
+      m.src = fallback(CFG.stages[i].music, m.src, true, 'music');
+      m.playing = false;
+    }
     return m;
   }
 
@@ -425,6 +434,7 @@
     }
     if (bite && bite.src.failed) {
       const next = fallback(CFG.stages[bite.i].bite, bite.src, false, 'sound bite');
+      bite.src.stop();
       bite.src.card && bite.src.card.remove();
       if (next) { bite.src = next; bite.spec = next.spec || {}; next.start(); caption(bite.spec.line, bite.spec.source); }
       else endBite();

@@ -1,0 +1,266 @@
+{
+  "note": "Selections from SOUNDTRACK.md. Source-video times are in seconds. Speech cuts were refined with word-timed transcription. MP3 bites are already trimmed; music is the full selected track. These recordings remain copyrighted; provenance is not redistribution permission.",
+  "encoding": {
+    "format": "mp3",
+    "sampleRate": 44100,
+    "bite": {
+      "channels": 1,
+      "bitrate": "96k",
+      "loudnessLUFS": -16
+    },
+    "music": {
+      "channels": 2,
+      "bitrate": "160k",
+      "loudnessLUFS": -18
+    }
+  },
+  "stages": [
+    {
+      "name": "Apple I",
+      "bite": {
+        "file": "audio/custom/00-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=dz4aiU4FiIM",
+        "start": 11.1,
+        "end": 24.5,
+        "title": "Steve Wozniak remembers building the first Apple",
+        "line": "Why don’t I make this little microprocessor chip my own local computer?",
+        "source": "Steve Wozniak on the Apple I · FORA.tv"
+      },
+      "music": {
+        "file": "audio/custom/00-music.mp3",
+        "url": "https://www.youtube.com/watch?v=kSIMVnPA994",
+        "start": 0,
+        "end": null,
+        "title": "Jean-Michel Jarre, Oxygène, Pt. 4"
+      }
+    },
+    {
+      "name": "Apple II",
+      "bite": {
+        "file": "audio/custom/01-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=UL7urMIB0G0",
+        "start": 4,
+        "end": 11.3,
+        "title": "Introducing Apple II, 1977 TV spot",
+        "line": "Introducing Apple II, the easy to operate home computer.",
+        "source": "High Technology store advert, 1977"
+      },
+      "music": {
+        "file": "audio/custom/01-music.mp3",
+        "url": "https://www.youtube.com/watch?v=yEbaeLv-aOo",
+        "start": 0,
+        "end": null,
+        "title": "Donna Summer, I Feel Love"
+      }
+    },
+    {
+      "name": "Macintosh 128K",
+      "bite": {
+        "file": "audio/custom/02-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=h9xUAEJSXyQ",
+        "start": 1,
+        "end": 8.2,
+        "title": "The Macintosh speaks at its launch",
+        "line": "Hello. I’m Macintosh. It sure is great to get out of that bag.",
+        "source": "Macintosh launch, 1984"
+      },
+      "music": {
+        "file": "audio/custom/02-music.mp3",
+        "url": "https://www.youtube.com/watch?v=8a-HfNE3EIo",
+        "start": 0,
+        "end": null,
+        "title": "Vangelis, Chariots of Fire"
+      }
+    },
+    {
+      "name": "PowerBook 100",
+      "bite": {
+        "file": "audio/custom/03-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=PVFTxP5Nne0",
+        "start": 1.65,
+        "end": 7.5,
+        "title": "What’s on your PowerBook? Teacher, 1992",
+        "line": "I don’t want to be a critic. I want to be a builder.",
+        "source": "PowerBook advert, 1992"
+      },
+      "music": {
+        "file": "audio/custom/03-music.mp3",
+        "url": "https://www.youtube.com/watch?v=hTWKbfoikeg",
+        "start": 0,
+        "end": null,
+        "title": "Nirvana, Smells Like Teen Spirit"
+      }
+    },
+    {
+      "name": "iMac G3",
+      "bite": {
+        "file": "audio/custom/04-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=0BHPtoTctDY",
+        "start": 327,
+        "end": 332.65,
+        "title": "Steve Jobs introduces the iMac",
+        "line": "This is iMac. The whole thing is translucent, you can see into it.",
+        "source": "iMac launch, 1998"
+      },
+      "music": {
+        "file": "audio/custom/04-music.mp3",
+        "url": "https://www.youtube.com/watch?v=Va87qt0VZ2M",
+        "start": 0,
+        "end": null,
+        "title": "The Rolling Stones, She’s a Rainbow"
+      }
+    },
+    {
+      "name": "iPod",
+      "bite": {
+        "file": "audio/custom/05-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=kN0SVBCJqLs",
+        "start": 545.05,
+        "end": 551.85,
+        "title": "The first iPod introduction",
+        "line": "This amazing little device holds a thousand songs, and it goes right in my pocket.",
+        "source": "iPod launch, 2001"
+      },
+      "music": {
+        "file": "audio/custom/05-music.mp3",
+        "url": "https://www.youtube.com/watch?v=81bG15gsl70",
+        "start": 0,
+        "end": null,
+        "title": "Propellerheads, Take California"
+      }
+    },
+    {
+      "name": "iPhone",
+      "bite": {
+        "file": "audio/custom/06-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=MnrJzXM7a6o",
+        "start": 162.95,
+        "end": 178,
+        "title": "Steve Jobs introduces iPhone",
+        "line": "These are not three separate devices. This is one device, and we are calling it iPhone.",
+        "source": "iPhone launch, 2007"
+      },
+      "music": {
+        "file": "audio/custom/06-music.mp3",
+        "url": "https://www.youtube.com/watch?v=FgNaNLY_Xt0",
+        "start": 0,
+        "end": null,
+        "title": "Orba Squara, Perfect Timing (This Morning)"
+      }
+    },
+    {
+      "name": "MacBook Air",
+      "bite": {
+        "file": "audio/custom/07-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=OIV6peKMj9M",
+        "start": 224.65,
+        "end": 234.3,
+        "title": "Macworld 2008, the MacBook Air introduction",
+        "line": "This is the new MacBook Air. Yeah, there it is.",
+        "source": "MacBook Air launch, 2008"
+      },
+      "music": {
+        "file": "audio/custom/07-music.mp3",
+        "url": "https://www.youtube.com/watch?v=hhE7QMXRE1g",
+        "start": 0,
+        "end": null,
+        "title": "Yael Naim, New Soul"
+      }
+    },
+    {
+      "name": "MacBook Air (M1)",
+      "bite": {
+        "file": "audio/custom/08-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=5AwdkGKmZ0I",
+        "start": 1426,
+        "end": 1437.6,
+        "title": "Apple Event, 10 November 2020",
+        "line": "This is the new MacBook Air with M1.",
+        "source": "Apple Event, November 2020"
+      },
+      "music": {
+        "file": "audio/custom/08-music.mp3",
+        "url": "https://www.youtube.com/watch?v=R0vu5QfsD5E",
+        "start": 0,
+        "end": null,
+        "title": "Tones and I, Fly Away"
+      }
+    },
+    {
+      "name": "Apple M1",
+      "bite": {
+        "file": "audio/custom/09-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=5AwdkGKmZ0I",
+        "start": 377.65,
+        "end": 390,
+        "title": "Apple Event, 10 November 2020",
+        "line": "Our first chip designed specifically for the Mac. And we call it M1.",
+        "source": "Apple Event, November 2020"
+      },
+      "music": {
+        "file": "audio/custom/09-music.mp3",
+        "url": "https://www.youtube.com/watch?v=TUVcZfQe-Kw",
+        "start": 0,
+        "end": null,
+        "title": "Dua Lipa, Levitating"
+      }
+    },
+    {
+      "name": "iMac 24″",
+      "bite": {
+        "file": "audio/custom/10-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=JdBYVNuky1M",
+        "start": 1307.6,
+        "end": 1315.4,
+        "title": "Apple Event, 20 April 2021",
+        "line": "The all-new, completely redesigned iMac.",
+        "source": "Apple Event, April 2021"
+      },
+      "music": {
+        "file": "audio/custom/10-music.mp3",
+        "url": "https://www.youtube.com/watch?v=hjcXNK-zUFg",
+        "start": 0,
+        "end": null,
+        "title": "Lizzo, Better in Color"
+      }
+    },
+    {
+      "name": "MacBook Pro 14″",
+      "bite": {
+        "file": "audio/custom/11-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=exM1uajp--A",
+        "start": 2021.5,
+        "end": 2025.95,
+        "title": "Apple Event, 18 October 2021",
+        "line": "And yes, MagSafe is coming back to the MacBook Pro.",
+        "source": "Apple Event, October 2021"
+      },
+      "music": {
+        "file": "audio/custom/11-music.mp3",
+        "url": "https://www.youtube.com/watch?v=G_7NMz9Ln8E",
+        "start": 0,
+        "end": null,
+        "title": "Rezz and Deathpact, Chemical Bond"
+      }
+    },
+    {
+      "name": "Mac mini",
+      "bite": {
+        "file": "audio/custom/12-bite.mp3",
+        "url": "https://www.youtube.com/watch?v=Q9Npd8h6CWM",
+        "start": 21.7,
+        "end": 29.4,
+        "title": "M4 Mac mini revealed",
+        "line": "The new mini is just five by five inches.",
+        "source": "Mac mini introduction, 2024"
+      },
+      "music": {
+        "file": "audio/custom/12-music.mp3",
+        "url": "https://www.youtube.com/watch?v=ekr2nIex040",
+        "start": 0,
+        "end": null,
+        "title": "ROSÉ and Bruno Mars, APT."
+      }
+    }
+  ]
+}

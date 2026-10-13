@@ -147,7 +147,7 @@
     tint2: '#55785a',
     view: { yaw: 30, pitch: 16 },
     fit: [700, 720],
-    next: { type: 'screen', bg: 'ink' },
+    next: { type: 'screen', bg: 'ink', look: 'phosphor' },
     make(m) {
       // base pan and the inside of the case (seen only while it is being put together)
       m.part('base', { fly: { d: [0, 760], s: 1.25, at: [0.0, 0.45] } });
@@ -283,21 +283,16 @@
               ui: [mono, monoH],
               bg: 'ink',
               r: 1.4,
-              portal: [168, 72, 92],
+              // RUN MACINTOSH draws the Macintosh in phosphor, line by line, below the prompt
+              portal: [105, 79, 170],
+              clip: [100, 100, 178, 130],
               draw(p, Wd, Ht) {
                 p.text('light', 'APPLE ][', Wd / 2, 16, 11, { lod: 0.5, weight: 600 });
                 const lines = [']CATALOG', ' A 012 MACINTOSH', ']RUN MACINTOSH'];
                 lines.forEach((l, i) => p.text('light', l, 12, 44 + i * 16, 10, { align: 'left', lod: 0.5 }));
                 p.text('light', ']', 12, 44 + 3 * 16, 10, { align: 'left', lod: 0.5 });
-                // the Macintosh, in lo-res blocks: a beige box, a dark screen, a floppy slot, a keyboard
-                const px = (x, y) => p.fill('light', [[168 + x * 7.66, 72 + y * 7.66], [168 + (x + 0.9) * 7.66, 72 + y * 7.66], [168 + (x + 0.9) * 7.66, 72 + (y + 0.9) * 7.66], [168 + x * 7.66, 72 + (y + 0.9) * 7.66]], 0.5);
-                for (let y = 0; y < 9; y++) for (let x = 3; x < 9; x++) {
-                  const scr = y >= 1 && y <= 4 && x >= 4 && x <= 7;
-                  const slot = y === 6 && x >= 6 && x <= 7;
-                  if (!scr && !slot) px(x, y);
-                }
-                for (let x = 2; x < 10; x++) px(x, 10);
-                px(10, 9); px(10, 10);
+                // scan lines across the tube
+                for (let y = 2; y < Ht; y += 3.2) p.fill('umber', [[0, y], [Wd, y], [Wd, y + 0.7], [0, y + 0.7]], 1);
               },
             });
           },

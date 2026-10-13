@@ -33,11 +33,23 @@ What plays is set in `js/soundtrack.js`, one entry per machine. Each entry has a
 - `file(src, { start, end, line, source })`: an audio file in this folder.
 - `synth(song)`: an original placeholder bed made in the browser.
 
-The file is filled in with the real clips and songs from `SOUNDTRACK.md`. Each entry falls back to a narrated line (macOS voices, in `audio/voice/`) and a synth bed. Levels and fade times are at the top of the same file.
+The app plays local recordings in `audio/custom/` first. Each machine has a short speech clip and one full song selected from `SOUNDTRACK.md`. The clips have been trimmed to complete phrases, and their volume has been adjusted to keep speech clear above the music. The iPhone uses "Perfect Timing (This Morning)", from its own adverts.
 
-YouTube clips only play when the page is served over http, so run `./serve.sh` and open http://localhost:8642. Opened as a file, or inside the claude.ai artifact (which blocks embedded sites), the page uses the fallbacks.
+The original narrated lines in `audio/voice/` and synth music remain as fallbacks if a local recording fails. Set `useCustom: false` in `js/soundtrack.js` to use those placeholders again. Levels and fade times are at the top of the same file.
 
-`SOUNDTRACK.md` lists, for every stage, the sound bites with timestamped YouTube links and three or four song options to choose from.
+Local recordings work when you open `index.html` directly or run `./serve.sh` at http://localhost:8642. YouTube playback is off by default. Set `preferYouTube: true` to enable the visible YouTube players as an intermediate fallback when serving over http.
+
+`audio/custom/sources.json` records the source URLs and exact clip times. To rebuild the MP3s, install a current `yt-dlp` and `ffmpeg`, then run `python3 scripts/prepare-audio.py --force`. The recordings remain copyrighted. Obtain the required permissions before publishing or redistributing them.
+
+Run the audio and music-picker tests with `node --test tests/*.test.cjs`.
+
+### Choose different music
+
+Run `./serve.sh` and open [the listening page](http://localhost:8642/music.html). Each machine has four options from `SOUNDTRACK.md`, including the current track for comparison. All 52 options have local 40-second samples, taken from 0:30 to 1:10 in the source video. Only one sample plays at a time.
+
+Choose a track for each machine, then use "Download my picks" to export `soundtrack-picks.json`. Picks are saved in this browser; they don't change the app's music yet. The page also previews the updated M1 introduction, now installed in the app.
+
+`audio/previews/options.json` records the options and source URLs. Run `python3 scripts/prepare-music-options.py` to rebuild missing previews with `yt-dlp` and `ffmpeg`. Add `--force` to replace existing previews.
 
 ## How it works
 

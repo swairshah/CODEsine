@@ -62,6 +62,7 @@
   function withTint(pal, dev, over) {
     let t = over || hex(dev.tint), t2 = hex(dev.tint2 || dev.tint);
     if (pal.tintTo) { t = mix(t, pal.tintTo, pal.tintAmt); t2 = mix(t2, pal.tintTo, pal.tintAmt); }
+    if (pal.tintFn) { t = mix(t, pal.tintFn(t), pal.tintAmt); t2 = mix(t2, pal.tintFn(t2), pal.tintAmt); }
     const p = Object.create(pal);
     p.tint = css(t);
     p.tint2 = css(t2);
@@ -78,6 +79,31 @@
     out.tintAmt = amt;
     return out;
   }
+  // How a screen shows the next machine: each era draws it in its own way, and the colours settle
+  // into the print as you zoom in. Each look maps a colour to a colour.
+  const lum = (c) => (0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]) / 255;
+  const LOOKS = {
+    // the Apple II's monitor: light phosphor lines on black
+    phosphor: (c) => mix(BASE.rgb.ink, BASE.rgb.light, clamp((0.9 - lum(c)) / 0.72, 0, 1)),
+    // MacPaint: black, white and one grey pattern
+    mono: (c) => { const l = lum(c); return l > 0.62 ? BASE.rgb.light : l > 0.32 ? [140, 136, 128] : [24, 21, 18]; },
+    // the PowerBook's passive-matrix LCD
+    lcd: (c) => mix([44, 49, 40], [196, 201, 181], clamp(lum(c) * 1.05, 0, 1)),
+    // the iPod silhouette posters: black figure, white highlights, on a bright ground
+    silhouette: (c) => (lum(c) > 0.8 ? [247, 244, 236] : [22, 19, 17]),
+  };
+  function lookPal(pal, f, amt) {
+    if (!f || amt <= 0) return pal;
+    const rgb = {};
+    for (const k in pal.rgb) rgb[k] = f(pal.rgb[k]);
+    const out = mixPal(pal, makePal(rgb), amt);
+    out.tintFn = f;
+    out.tintAmt = amt;
+    out.mapHex = (h) => css(mix(hex(h), f(hex(h)), amt));
+    return out;
+  }
+  function roleRgb(c) { return c[0] === '#' ? hex(c) : BASE.rgb[c]; }
+
   function portalBg(dev, pal) {
     const b = dev.next.bg;
     if (b && b[0] === '#') return hex(b);
@@ -152,11 +178,12 @@
     drawGlass(dev, cam, pal, ink);
   }
 
-  function clipTo(M) {
-    const q = [[0, 0], [1, 0], [1, 1], [0, 1]].map((p) => Af.apply(M, p));
+  const CIRCLE = Array.from({ length: 48 }, (_, i) => [0.5 + 0.5 * Math.cos((i / 48) * 2 * Math.PI), 0.5 + 0.5 * Math.sin((i / 48) * 2 * Math.PI)]);
+  function clipTo(M, round) {
+    const q = (round ? CIRCLE : [[0, 0], [1, 0], [1, 1], [0, 1]]).map((p) => Af.apply(M, p));
     ctx.beginPath();
     ctx.moveTo(q[0][0], q[0][1]);
-    for (let i = 1; i < 4; i++) ctx.lineTo(q[i][0], q[i][1]);
+    for (let i = 1; i < q.length; i++) ctx.lineTo(q[i][0], q[i][1]);
     ctx.closePath();
   }
 
@@ -173,31 +200,27 @@
     if (a < 0.003) return;
     setM(cam);
     ctx.save();
-    const clipM = dev.marks.clip || dev.marks.portal;
-    clipTo(clipM);
+    const clipM = dev.marks.clip || dev.marks.portal, round = dev.marks.clipShape === 'circle';
+    clipTo(clipM, round);
     ctx.clip();
-    // On a screen the egg is a small print of the next machine, on the same paper it will rest on,
-    // so the card simply grows to fill the view. A chip is reached by going inside: there the
-    // machine is revealed, drawn in pencil and then inked.
+    // On a screen the next machine is there from the start, drawn the way that screen would draw it,
+    // so zooming only enlarges it while its colours settle into the print. A chip is reached by going
+    // inside: there the machine is revealed, drawn in pencil and then inked.
+    const look = onScreen && LOOKS[dev.next.look];
+    const amt = 1 - smooth(0.7, 1, t);
+    let bg;
+    if (onScreen) {
+      const own = dev.next.eggBg ? roleRgb(dev.next.eggBg) : look ? look(BASE.rgb.paper) : BASE.rgb.paper;
+      bg = mix(BASE.rgb.paper, own, amt);
+    } else bg = mix(portalBg(dev, withTint(pal0, dev)), BASE.rgb.paper, ease(t));
     ctx.globalAlpha = onScreen ? ink : a * ink;
-    ctx.fillStyle = onScreen ? BASE.paper : css(mix(portalBg(dev, withTint(pal0, dev)), BASE.rgb.paper, ease(t)));
-    clipTo(clipM);
+    ctx.fillStyle = css(bg);
+    clipTo(clipM, round);
     ctx.fill();
     ctx.globalAlpha = 1;
-    const childPal = dev.next.fg ? invertPal(pal0, dev, 1 - ease(t)) : pal0;
-    if (onScreen) drawMachine(nxt, childCam, childPal, ink, pencil, depth + 1);
-    else drawAtRest(nxt, childCam, childPal, ink * smooth(0.22, 0.62, t), pencil * smooth(0.03, 0.3, t));
+    if (onScreen) drawMachine(nxt, childCam, lookPal(pal0, look, amt), ink, pencil, depth + 1);
+    else drawAtRest(nxt, childCam, dev.next.fg ? invertPal(pal0, dev, 1 - ease(t)) : pal0, ink * smooth(0.22, 0.62, t), pencil * smooth(0.03, 0.3, t));
     ctx.restore();
-    if (onScreen) {
-      // the card's edge, which is the edge of the view by the time you arrive
-      ctx.save();
-      clipTo(clipM);
-      ctx.globalAlpha = ink * (1 - smooth(0.2, 0.7, t));
-      ctx.strokeStyle = BASE.ink;
-      ctx.lineWidth = 1.4 / Af.scaleOf(cam);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
   function drawMachine(dev, cam, pal0, ink = 1, pencil = ink, depth = 0) {
     drawAtRest(dev, cam, pal0, ink, pencil);
@@ -277,7 +300,8 @@
     const hello = nxt.colors ? smooth(0.78, 0.84, u) * (1 - smooth(0.94, 1, u)) : 0;
     if (hello > 0.01) drawExtras(nxt, camC, npal, 1, { hello, write: smooth(0.8, 0.93, u) });
     else drawExtras(nxt, camC, npal, settled);
-    if (nxt.next.type === 'screen' && settled > 0.003) drawPortalChild(nxt, camC, 0, BASE, settled, settled, 1);
+    const shown = settled * (1 - hello);
+    if (nxt.next.type === 'screen' && shown > 0.003) drawPortalChild(nxt, camC, 0, BASE, shown, shown, 1);
     drawGlass(nxt, camC, npal, settled);
   }
 
@@ -399,6 +423,7 @@
   const notesBtn = $('b-notes'), soundBtn = $('b-sound');
   const setNotes = (onOff) => {
     document.body.classList.toggle('notes-off', !onOff);
+    Ink.Plate.notes = onOff;
     notesBtn.setAttribute('aria-pressed', onOff ? 'true' : 'false');
     store.set('em-notes', onOff ? '1' : '0');
   };

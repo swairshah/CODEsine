@@ -190,14 +190,14 @@
     year: '2021',
     kind: 'All-in-one',
     line: 'Eleven and a half millimetres thin, seven colours, and the same M1 inside, tucked into the chin.',
-    verb: 'Find the MacBook Pro in Displays',
+    verb: 'Answer the FaceTime call',
     tint: '#7d9cc2',
     tint2: '#c48a7c',
     // the seven colours run past while it is put together, and it settles on blue
     colors: ['#8fb39a', '#e2c56f', '#e39c6a', '#d98884', '#a597c6', '#b8b8b2', '#7d9cc2'],
     view: { yaw: 24, pitch: 7 },
     fit: [800, 690],
-    next: { type: 'screen', bg: 'light' },
+    next: { type: 'screen', bg: 'light', eggBg: 'warm' },
     make(m) {
       const x0 = -W2 / 2;
       // In an exploded view along the depth axis: the coloured back and the stand behind, the board,
@@ -238,20 +238,22 @@
             screen(F, [1.6, 1.6, W2 - 3.2, 27.7], {
               ui: [480, 270],
               bg: 'paper',
-              portal: [302, 112, 46],
+              // a FaceTime call, and on the other end, the MacBook Pro
+              portal: [105, -9, 270],
+              clip: [90, 30, 300, 194],
               draw(p, W, H) {
                 modernDesktop(p, W, H);
-                // System Settings, Displays: the iMac and the MacBook Pro beside it
-                p.fill('light', rr2(120, 52, 240, 160, 8), 0.5);
-                p.ring('ink', rr2(120, 52, 240, 160, 8), 0.8, 0.5);
-                for (const [i, c] of [['tint2', 0], ['tint', 1], ['earth', 2]]) p.fill(i, ell2(132 + c * 9, 62, 3, 3, 10), 0.5);
-                p.text('ink', 'Displays', 240, 63, 8, { weight: 600, lod: 0.5 });
-                p.text('ink', 'Drag displays to arrange them.', 240, 82, 6, { lod: 1 });
-                p.fill('tint', rr2(176, 104, 110, 66, 3), 0.5);
-                p.ring('ink', rr2(176, 104, 110, 66, 3), 1.2, 0.5);
-                p.text('light', 'iMac', 231, 137, 9, { weight: 600, lod: 0.5 });
-                // the easter egg: the MacBook Pro itself, drawn into the portal by the app
-                p.text('ink', 'MacBook Pro', 325, 166, 6.5, { weight: 600, lod: 0.5 });
+                p.fill('ink', rr2(84, 22, 312, 232, 9), 0.5);
+                p.fill('warm', [[90, 30], [390, 30], [390, 224], [90, 224]], 0.5);
+                // the caller, and the call controls
+                p.text('light', 'MacBook Pro', 98, 234, 7, { align: 'left', weight: 600, lod: 0.5 });
+                p.text('graphite2', 'FaceTime Video  ·  00:42', 98, 245, 5.5, { align: 'left', lod: 1 });
+                const btn = (x, c) => p.fill(c, ell2(x, 239, 7, 7, 20), 0.5);
+                btn(318, 'umber'); btn(337, 'umber');
+                p.fill('#c45a48', rr2(350, 232, 32, 14, 7), 0.5);
+                p.gouge('light', [[359, 240], [366, 237], [373, 240]], 1.6, { lod: 0.5 });
+                p.fill('light', rr2(314, 236, 8, 6, 1), 1);
+                p.fill('light', rr2(333, 234, 8, 10, 4), 1);
               },
             });
           },
@@ -360,7 +362,9 @@
               screen(F, [0.6, 0.6, W3 - 1.2, 20.0], {
                 ui: [462, 299],
                 bg: 'tint2',
-                portal: [268, 150, 54],
+                // the Mac mini, in its AirDrop circle
+                portal: [262, 140, 68],
+                round: true,
                 draw(p, W, H) {
                   modernDesktop(p, W, H, { notch: true });
                   // Finder, AirDrop: people and devices nearby, each in a circle
@@ -373,13 +377,9 @@
                   for (const r of [40, 70, 100]) p.ring('graphite2', ell2(265, 250, r, r, 40), 0.7, 1);
                   p.fill('tint', ell2(205, 177, 22, 22, 30), 0.5);
                   p.text('ink', 'iPhone', 205, 210, 7, { lod: 1 });
-                  // the easter egg
-                  p.fill('paper', ell2(295, 177, 25, 25, 30), 0.5);
-                  p.ring('ink', ell2(295, 177, 25, 25, 30), 1, 0.5);
-                  p.fill('light', rr2(281, 170, 28, 9, 3), 0.5);
-                  p.ring('ink', rr2(281, 170, 28, 9, 3), 1, 0.5);
-                  p.fill('ink', [[286, 176], [288, 176], [288, 177], [286, 177]], 0.5);
-                  p.text('ink', 'Mac mini', 295, 212, 7, { weight: 600, lod: 0.5 });
+                  // the easter egg: a ring round the Mac mini's circle, which the app draws into
+                  p.ring('tint', ell2(296, 174, 36.5, 36.5, 48), 2.2, 0.5);
+                  p.text('ink', 'Mac mini', 296, 218, 7, { weight: 600, lod: 0.5 });
                   p.text('ink', 'AirDrop lets you share instantly with people nearby.', 265, 236, 5.5, { lod: 1 });
                 },
               });
