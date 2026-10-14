@@ -1,4 +1,4 @@
-// capture.cjs: the stills on the front page's version picker. A few machines in every version, at
+// capture.cjs: the stills on the front page's version picker. Every machine in every version, at
 // rest, with the page's own type and buttons hidden, saved as WebP in this folder.
 //
 //   node home/capture.cjs                     the picker's set (MACHINES below) in every version
@@ -15,10 +15,10 @@ const OUT = __dirname;
 const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const VERSIONS = ['iLoop-real', 'iLoop', 'iLoop-watercolor', 'iLoop-pencil', 'iLoop-graphic', 'iLoop-graphic-clean'];
 const SLUGS = ['apple-i', 'apple-ii', 'macintosh-128k', 'powerbook-100', 'imac-g3', 'ipod', 'iphone', 'macbook-air', 'apple-watch', 'apple-m1', 'imac-24', 'macbook-pro-14', 'mac-mini'];
-const MACHINES = [1, 2, 6, 11]; // Apple II, Macintosh 128K, iPhone, MacBook Pro 14″
+const MACHINES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // every machine, so each preview can show a different one
 const W = 1200, H = 900; // the page is captured at this size; the stills are this shape (4:3)
 const INSET = 24; // trimmed from every edge: no page furniture at the margins
-const OUT_W = 640, QUALITY = 68;
+const OUT_W = 400, QUALITY = 70;
 // the page's own interface: caption, buttons, rail, hint, YouTube dock, debug readout
 const HIDE = '.cap,.tools,.rail,.hint,.yt-dock,.sound-line,.perf,footer{display:none!important}';
 

@@ -246,57 +246,130 @@
     length() { return Infinity; }
   }
 
-  // an audio file in a plain <audio>. Served over http its level is set by a Web Audio gain, since
-  // phones (iOS above all) ignore an element's volume, which would cut every fade to a hard switch.
-  // Opened from disk the element's own volume is used, as Web Audio would hear only silence there.
+  // ---------- players ----------
+  // Safari, and every browser on an iPhone, lets an audio element start only during a click, tap or
+  // key press (or a moment after one), so a track that comes in after a scroll would be refused.
+  // An element once started inside such a gesture stays allowed, so a few players are unlocked at
+  // each gesture and shared: a file borrows one while it plays and gives it back when it stops.
+  //
+  // Served over http each player's level is set by a Web Audio gain, since phones ignore an element's
+  // volume, which would cut every fade to a hard switch. Opened from disk the element's own volume is
+  // used, as Web Audio would hear only silence there.
   const viaGain = () => ac && /^https?:$/.test(location.protocol);
+  const POOL = 8;
+  const players = [];
+  let silent = null;
+  function silence() {
+    // a twentieth of a second of 8-bit silence, as a WAV
+    if (silent) return silent;
+    const n = 400, b = new Uint8Array(44 + n), dv = new DataView(b.buffer);
+    const str = (o, t) => [...t].forEach((c, i) => (b[o + i] = c.charCodeAt(0)));
+    str(0, 'RIFF'); dv.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+    dv.setUint16(22, 1, true); dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true);
+    str(36, 'data'); dv.setUint32(40, n, true); b.fill(128, 44);
+    return (silent = 'data:audio/wav;base64,' + global.btoa(String.fromCharCode(...b)));
+  }
+  function player() {
+    const p = { el: new Audio(), g: null, owner: null, unlocked: false, try: 0 };
+    p.el.preload = 'auto';
+    if (viaGain()) {
+      try {
+        p.g = ac.createGain();
+        p.g.gain.value = 0;
+        ac.createMediaElementSource(p.el).connect(p.g).connect(ac.destination);
+      } catch (e) { p.g = null; }
+    }
+    if (!p.g) p.el.volume = 0;
+    // events go to whichever file is borrowing the player
+    p.el.addEventListener('canplay', () => p.owner && (p.owner.ready = true));
+    p.el.addEventListener('error', () => p.owner && p.owner.fail());
+    p.el.addEventListener('loadedmetadata', () => p.owner && p.owner.seekStart());
+    p.el.addEventListener('timeupdate', () => p.owner && p.owner.tick());
+    players.push(p);
+    return p;
+  }
+  // inside a gesture: start every idle player on a moment of silence, which leaves it allowed to play later
+  function unlock() {
+    if (!ac) return;
+    while (players.length < POOL) player();
+    for (const p of players) {
+      if (p.owner || p.unlocked) continue;
+      const t = ++p.try;
+      p.el.src = silence();
+      p.unlocked = true;
+      const r = p.el.play();
+      if (r && r.then) r.then(() => { if (!p.owner) p.el.pause(); }, (e) => { if (t === p.try && !p.owner && e.name === 'NotAllowedError') p.unlocked = false; });
+    }
+    // and anything that was refused before gets another go
+    for (const p of players) if (p.owner && p.owner.blocked) p.owner.play();
+  }
+  function borrow(owner) {
+    const p = players.find((q) => !q.owner && q.unlocked) || players.find((q) => !q.owner) || player();
+    p.owner = owner;
+    p.try++;
+    return p;
+  }
+  function giveBack(p) {
+    p.el.pause();
+    p.owner = null;
+    if (p.g) p.g.gain.value = 0;
+    else p.el.volume = 0;
+  }
+
+  // an audio file, played on a borrowed player
   class FileSource {
     constructor(spec, loop) {
       this.spec = spec;
       this.loop = loop;
-      this.el = new Audio();
+      this.p = null;
       this.ready = false;
       this.failed = false;
-      this.el.preload = 'auto';
-      this.el.volume = 0;
-      if (viaGain()) {
-        try {
-          this.g = ac.createGain();
-          this.g.gain.value = 0;
-          ac.createMediaElementSource(this.el).connect(this.g).connect(ac.destination);
-          this.el.volume = 1;
-        } catch (e) { this.g = null; }
+      this.blocked = false;
+    }
+    fail() { this.ready = false; this.failed = true; }
+    seekStart() { if (this.spec.start) try { this.p.el.currentTime = this.spec.start; } catch (e) {} }
+    tick() {
+      const end = this.spec.end, el = this.p.el;
+      if (end != null && el.currentTime >= end) {
+        if (this.loop) el.currentTime = this.spec.start || 0;
+        else el.pause();
       }
-      this.el.addEventListener('canplay', () => (this.ready = true));
-      this.el.addEventListener('error', () => { this.ready = false; this.failed = true; });
-      this.el.src = spec.src;
-      this.el.addEventListener('timeupdate', () => {
-        const end = this.spec.end;
-        if (end != null && this.el.currentTime >= end) {
-          if (this.loop) this.el.currentTime = this.spec.start || 0;
-          else this.el.pause();
-        }
+    }
+    play() {
+      this.blocked = false;
+      const r = this.p.el.play();
+      if (r && r.catch) r.catch((error) => {
+        if (!this.p) return;
+        // refused without a gesture: wait for the next one, rather than give up on the file
+        if (error.name === 'NotAllowedError') this.blocked = true;
+        // pausing while play() is pending is normal when scrolling or muting
+        else if (error.name !== 'AbortError') this.fail();
       });
-      this.el.loop = loop && this.spec.end == null;
     }
     start() {
-      try { this.el.currentTime = this.spec.start || 0; } catch (e) {}
-      const p = this.el.play();
-      if (p && p.catch) p.catch((error) => {
-        // Pausing while play() is pending is normal when scrolling or muting.
-        if (error.name !== 'AbortError') { this.ready = false; this.failed = true; }
-      });
+      if (!this.p) {
+        this.p = borrow(this);
+        this.p.el.loop = this.loop && this.spec.end == null;
+        this.p.el.src = this.spec.src;
+      } else this.seekStart();
+      try { this.p.el.currentTime = this.spec.start || 0; } catch (e) {}
+      this.play();
       if (this.spec.sfx && SFX[this.spec.sfx]) SFX[this.spec.sfx](ac.currentTime + 0.02);
     }
-    stop() { this.el.pause(); }
-    gain(v) {
-      v = clamp(v, 0, 1);
-      if (this.g) this.g.gain.setTargetAtTime(v, ac.currentTime, 0.015);
-      else this.el.volume = v;
+    stop() {
+      if (this.p) giveBack(this.p);
+      this.p = null;
+      this.blocked = false;
     }
-    elapsed() { return this.el.currentTime - (this.spec.start || 0); }
+    gain(v) {
+      if (!this.p) return;
+      v = clamp(v, 0, 1);
+      if (this.p.g) this.p.g.gain.setTargetAtTime(v, ac.currentTime, 0.015);
+      else this.p.el.volume = v;
+    }
+    elapsed() { return this.p ? this.p.el.currentTime - (this.spec.start || 0) : 0; }
     length() {
-      const end = this.spec.end != null ? this.spec.end : this.el.duration;
+      const end = this.spec.end != null ? this.spec.end : this.p ? this.p.el.duration : NaN;
       return Number.isFinite(end) ? end - (this.spec.start || 0) : Infinity;
     }
   }
@@ -503,10 +576,15 @@
         if (ac.state !== 'running') ac.resume();
         // iOS: play through the ringer switch, like a music app
         try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
-        // a phone suspends audio when locked or switching apps; the next touch brings it back
+        // a phone suspends audio when locked or switching apps, and Safari refuses a player that was not
+        // started in a gesture: every later click, tap or key press resumes the one and unlocks the other
         if (!wakeBound && global.addEventListener) {
           wakeBound = true;
-          for (const e of ['pointerdown', 'touchend', 'keydown']) global.addEventListener(e, () => { if (enabled && ac.state !== 'running') ac.resume(); }, true);
+          for (const e of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) global.addEventListener(e, () => {
+            if (!enabled) return;
+            if (ac.state !== 'running') ac.resume();
+            unlock();
+          }, true);
         }
         enabled = true;
         if (canYouTube()) loadYouTube().catch(() => {});
@@ -514,11 +592,13 @@
       // bites switched on while resting: the machine you are on says its line
       if (bites && !bitesOn) held = { i: null, since: 0 };
       if (!bites) endBite();
+      if (music || bites) unlock(); // this is a click: unlock the players while it lasts
       musicOn = !!music;
       bitesOn = !!bites;
       if (!musicOn && !bitesOn && enabled) {
         enabled = false;
         for (const m of musics.values()) if (m.src) { m.src.gain(0); m.src.stop(); m.playing = false; m.level = 0; }
+        for (const p of players) p.el.pause();
       }
       dock().classList.toggle('off', !enabled);
       return enabled;

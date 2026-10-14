@@ -5,8 +5,12 @@ const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 
-function harness() {
+function harness({ strict = false } = {}) {
   const elements = [];
+  const gesture = { on: false };
+  const listeners = {};
+  // a tap: a gesture while the page's listeners run
+  const tap = () => { gesture.on = true; for (const fn of listeners.pointerup || []) fn(); gesture.on = false; };
   let now = 0;
   const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, setTargetAtTime() {} });
   const node = () => ({ gain: param(), threshold: param(), ratio: param(), frequency: param(), Q: param(), detune: param(), connect(n) { return n; }, start() {}, stop() {} });
@@ -20,13 +24,17 @@ function harness() {
     currentTime = 0; duration = NaN; volume = 1; paused = true; events = {};
     constructor() { elements.push(this); }
     addEventListener(event, fn) { this.events[event] = fn; }
-    play() { this.paused = false; return Promise.resolve(); }
+    // strict is Safari: an element may start only in a gesture, and once it has, it stays allowed
+    play() {
+      if (strict && !gesture.on && !this.allowed) { const e = new Error('refused'); e.name = 'NotAllowedError'; return Promise.reject(e); }
+      this.allowed = true; this.paused = false; return Promise.resolve();
+    }
     pause() { this.paused = true; }
     fail() { this.events.error(); }
   }
   const el = () => ({ classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {}, append() {}, appendChild() {}, remove() {}, querySelector: el });
   const context = {
-    window: { AudioContext }, Audio,
+    window: { AudioContext, btoa: (s) => Buffer.from(s, 'binary').toString('base64'), addEventListener: (e, fn) => (listeners[e] = listeners[e] || []).push(fn) }, Audio,
     document: { createElement: el, getElementById: el, body: el() },
     location: { protocol: 'file:' }, performance: { now: () => now },
     setInterval: () => 1, clearInterval() {}, setTimeout() {},
@@ -36,7 +44,7 @@ function harness() {
   const sound = context.window.Sound;
   const frame = (level = 0, rest = 0, elapsed = 100) => { now += elapsed; sound.update(level, rest, now); };
   const arrive = () => { frame(); frame(0, 0, 700); };
-  return { config: context.window.SOUNDTRACK, sound, elements, frame, arrive };
+  return { config: context.window.SOUNDTRACK, sound, elements, frame, arrive, gesture, tap };
 }
 
 test('all 13 stages prefer existing local audio and retain both original fallbacks', () => {
@@ -67,12 +75,14 @@ test('all 13 stages prefer existing local audio and retain both original fallbac
 test('missing local files fall back to narration and synth without YouTube', () => {
   const { sound, elements, arrive, frame } = harness();
   sound.toggle(); arrive();
-  elements.forEach(el => el.fail());
+  const failed = elements.filter(el => /custom\/00-(music|bite)\.mp3$/.test(el.src));
+  assert.equal(failed.length, 2);
+  failed.forEach(el => el.fail());
   frame();
   const state = sound.debug();
   assert.equal(state.music[0].kind, 'SynthSource');
   assert.equal(state.bite.id, 'audio/voice/00.mp3');
-  assert.ok(elements.slice(0, 2).every(el => el.paused));
+  assert.ok(elements.filter(el => el.src.endsWith('00-music.mp3')).every(el => el.paused));
 });
 
 test('unknown file duration does not fade a bite after four seconds', () => {
@@ -139,4 +149,34 @@ test('music and bites switch separately', () => {
   assert.equal(sound.setBites(false), false);
   assert.equal(sound.on, false);
   assert.ok(elements.every(el => el.paused));
+});
+
+test('in Safari, files that start after a scroll still play, on players unlocked by the click', async () => {
+  const { sound, elements, frame, gesture } = harness({ strict: true });
+  // the click that turns sound on
+  gesture.on = true; sound.set(true, true); gesture.on = false;
+  await new Promise((r) => setImmediate(r));
+  // scroll, with no gesture, three machines on, and rest there
+  for (let i = 0; i <= 30; i++) frame(i / 10, null);
+  frame(3, 3); frame(3, 3, 700);
+  await new Promise((r) => setImmediate(r));
+  const d = sound.debug();
+  const music = d.music.find((m) => m.i === 3);
+  assert.equal(music.kind, 'FileSource');
+  assert.match(music.id, /03-music\.mp3$/);
+  assert.match(d.bite.id, /03-bite\.mp3$/);
+  for (const name of ['03-music.mp3', '03-bite.mp3']) assert.ok(elements.some((el) => el.src.endsWith(name) && !el.paused), name);
+});
+
+test('a file refused for want of a gesture waits for the next one instead of falling back', async () => {
+  const { sound, elements, arrive, tap } = harness({ strict: true });
+  // sound turned on outside a gesture (the music switch remembered from last time), so nothing is unlocked
+  sound.set(true, false); arrive();
+  await new Promise((r) => setImmediate(r));
+  assert.equal(sound.debug().music[0].kind, 'FileSource');
+  assert.ok(elements.filter((el) => el.src.endsWith('00-music.mp3')).every((el) => el.paused));
+  // the first tap: the waiting track starts
+  tap();
+  await new Promise((r) => setImmediate(r));
+  assert.ok(elements.some((el) => el.src.endsWith('00-music.mp3') && !el.paused));
 });
