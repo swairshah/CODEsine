@@ -12,22 +12,93 @@
   const tableLine = (m, a, b) => m.op((p, P) => p.pencil([P(a), P(b)], { role: 'graphite2', w: 0.7, over: 0, lod: 1 }), [a, b], false);
   const note = (m, at, str, align = 'left') => m.op((p, P) => p.note(...P(at), str, { align }), [at], false);
 
-  // macOS since Big Sur: soft bands of colour, a menu bar, a Dock
-  function modernDesktop(p, W, H, o = {}) {
+  // ---------- macOS since Big Sur, drawn as it really looks ----------
+  const SYS = '-apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif';
+  // the Dock's app icons: rounded squares in their real colours and glyphs, in s × s
+  function macIcon(p, name, x, y, s) {
+    const c = (dx, dy) => [x + dx * s, y + dy * s];
+    const sq = (fill) => p.fill(fill, rr2(x, y, s, s, s * 0.23), 0.5);
+    const circ = (fill, cx, cy, r) => p.fill(fill, ell2(x + cx * s, y + cy * s, r * s, r * s, 24), 0.5);
+    const box = (fill, x0, y0, w, h, r = 0) => p.fill(fill, rr2(x + x0 * s, y + y0 * s, w * s, h * s, r * s), 0.5);
+    switch (name) {
+      case 'Finder':
+        sq('#2b8cf2'); p.fill('#e8f1fb', [c(0.5, 0), c(0.77, 0), c(0.77, 1), c(0.5, 1)], 0.5);
+        p.fill('#e8f1fb', [c(0.23, 0), c(0.5, 0), c(0.43, 0.5), c(0.5, 0.5), c(0.5, 1), c(0.23, 1)].map((q) => q), 0.5);
+        box('#173a63', 0.3, 0.3, 0.05, 0.12); box('#173a63', 0.66, 0.3, 0.05, 0.12);
+        p.gouge('#173a63', [c(0.26, 0.66), c(0.5, 0.74), c(0.74, 0.66)], s * 0.04, { lod: 1 });
+        break;
+      case 'Launchpad':
+        sq('#9aa3ad'); for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) box(['#f3654f', '#f6c54a', '#56c06a', '#4aa3f0', '#a36be3', '#f08b3c', '#3cc4c9', '#e85b9a', '#7d8cf5'][r * 3 + k], 0.18 + k * 0.23, 0.18 + r * 0.23, 0.17, 0.17, 0.04);
+        break;
+      case 'Safari':
+        sq('#f2f4f7'); circ('#1e7cf2', 0.5, 0.5, 0.4); circ('#eaf3fe', 0.5, 0.5, 0.33);
+        p.fill('#e8443a', [c(0.5, 0.5), c(0.74, 0.26), c(0.55, 0.55)], 0.5); p.fill('#c9cdd3', [c(0.5, 0.5), c(0.26, 0.74), c(0.45, 0.45)], 0.5);
+        break;
+      case 'Messages':
+        sq('#3ac34f'); p.fill('#ffffff', ell2(x + 0.5 * s, y + 0.47 * s, 0.32 * s, 0.26 * s, 24), 0.5); p.fill('#ffffff', [c(0.3, 0.62), c(0.24, 0.78), c(0.42, 0.68)], 0.5);
+        break;
+      case 'Mail':
+        sq('#2d8ff3'); box('#ffffff', 0.18, 0.3, 0.64, 0.42, 0.04); p.gouge('#2d8ff3', [c(0.2, 0.33), c(0.5, 0.55), c(0.8, 0.33)], s * 0.045, { smooth: false, lod: 1 });
+        break;
+      case 'Maps':
+        sq('#e9efe4'); p.fill('#9ccf7a', [c(0, 0.55), c(0.45, 0.4), c(1, 0.62), c(1, 1), c(0, 1)], 0.5); p.gouge('#f6c443', [c(0.05, 0.85), c(0.55, 0.55), c(0.95, 0.2)], s * 0.08, { lod: 1 }); circ('#2a7ef0', 0.62, 0.42, 0.1);
+        break;
+      case 'Photos':
+        sq('#ffffff'); ['#f3a634', '#f2cf3a', '#8fcf50', '#38b5c9', '#3d8be8', '#9065d8', '#e45a9c', '#ee5a45'].forEach((col, k) => { const a = (k / 8) * Math.PI * 2; p.fill(col, ell2(x + (0.5 + 0.18 * Math.cos(a)) * s, y + (0.5 + 0.18 * Math.sin(a)) * s, 0.16 * s, 0.16 * s, 18), 0.5); });
+        break;
+      case 'FaceTime':
+        sq('#3ac34f'); box('#ffffff', 0.18, 0.34, 0.42, 0.32, 0.06); p.fill('#ffffff', [c(0.62, 0.45), c(0.82, 0.34), c(0.82, 0.66), c(0.62, 0.55)], 0.5);
+        break;
+      case 'Calendar':
+        sq('#ffffff'); p.text('#e8443a', 'MON', x + 0.5 * s, y + 0.22 * s, 0.17 * s, { font: SYS, weight: 700, lod: 1 }); p.text('#1d1d1f', '18', x + 0.5 * s, y + 0.6 * s, 0.42 * s, { font: SYS, weight: 400, lod: 0.5 });
+        break;
+      case 'Music':
+        sq('#fa3c55'); p.fill('#ffffff', ell2(x + 0.38 * s, y + 0.68 * s, 0.1 * s, 0.08 * s, 14), 0.5); p.fill('#ffffff', ell2(x + 0.66 * s, y + 0.6 * s, 0.1 * s, 0.08 * s, 14), 0.5);
+        p.fill('#ffffff', [c(0.45, 0.68), c(0.48, 0.68), c(0.48, 0.3), c(0.45, 0.3)], 0.5); p.fill('#ffffff', [c(0.73, 0.6), c(0.76, 0.6), c(0.76, 0.22), c(0.73, 0.22)], 0.5); p.fill('#ffffff', [c(0.45, 0.3), c(0.76, 0.22), c(0.76, 0.3), c(0.45, 0.38)], 0.5);
+        break;
+      case 'App Store':
+        sq('#1f8ef5'); p.gouge('#ffffff', [c(0.32, 0.72), c(0.5, 0.3)], s * 0.07, { smooth: false, lod: 1 }); p.gouge('#ffffff', [c(0.68, 0.72), c(0.5, 0.3)], s * 0.07, { smooth: false, lod: 1 }); p.gouge('#ffffff', [c(0.28, 0.6), c(0.72, 0.6)], s * 0.07, { smooth: false, lod: 1 });
+        break;
+      case 'Settings':
+        sq('#8e9196'); for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; box('#5b5e63', 0.5 + 0.3 * Math.cos(a) - 0.06, 0.5 + 0.3 * Math.sin(a) - 0.06, 0.12, 0.12, 0.02); } circ('#5b5e63', 0.5, 0.5, 0.3); circ('#c9cbce', 0.5, 0.5, 0.12);
+        break;
+      case 'Trash':
+        p.fill('#e9ecef', [c(0.2, 0.22), c(0.8, 0.22), c(0.74, 0.95), c(0.26, 0.95)], 0.5); box('#cfd4d9', 0.15, 0.14, 0.7, 0.08, 0.02);
+        for (const dx of [0.36, 0.5, 0.64]) p.fill('#b9bfc6', [c(dx - 0.012, 0.32), c(dx + 0.012, 0.32), c(dx + 0.012, 0.88), c(dx - 0.012, 0.88)], 1);
+        break;
+    }
+  }
+  function macMenuBar(p, W, h, app, items) {
+    p.fill('#f3f1ee', [[0, 0], [W, 0], [W, h], [0, h]], 0.5);
+    p.text('#1d1d1f', '', h * 1.0, h * 0.55, h * 0.72, { font: SYS, lod: 0.5 });
+    let x = h * 2.1;
+    [app, ...items].forEach((it, i) => {
+      p.text('#1d1d1f', it, x, h * 0.55, h * 0.58, { font: SYS, weight: i ? 400 : 700, align: 'left', lod: 1 });
+      x += it.length * h * 0.36 + h * 1.1;
+    });
+    p.text('#1d1d1f', 'Mon 18 Oct  9:41', W - h * 0.8, h * 0.55, h * 0.56, { font: SYS, align: 'right', lod: 1 });
+  }
+  const DOCK = ['Finder', 'Launchpad', 'Safari', 'Messages', 'Mail', 'Maps', 'Photos', 'FaceTime', 'Calendar', 'Music', 'App Store', 'Settings', 'Trash'];
+  function macDock(p, W, H, s) {
+    const n = DOCK.length, gap = s * 0.18, w = n * s + (n + 1) * gap, x0 = (W - w) / 2, y0 = H - s - gap * 2.4;
+    p.fill('#e8e6e3', rr2(x0, y0 - gap, w, s + gap * 2, s * 0.32), 0.5);
+    p.ring('#cfccc8', rr2(x0, y0 - gap, w, s + gap * 2, s * 0.32), 0.5, 1);
+    DOCK.forEach((name, i) => macIcon(p, name, x0 + gap + i * (s + gap), y0, s));
+  }
+  // a Big Sur style wallpaper: soft bands of colour
+  function macWallpaper(p, W, H) {
     for (let i = 0; i < 7; i++) {
       const pts = [];
       for (let k = 0; k <= 12; k++) pts.push([-20 + k * (W + 40) / 12, H * (0.25 + i * 0.1) + H * 0.08 * Math.sin(k * 0.6 + i * 0.7)]);
       p.gouge(i % 2 ? 'tint' : 'tint2', pts, H * 0.08 - i * H * 0.006, { taper: 0.1, lod: 0.5 });
     }
+  }
+  function modernDesktop(p, W, H, o = {}) {
+    macWallpaper(p, W, H);
     const mb = H * 0.035;
-    p.fill('light', [[0, 0], [W, 0], [W, mb], [0, mb]], 0.5);
-    p.text('ink', o.menu || 'Finder   File   Edit   View   Go   Window   Help', mb * 2.4, mb * 0.55, mb * 0.62, { align: 'left', lod: 1 });
-    if (o.notch) p.fill('ink', rr2(W / 2 - W * 0.04, -2, W * 0.08, mb + 3, mb * 0.4), 0.5);
-    if (o.dock !== false) {
-      const dw = W * 0.5, dh = H * 0.075, dx = (W - dw) / 2, dy = H - dh - H * 0.015;
-      p.fill('paper', rr2(dx, dy, dw, dh, dh * 0.3), 0.5);
-      for (let i = 0; i < 10; i++) p.fill(['tint', 'tint2', 'earth', 'umber'][i % 4], rr2(dx + dh * 0.15 + i * (dw - dh * 0.3) / 10, dy + dh * 0.12, dh * 0.76, dh * 0.76, dh * 0.2), 0.5);
-    }
+    macMenuBar(p, W, mb, 'Finder', ['File', 'Edit', 'View', 'Go', 'Window', 'Help']);
+    if (o.notch) p.fill('#0b0b0c', rr2(W / 2 - W * 0.04, -2, W * 0.08, mb + 3, mb * 0.4), 0.5);
+    if (o.dock !== false) macDock(p, W, H, H * 0.06);
   }
 
   // ---------- Apple Watch Series 2, 2016 ----------
@@ -60,7 +131,7 @@
     tint2: '#1d1d1f',
     view: { yaw: -14, pitch: 46 },
     fit: [560, 760],
-    next: { type: 'inside', align: true, bg: 'light' },
+    next: { type: 'inside', align: true, bg: 'light', swipe: true },
     rings: RINGS,
     make(m) {
       const x0 = -CW / 2, z0 = -CD / 2;
@@ -179,25 +250,27 @@
     year: '2021',
     kind: 'All-in-one',
     line: 'Eleven and a half millimetres thin, seven colours, and the same M1 inside, tucked into the chin.',
-    verb: 'Answer the FaceTime call',
+    verb: 'Open the MacBook Pro on apple.com',
     tint: '#7d9cc2',
     tint2: '#c48a7c',
     // the seven colours run past while it is put together, and it settles on blue
     colors: ['#8fb39a', '#e2c56f', '#e39c6a', '#d98884', '#a597c6', '#b8b8b2', '#7d9cc2'],
     view: { yaw: 24, pitch: 7 },
     fit: [800, 690],
-    next: { type: 'screen', bg: 'light', eggBg: 'warm' },
+    next: { type: 'screen', bg: 'light', eggBg: '#000000' },
     make(m) {
       const x0 = -W2 / 2;
       // In an exploded view along the depth axis: the coloured back and the stand behind, the board,
       // then the glass front, keyboard and mouse. They collapse together as you arrive.
       m.part('back', { fly: { d3: [0, 2, -52], at: [0.46, 0.76] } });
-      shadowOp(m, [[-7.4, 0, -14], [7.4, 0, -14], [7.4, 0, 1], [-7.4, 0, 1]], 6, 3);
+      shadowOp(m, [[-7.4, 0, -10], [7.4, 0, -10], [7.4, 0, 4.7], [-7.4, 0, 4.7]], 6, 3);
       tableLine(m, [-36, 0, 6], [36, 0, 6]);
       m.slab(rr2(x0, Y0, W2, H2, 1.3), -0.62, -0.05, { base: 0.92, fill: 'tint', gap: 6, w: 1.3 }, { skip: ['front'] });
       m.part('stand', { fly: { d3: [0, -2, -92], at: [0.5, 0.82] } });
-      m.box(-7.35, 0.3, -2.4, 14.7, Y0 + 6, 0.6, { base: 0.9, fill: 'tint', gap: 6, w: 1.3 });
-      m.box(-7.35, 0, -14.2, 14.7, 0.32, 13.2, { base: 0.85, fill: 'tint', gap: 6, w: 1.3 });
+      // the stand: one bent blade, slanting down and back from behind the display, then turning
+      // forward into a flat foot that sits under the display (14.7 cm square)
+      m.rotX(25.8, [0, 0.3, -9.2], () => m.box(-7.35, 0.3, -9.5, 14.7, 19.6, 0.6, { base: 0.9, fill: 'tint', gap: 6, w: 1.3 }));
+      m.box(-7.35, 0, -10, 14.7, 0.32, 14.7, { base: 0.85, fill: 'tint', gap: 6, w: 1.3 }, { r: 0.4 });
       // the logic board in the chin, with the M1 facing you
       m.part('board');
       m.box(-12, Y0 + 0.8, -0.55, 24, 4.4, 0.2, { base: 0.9, fill: 'tint2', gap: 5, w: 1, shade: false, pencil: false }, {
@@ -227,22 +300,33 @@
             screen(F, [1.6, 1.6, W2 - 3.2, 27.7], {
               ui: [480, 270],
               bg: 'paper',
-              // a FaceTime call, and on the other end, the MacBook Pro
-              portal: [105, -9, 270],
-              clip: [90, 30, 300, 194],
+              // Safari on apple.com: the MacBook Pro page, and you zoom into its hero image
+              portal: [117, 54, 246],
+              clip: [10, 92, 460, 168],
               draw(p, W, H) {
-                modernDesktop(p, W, H);
-                p.fill('ink', rr2(84, 22, 312, 232, 9), 0.5);
-                p.fill('warm', [[90, 30], [390, 30], [390, 224], [90, 224]], 0.5);
-                // the caller, and the call controls
-                p.text('light', 'MacBook Pro', 98, 234, 7, { align: 'left', weight: 600, lod: 0.5 });
-                p.text('graphite2', 'FaceTime Video  ·  00:42', 98, 245, 5.5, { align: 'left', lod: 1 });
-                const btn = (x, c) => p.fill(c, ell2(x, 239, 7, 7, 20), 0.5);
-                btn(318, 'umber'); btn(337, 'umber');
-                p.fill('#c45a48', rr2(350, 232, 32, 14, 7), 0.5);
-                p.gouge('light', [[359, 240], [366, 237], [373, 240]], 1.6, { lod: 0.5 });
-                p.fill('light', rr2(314, 236, 8, 6, 1), 1);
-                p.fill('light', rr2(333, 234, 8, 10, 4), 1);
+                macWallpaper(p, W, H);
+                macMenuBar(p, W, 9, 'Safari', ['File', 'Edit', 'View', 'History', 'Bookmarks', 'Window', 'Help']);
+                // the window, filling the screen
+                p.fill('#ffffff', rr2(10, 14, 460, 248, 6), 0.5);
+                p.fill('#f6f5f4', rr2(10, 14, 460, 22, 6), 0.5);
+                p.fill('#f6f5f4', [[10, 26], [470, 26], [470, 36], [10, 36]], 0.5);
+                p.fill('#dddbd8', [[10, 36], [470, 36], [470, 36.6], [10, 36.6]], 1);
+                ['#ff5f57', '#febc2e', '#28c840'].forEach((col, i) => p.fill(col, ell2(20 + i * 8, 25, 2.6, 2.6, 14), 0.5));
+                p.gouge('#8a8784', [[54, 22], [51, 25], [54, 28]], 1, { smooth: false, lod: 1 });
+                p.gouge('#c9c6c2', [[62, 22], [65, 25], [62, 28]], 1, { smooth: false, lod: 1 });
+                p.fill('#ebe9e6', rr2(160, 19, 160, 12, 4), 0.5);
+                p.text('#1d1d1f', 'apple.com', 240, 25.5, 5.4, { font: SYS, lod: 1 });
+                p.fill('#8a8784', rr2(214, 23.5, 3, 3.6, 0.6), 1);
+                // apple.com's global navigation
+                p.fill('#f5f5f7', [[10, 36.6], [470, 36.6], [470, 48], [10, 48]], 0.5);
+                p.text('#1d1d1f', '', 60, 42.3, 6, { font: SYS, lod: 1 });
+                ['Store', 'Mac', 'iPad', 'iPhone', 'Watch', 'AirPods', 'TV & Home', 'Only on Apple', 'Accessories', 'Support'].forEach((t, i) => p.text('#1d1d1f', t, 84 + i * 33, 42.3, 3.8, { font: SYS, align: 'left', lod: 1 }));
+                // the MacBook Pro page: black, with the headline above the hero
+                p.fill('#000000', [[10, 48], [470, 48], [470, 262], [10, 262]], 0.5);
+                p.text('#f5f5f7', 'MacBook Pro', 240, 63, 14, { font: SYS, weight: 600, lod: 0.5 });
+                p.text('#c8a2f5', 'Supercharged for pros.', 240, 76, 6.5, { font: SYS, weight: 600, lod: 0.5 });
+                p.text('#2997ff', 'Learn more ›', 214, 86, 4.4, { font: SYS, lod: 1 });
+                p.text('#2997ff', 'Buy ›', 262, 86, 4.4, { font: SYS, lod: 1 });
               },
             });
           },

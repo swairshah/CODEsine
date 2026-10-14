@@ -357,7 +357,11 @@
               r: 1.8,
               portal: [330, 102, 52],
               draw(p, W, H) {
-                Icons.menubar(p, W, ['File', 'Edit', 'View', 'Special', 'Help'], 16, { bg: 'light' });
+                Icons.menubar(p, W, ['File', 'Edit', 'View', 'Special', 'Help'], 16, { bg: 'light', rainbow: true });
+                // Mac OS 8's clock and the application menu at the right
+                p.text('ink', '9:41 AM', W - 36, 8.3, 9, { weight: 600, lod: 1 });
+                p.fill('ink', rr2(W - 16, 3, 10, 10, 1.5), 1);
+                p.fill('light', rr2(W - 14, 5, 6, 6, 1), 1);
                 Icons.window(p, 24, 40, 220, 150, 'Macintosh HD', { bar: 13, bg: 'light', stripes: true });
                 Pict.folder(p, 74, 78, 38, 'ink', 'light');
                 Icons.label(p, 74, 78, 38, 'System Folder', 'ink', 'light');
@@ -571,6 +575,51 @@
     },
   });
 
+  // Mac OS X Leopard's Dock icons, 2008, in s × s: glossy, photographic, each its own shape
+  function leopardIcon(p, name, x, y, s) {
+    const c = (dx, dy) => [x + dx * s, y + dy * s];
+    const e = (col, cx, cy, rx, ry = rx) => p.fill(col, ell2(x + cx * s, y + cy * s, rx * s, ry * s, 24), 0.5);
+    const r = (col, x0, y0, w, h, rr = 0) => p.fill(col, rr2(x + x0 * s, y + y0 * s, w * s, h * s, rr * s), 0.5);
+    switch (name) {
+      case 'Finder':
+        r('#6fb5f2', 0.06, 0.06, 0.88, 0.88, 0.12); p.fill('#dfeefb', [c(0.5, 0.06), c(0.94, 0.06), c(0.94, 0.94), c(0.5, 0.94)], 0.5);
+        p.fill('#dfeefb', [c(0.5, 0.06), c(0.44, 0.5), c(0.5, 0.5), c(0.5, 0.94), c(0.5, 0.94)], 0.5);
+        r('#1d3a5c', 0.3, 0.3, 0.05, 0.12); r('#1d3a5c', 0.66, 0.3, 0.05, 0.12);
+        p.gouge('#1d3a5c', [c(0.26, 0.66), c(0.5, 0.74), c(0.74, 0.66)], s * 0.05, { lod: 1 });
+        break;
+      case 'Mail':
+        p.fill('#f3efe4', [c(0.14, 0.3), c(0.86, 0.22), c(0.9, 0.74), c(0.18, 0.82)], 0.5);
+        p.gouge('#b9ad95', [c(0.15, 0.31), c(0.52, 0.55), c(0.86, 0.23)], s * 0.035, { smooth: false, lod: 1 });
+        r('#6f9bd1', 0.58, 0.28, 0.24, 0.26, 0.02); e('#e8e2cf', 0.7, 0.4, 0.07);
+        break;
+      case 'Safari':
+        e('#d9dde2', 0.5, 0.5, 0.45); e('#3f86d9', 0.5, 0.5, 0.39); e('#eef4fb', 0.5, 0.5, 0.31);
+        p.fill('#d8433a', [c(0.5, 0.5), c(0.72, 0.28), c(0.55, 0.55)], 0.5); p.fill('#c8ccd2', [c(0.5, 0.5), c(0.28, 0.72), c(0.45, 0.45)], 0.5);
+        break;
+      case 'iChat':
+        e('#5aa0e6', 0.48, 0.45, 0.38, 0.32); p.fill('#5aa0e6', [c(0.3, 0.66), c(0.22, 0.88), c(0.46, 0.72)], 0.5);
+        e('#ffffff', 0.38, 0.38, 0.1, 0.06); r('#2c5f9a', 0.42, 0.4, 0.14, 0.18, 0.03);
+        break;
+      case 'iTunes':
+        e('#c7d4e2', 0.5, 0.5, 0.45); e('#e9f0f7', 0.5, 0.5, 0.36); e('#c7d4e2', 0.5, 0.5, 0.08);
+        e('#2a6ac0', 0.42, 0.66, 0.1, 0.08); p.fill('#2a6ac0', [c(0.5, 0.66), c(0.54, 0.66), c(0.54, 0.22), c(0.5, 0.22)], 0.5); p.fill('#2a6ac0', [c(0.54, 0.22), c(0.72, 0.3), c(0.72, 0.38), c(0.54, 0.3)], 0.5);
+        break;
+      case 'iPhoto':
+        r('#f3efe6', 0.1, 0.18, 0.62, 0.5, 0.02); r('#7bb0d9', 0.15, 0.23, 0.52, 0.32); p.fill('#86b867', [c(0.15, 0.55), c(0.3, 0.42), c(0.45, 0.5), c(0.67, 0.38), c(0.67, 0.55)], 0.5);
+        r('#3b3b3d', 0.46, 0.5, 0.46, 0.34, 0.06); e('#1a1a1c', 0.69, 0.67, 0.12); e('#5f7f9e', 0.69, 0.67, 0.06);
+        break;
+      case 'Preferences':
+        for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; r('#7d8186', 0.5 + 0.36 * Math.cos(a) - 0.07, 0.5 + 0.36 * Math.sin(a) - 0.07, 0.14, 0.14, 0.02); }
+        e('#9a9ea4', 0.5, 0.5, 0.36); e('#c9cdd2', 0.5, 0.5, 0.2); e('#7d8186', 0.5, 0.5, 0.08);
+        break;
+      case 'Trash':
+        p.fill('#c9d3dc', [c(0.2, 0.18), c(0.8, 0.18), c(0.73, 0.94), c(0.27, 0.94)], 0.5);
+        for (let k = 0; k < 6; k++) p.gouge('#8e9aa6', [c(0.26 + k * 0.095, 0.24), c(0.31 + k * 0.08, 0.9)], s * 0.025, { smooth: false, lod: 1 });
+        e('#dfe6ec', 0.5, 0.18, 0.31, 0.07);
+        break;
+    }
+  }
+
   // ---------- MacBook Air, 2008 ----------
   // Aluminium, tapering from 0.76 inches to 0.16, lying on the interoffice envelope it came out of.
   const air = { base: 0.95, gap: 7, w: 1.3, sheen: 0.16 };
@@ -662,15 +711,15 @@
                     p.gouge(i % 2 ? 'tint2' : 'tint', pts, 6 - i * 0.4, { taper: 0.1, lod: 0.5 });
                   }
                   p.fill('light', [[0, 0], [W, 0], [W, 8], [0, 8]], 0.5);
-                  p.text('ink', 'Finder   File   Edit   View   Go   Window   Help', 12, 4.2, 4.6, { align: 'left', lod: 1 });
+                  p.text('ink', 'Finder   File   Edit   View   Go   Window   Help', 14, 4.2, 4.6, { align: 'left', lod: 1 });
                   const shelf = [[52, 178], [268, 178], [282, 196], [38, 196]];
                   p.fill('umber', shelf, 0.5);
                   p.ring('light', shelf, 0.8, 0.5);
                   const names = ['Finder', 'Mail', 'Safari', 'iChat', 'iTunes', 'iPhoto', 'TimeMachine', 'Preferences', 'Trash'];
-                  names.forEach((n, i) => {
-                    if (n === 'TimeMachine') return;
-                    p.fill(['tint', 'paper', 'tint2', 'light'][i % 4], rr2(62 + i * 22, 167, 18, 18, 3), 0.5);
-                  });
+                  names.forEach((n, i) => { if (n !== 'TimeMachine') leopardIcon(p, n, 62 + i * 22, 167, 18); });
+                  // the menu bar's Apple menu and clock
+                  Icons.apple(p, 6, 4.2, 5.2, { role: 'ink' });
+                  p.text('ink', 'Tue 9:41 AM', W - 6, 4.2, 4.4, { align: 'right', lod: 1 });
                 },
               });
             },

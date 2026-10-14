@@ -150,9 +150,9 @@ Apple Watch Series 2 was announced on 7 September 2016 and went on sale on 16 Se
 
 **Sound bites**
 
+- [Apple Event, 9 September 2014](https://www.youtube.com/watch?v=38IqQpwPe7s&t=3338s), 55:38–55:48. Tim Cook: "But we're not quite finished yet. We have one more thing." The first Apple Watch. Checked with Whisper: "thing" ends 7.2 s in. In use.
 - [Apple Event, 7 September 2016](https://www.youtube.com/watch?v=NS0txu_Kzl8&t=1931s), 32:11–32:25. Jeff Williams: "The first Apple Watch was splashproof, and Apple Watch Series 2 is swimproof." Apple's channel. Timed from the auto-captions, ±0.5 s.
 - [Same event](https://www.youtube.com/watch?v=NS0txu_Kzl8&t=1922s), 32:02–32:11. "We call it Apple Watch Series 2, and it has been completely re-engineered."
-- [Apple Event, 9 September 2014](https://www.youtube.com/watch?v=38IqQpwPe7s&t=3338s), 55:38–55:52. Tim Cook: "But we're not quite finished yet. We have one more thing." The first Apple Watch. The word "thing" is missing from the captions, so the end is unconfirmed.
 
 **Songs**
 

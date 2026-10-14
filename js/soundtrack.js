@@ -75,7 +75,7 @@
       },
       {
         name: 'Apple Watch',
-        bite: [yt('NS0txu_Kzl8', 1931.8, 1945.4, 'Apple Event, 7 September 2016', 'The first Apple Watch was splashproof, and Apple Watch Series 2 is swimproof.', 'Jeff Williams, Apple Event, September 2016'), voice('08', 'Apple Watch Series 2 is swimproof.', 'Apple Watch introduction, 2016', 'shimmer')],
+        bite: [yt('38IqQpwPe7s', 3338.5, 3348.5, 'Apple Event, 9 September 2014', 'But we’re not quite finished yet. We have one more thing.', 'Tim Cook introduces Apple Watch, September 2014'), voice('08', 'One more thing.', 'Apple Watch introduction, 2014', 'shimmer')],
         music: [yt('4IACZdwwJI4', 0, null, 'Nina Simone, Sinnerman'), synth('ambient20')],
       },
       {

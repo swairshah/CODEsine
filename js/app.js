@@ -47,7 +47,8 @@
   }
   function levelLn(k) {
     const dev = DEV[mod(k, N)].build();
-    if (dev.next.type === 'assemble') return 2.6;
+    // an assembly has a lot to show, so it takes a long scroll
+    if (dev.next.type === 'assemble') return dev.colors || DEV[mod(k + 1, N)].build().colors ? 6.5 : 4.2;
     return -Math.log(Af.scaleOf(portalMap(dev)));
   }
 
@@ -262,46 +263,30 @@
     return out;
   }
 
-  // A sledgehammer in the print's own manner: a chamfered steel head shaded with engraved lines and a
-  // bright bevel, a tapered ash handle with its grain. ghost draws only the silhouette, for the blur.
-  function sledgehammer(ghost) {
-    const head = [[-18, -6], [-15, -9], [15, -9], [18, -6], [18, 6], [15, 9], [-15, 9], [-18, 6]];
-    const handle = [[-3.2, 8], [3.2, 8], [2.4, 78], [-2.4, 78]];
-    ctx.fillStyle = ghost ? BASE.ink : '#b38d5c';
-    pathOf(handle);
-    ctx.fill();
-    pathOf(head);
-    ctx.fillStyle = ghost ? BASE.ink : '#6f6c66';
-    ctx.fill();
-    if (ghost) return;
-    ctx.save();
-    pathOf(handle);
-    ctx.clip();
-    ctx.strokeStyle = '#6b4c2c';
-    ctx.lineWidth = 0.5;
-    for (const x of [-1.8, -0.7, 0.5, 1.6]) { ctx.beginPath(); ctx.moveTo(x, 8); ctx.bezierCurveTo(x + 0.6, 30, x - 0.6, 52, x * 0.75, 78); ctx.stroke(); }
-    ctx.fillStyle = '#2b1f16';
-    for (let y = 60; y < 78; y += 2.2) ctx.fillRect(-3, y, 6, 0.9);
-    ctx.restore();
-    ctx.save();
-    pathOf(head);
-    ctx.clip();
-    ctx.fillStyle = '#d9d5cc';
-    ctx.fillRect(-18, -9, 36, 4.2);
-    ctx.fillStyle = '#34322f';
-    ctx.fillRect(-18, 4.4, 36, 4.6);
-    ctx.strokeStyle = '#2a2826';
-    for (let x = -16; x <= 16; x += 1.8) { ctx.lineWidth = 0.35 + 0.5 * Math.abs(x) / 16; ctx.beginPath(); ctx.moveTo(x, -4.5); ctx.lineTo(x, 4.5); ctx.stroke(); }
-    ctx.fillStyle = '#e8e4da';
-    ctx.fillRect(-18, -1.5, 2.2, 3);
-    ctx.fillRect(15.8, -1.5, 2.2, 3);
-    ctx.restore();
-    ctx.strokeStyle = BASE.ink;
-    ctx.lineWidth = 0.8;
-    pathOf(head);
-    ctx.stroke();
-    pathOf(handle);
-    ctx.stroke();
+  // The sledgehammer from the advert, modelled and printed like the machines: a steel head with a
+  // bevelled striking face, an ash handle and a dark grip. Built once, in centimetres.
+  let HAMMER = null;
+  function hammerModel() {
+    if (HAMMER) return HAMMER;
+    const m = new Model({ yaw: 28, pitch: 18 }, { fit: [420, 920], center: [500, 500] });
+    const steel = { base: 0.88, gap: 3, w: 0.9, sheen: 0.3 }, ash = { base: 0.92, fill: 'tint', gap: 3, w: 0.8 }, grip = { base: 0.3, dark: true, fill: 'ink', gap: 2, w: 0.6 };
+    m.cyl([0, -26, 0], 0.8, 25, 'y', ash, { n: 14 });
+    m.cyl([0, -26.2, 0], 0.92, 8, 'y', grip, { n: 14 });
+    m.box(-4.4, 0, -1.6, 8.8, 3.2, 3.2, steel, { r: 0.35 });
+    for (const x of [-4.9, 4.4]) m.box(x, 0.25, -1.35, 0.5, 2.7, 2.7, { base: 0.97, gap: 2, w: 0.6, sheen: 0.4 }, { r: 0.3 });
+    m.render(4242);
+    HAMMER = { parts: m.parts, head: m.P([0, 1.6, 0]), len: Math.abs(m.P([0, -26, 0])[1] - m.P([0, 3.2, 0])[1]) };
+    return HAMMER;
+  }
+  const HAMMER_PAL = () => withTint(BASE, { tint: '#b08657', tint2: '#3b2a1d' });
+  function drawHammer(ui, pos, rot, sc, a) {
+    const h = hammerModel();
+    const k = (130 / h.len) * sc;
+    const M = Af.chain(ui, Af.T(pos[0], pos[1]), Af.R(rot), Af.S(k), Af.T(-h.head[0], -h.head[1]));
+    for (const part of h.parts) {
+      setM(M);
+      drawPlate(ctx, part.plate, HAMMER_PAL(), a, detailOf(M), a);
+    }
   }
 
   const EGGS = {
@@ -402,19 +387,12 @@
           ctx.restore();
         }
       } else if (t > 0.02) {
-        // the hammer, thrown from below and turning end over end toward the face, with a blur behind it
+        // the hammer, thrown from below and turning end over end toward the screen, with a blur behind it
         const at = (h) => ({ pos: lerp2([-90, H + 140], I, h), rot: -3.4 * Math.PI * (1 - h) - 0.5, sc: lerp(2.6, 0.9, h) });
         const h = smooth(0.02, hit, t);
-        setM(ui);
         for (let g = 5; g >= 0; g--) {
           const s = at(Math.max(0, h - g * 0.018));
-          ctx.save();
-          ctx.translate(s.pos[0], s.pos[1]);
-          ctx.rotate(s.rot);
-          ctx.scale(s.sc, s.sc);
-          ctx.globalAlpha = ink * smooth(0.02, 0.06, t) * (g ? 0.1 * (1 - g / 6) : 1);
-          sledgehammer(g > 0);
-          ctx.restore();
+          drawHammer(ui, s.pos, s.rot, s.sc, ink * smooth(0.02, 0.06, t) * (g ? 0.12 * (1 - g / 6) : 1));
         }        ctx.restore();
       }
       ctx.globalAlpha = 1;
@@ -669,6 +647,26 @@
       }
       return { ink: a, pencil: a, T };
     };
+    if (dev.next.swipe) {
+      // Go inside to the chip and look at it; then the whole view is swiped away like a card and the
+      // next machine slides in on its own card behind it.
+      const sw = easeInOut(smooth(0.55, 0.92, t));
+      const off = sw * W * 1.04;
+      const camS = Af.mul(Af.T(-off, 0), cam);
+      drawParts(dev, camS, pal, (part) => ({ ...peeled(part), ink: peeled(part).ink / Math.max(bodyA, 1e-6) }));
+      drawExtras(dev, camS, pal, 1 - smooth(0.25, 0.8, t));
+      if (sw > 0.001) {
+        const x = W * 1.04 - off;
+        screenT();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = BASE.paper;
+        ctx.fillRect(x, 0, W * 1.1, H);
+        ctx.fillStyle = 'rgba(22,17,13,0.18)';
+        ctx.fillRect(x - 6, 0, 6, H);
+        drawMachine(nxt, Af.mul(Af.T(x, 0), rest()), BASE, 1, 1, 0);
+      }
+      return;
+    }
     drawParts(dev, cam, pal, peeled);
     drawExtras(dev, cam, pal, bodyA * (1 - smooth(0.25, 0.8, t)));
     drawPortalChild(dev, cam, t, BASE, 1, 1, 0);
@@ -765,7 +763,8 @@
     const base = S.anim ? S.anim.to : Math.round(S.Lt);
     const to = base + delta;
     const dist = Math.abs(to - from);
-    S.anim = { from, to, t0: performance.now(), dur: dist <= 1.01 ? 1500 : 900 + 520 * dist };
+    const slow = dist <= 1.01 && DEV[mod(Math.floor(Math.min(from, to)), N)].build().next.type === 'assemble';
+    S.anim = { from, to, t0: performance.now(), dur: dist <= 1.01 ? (slow ? 4200 : 1500) : 900 + 520 * dist };
     S.lastInput = performance.now();
     touched();
   }

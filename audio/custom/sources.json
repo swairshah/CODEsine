@@ -171,12 +171,12 @@
       "name": "Apple Watch",
       "bite": {
         "file": "audio/custom/08-bite.mp3",
-        "url": "https://www.youtube.com/watch?v=NS0txu_Kzl8",
-        "start": 1931.8,
-        "end": 1945.4,
-        "title": "Apple Event, 7 September 2016",
-        "line": "The first Apple Watch was splashproof, and Apple Watch Series 2 is swimproof.",
-        "source": "Jeff Williams, Apple Event, September 2016"
+        "url": "https://www.youtube.com/watch?v=38IqQpwPe7s",
+        "start": 3338.5,
+        "end": 3348.5,
+        "title": "Apple Event, 9 September 2014",
+        "line": "But we’re not quite finished yet. We have one more thing.",
+        "source": "Tim Cook introduces Apple Watch, September 2014"
       },
       "music": {
         "file": "audio/custom/08-music.mp3",

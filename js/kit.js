@@ -143,10 +143,20 @@
       p.fill(role, rr2(x - s * 0.34, y + s * 0.06, s * 0.68, s * 0.08, 0.5), 0.5);
       for (const dx of [-0.1, 0, 0.1]) p.fill(role, rr2(x + dx * s - s * 0.012, y + s * 0.28, s * 0.024, s * 0.46, 0.2), 0.5);
     },
+    // the Apple logo; rainbow-striped for the 1977–1998 logo, in one colour otherwise
+    apple(p, x, y, size, o = {}) {
+      const SYS = '-apple-system, "Helvetica Neue", system-ui, sans-serif';
+      if (!o.rainbow) { p.text(o.role || 'ink', '\uF8FF', x, y, size, { font: SYS, lod: 0.5 }); return; }
+      const bands = ['#61bb46', '#fdb827', '#f5821f', '#e03a3e', '#963d97', '#009ddc'];
+      const top = y - size * 0.5, hgt = size * 0.92;
+      bands.forEach((c, i) => p.withClip([x - size, top + (hgt * i) / 6, size * 2, hgt / 6 + 0.01], () => p.text(c, '\uF8FF', x, y, size, { font: SYS, lod: 0.5 })));
+    },
     menubar(p, W, items, h, o = {}) {
       p.fill(o.bg || 'paper', [[0, 0], [W, 0], [W, h], [0, h]], 0.5);
       p.fill(o.role || 'ink', [[0, h - h * 0.06], [W, h - h * 0.06], [W, h], [0, h]], 0.5);
-      let x = o.x0 ?? h * 1.2;
+      // the Apple menu, then the application's menus
+      Icons.apple(p, h * 0.95, h * 0.5, h * 0.74, { rainbow: o.rainbow, role: o.role });
+      let x = o.x0 ?? h * 1.8;
       for (const it of items) {
         p.text(o.role || 'ink', it, x, h * 0.52, h * 0.62, { font: o.font || 'mono', weight: 600, align: 'left', lod: 0.5 });
         x += (it.length + 1.6) * h * 0.38;
