@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sketchbook Machines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Architects+Daughter&display=swap">
+<style>
+  /* One sheet of drawing paper, on purpose: this is a sketchbook. The machines are drawn in graphite and
+     coloured in wax crayon; the page around them is printed like an old primer card.
+     Layout: a full-bleed sheet; caption top-left, tools top-right, a year rail along the foot. */
+  :root {
+    --paper: #efe7d6;
+    --warm: #dcc6a2;
+    --light: #fbf8f1;
+    --ink: #2e2a28;
+    --umber: #4d3628;
+    --earth: #7d5b3d;
+    --mist: #98a1ab;
+    --graphite: #45474d;
+    --graphite2: #8d8f94;
+    --red: #b8483a;
+    --rule: #45474d55;
+    --f-display: "Old Standard TT", "Iowan Old Style", Georgia, serif;
+    --f-hand: "Architects Daughter", "Bradley Hand", cursive;
+    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-mono);
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: fixed; inset: 0; display: block; cursor: ns-resize; }
+
+  .cap {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    left: 28px;
+    max-width: min(34rem, calc(100vw - 230px));
+    pointer-events: none;
+    display: grid;
+    gap: 6px;
+    will-change: opacity, transform;
+  }
+  .meta {
+    margin: 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--red);
+    font-variant-numeric: tabular-nums;
+  }
+  .meta .sep { margin: 0 0.6em; }
+  h1 {
+    margin: 0;
+    font-family: var(--f-display);
+    font-weight: 700;
+    color: #3a3330;
+    font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+    line-height: 1;
+    text-wrap: balance;
+  }
+  .line {
+    margin: 2px 0 0;
+    font-family: var(--f-display);
+    font-style: italic;
+    font-size: 1.04rem;
+    line-height: 1.35;
+    color: var(--umber);
+    max-width: 30rem;
+  }
+  .next {
+    margin: 4px 0 0;
+    font: 400 0.92rem/1.3 var(--f-hand);
+    color: var(--graphite);
+  }
+  .next b { font-weight: 400; color: var(--ink); text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }
+
+  .tools {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    right: 24px;
+    display: flex;
+    gap: 6px;
+  }
+  /* the tools are little boxes ruled in pencil; pressed ones are coloured in */
+  .tools button {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border: 1.5px solid var(--graphite);
+    border-radius: 4px 7px 5px 6px / 6px 4px 7px 5px;
+    background: transparent;
+    color: var(--graphite);
+    font: 500 0.95rem/1 var(--f-mono);
+    cursor: pointer;
+    transition: background 0.25s, color 0.25s;
+  }
+  .tools button:hover { background: rgba(232, 184, 63, 0.38); }
+  .tools button:focus-visible, .rail button:focus-visible { outline: 2px dashed var(--red); outline-offset: 2px; }
+  .tools button span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .tools button[aria-pressed="true"] { background: rgba(184, 72, 58, 0.78); color: var(--light); border-color: var(--umber); }
+  /* the tools are symbols: arrows, play and pause, the notes' lines, a speaker */
+  .tools button { display: grid; place-items: center; min-width: 40px; padding: 0 9px; }
+  .tools button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tools button svg .fill { fill: currentColor; stroke: none; }
+  #b-play .i-pause, #b-play[aria-pressed="true"] .i-play { display: none; }
+  #b-play[aria-pressed="true"] .i-pause { display: block; }
+  .tools button[aria-pressed="true"] .i-off { display: none; }
+
+  body.notes-off .cap { opacity: 0 !important; visibility: hidden; }
+  body.notes-off .hint { display: none; }
+
+
+  /* YouTube sources play in small players that stay visible while they are heard */
+  .yt-dock {
+    position: fixed;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    z-index: 5;
+  }
+  .yt-dock.off { display: none; }
+  .yt-card { display: none; margin: 0; padding: 6px; background: var(--paper); border: 1px solid var(--ink); border-radius: 2px; }
+  .yt-card.on { display: block; }
+  .yt-card iframe { display: block; width: 200px; height: 200px; }
+  .yt-card figcaption { width: 200px; margin-top: 4px; font: 400 0.6rem/1.3 var(--f-mono); color: var(--earth); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .hint {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+    margin: 0;
+    text-align: center;
+    font: 400 0.95rem/1 var(--f-hand);
+    color: var(--graphite);
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  .hint.gone { opacity: 0; }
+
+  .rail {
+    position: fixed;
+    left: 16px; right: 16px;
+    bottom: 0;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    border-top: 1.5px solid var(--rule);
+    background: transparent;
+  }
+  .rail ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(13, minmax(0, 1fr));
+  }
+  .rail button {
+    width: 100%;
+    padding: 10px 2px 6px;
+    background: none;
+    border: 0;
+    color: var(--earth);
+    font: 400 0.68rem/1.25 var(--f-mono);
+    cursor: pointer;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .rail button .n {
+    font-size: 0.6rem;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.8;
+  }
+  .rail button:hover, .rail button.on { color: var(--ink); }
+  .rail button.on .y { color: var(--red); }
+  .rail button.on .y { font-weight: 600; }
+  .track { position: absolute; top: -5px; left: calc(50% / 13); right: calc(50% / 13); height: 9px; pointer-events: none; }
+  .cursor { position: absolute; top: -1px; width: 3px; height: 11px; margin-left: -1.5px; background: var(--red); border-radius: 2px; }
+
+  @media (max-width: 900px) { .rail button .n { display: none; } }
+  @media (max-width: 640px) {
+    .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 66px); }
+    .tools { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 32px); }
+    .tools button { min-width: 34px; height: 34px; padding: 0 8px; }
+    .line { font-size: 0.95rem; }
+    .rail { left: 8px; right: 8px; }
+    .rail button { font-size: 0.56rem; padding-inline: 0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="A pencil and crayon drawing of a computer. Zoom in to travel into its screen and find the next machine."></canvas>
+
+<header class="cap" id="cap" aria-live="polite">
+  <p class="meta"><span id="m-year">1976</span><span class="sep">·</span><span id="m-idx">01</span> of <span id="m-total">13</span><span class="sep">·</span><span id="m-kind">Circuit board</span></p>
+  <h1 id="title">Apple I</h1>
+  <p class="line" id="line"></p>
+  <p class="next"><span id="verb">Zoom into the silkscreen</span> to reach <b id="next">Apple II</b></p>
+</header>
+
+<div class="tools">
+  <button type="button" id="b-out" aria-label="Previous machine" title="Previous machine (←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></button>
+  <button type="button" id="b-in" aria-label="Next machine" title="Next machine (→)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  <button type="button" id="b-play" aria-pressed="false" aria-label="Play" title="Play the whole loop (P)"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5.5v13l10.5-6.5z"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg></button>
+  <button type="button" id="b-notes" aria-pressed="true" aria-label="Notes" title="Show or hide the notes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 10h14M5 14h9M5 18h6"/></svg></button>
+  <button type="button" id="b-music" aria-pressed="false" aria-label="Music off" title="Music"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M9 17.6a2.6 2.6 0 1 1-1.6-2.4V6.2l10-2v11.4a2.6 2.6 0 1 1-1.6-2.4V7.9l-6.8 1.4z"/><path class="i-off" d="M4 4l16 16"/></svg></button>
+  <button type="button" id="b-bites" aria-pressed="false" aria-label="Voice clips off" title="Voice clips"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14v9.5h-8.5L7 18.5V15H5z"/><path d="M8.5 9h7M8.5 11.8h4.5"/><path class="i-off" d="M4 4l16 16"/></svg></button>
+</div>
+
+<p class="hint" id="hint">Scroll down to travel into each machine, and up to come back out.</p>
+
+<footer class="rail">
+  <ol id="ticks"></ol>
+  <div class="track"><div class="cursor" id="cursor"></div></div>
+</footer>
+
+<script src="js/ink.js?v=p1"></script>
+<script src="js/paper.js?v=p1"></script>
+<script src="js/geo.js?v=p1"></script>
+<script src="js/kit.js?v=p1"></script>
+<script src="js/soundtrack.js?v=p1"></script>
+<script src="js/sound.js?v=p1"></script>
+<script src="js/machines/early.js?v=p1"></script>
+<script src="js/machines/mid.js?v=p1"></script>
+<script src="js/machines/late.js?v=p1"></script>
+<script src="js/app.js?v=p1"></script>
+</body>
+</html>
