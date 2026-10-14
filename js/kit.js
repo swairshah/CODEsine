@@ -118,6 +118,31 @@
     F.draw(() => F.p.text(o.role || 'ink', str, x, y, size, { lod: o.lod ?? 1, ...o }));
   }
 
+  // the logo's outline, in units where it is about 1.3 tall, traced once by rays from its middle
+  let APPLE = null;
+  function appleShape() {
+    if (APPLE) return APPLE;
+    const inC = (x, y, cx, cy, r) => (x - cx) ** 2 + (y - cy) ** 2 < r * r;
+    const inside = (x, y) =>
+      (inC(x, y, -0.24, -0.1, 0.36) || inC(x, y, 0.24, -0.1, 0.36) || ((x / 0.47) ** 2 + ((y - 0.13) / 0.42) ** 2 < 1) || inC(x, y, -0.19, 0.36, 0.21) || inC(x, y, 0.19, 0.36, 0.21)) &&
+      !inC(x, y, 0, -0.5, 0.13) && !inC(x, y, 0, 0.66, 0.1) && !inC(x, y, 0.58, -0.02, 0.21);
+    const body = [];
+    for (let i = 0; i < 160; i++) {
+      const a = (i / 160) * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a);
+      let lo = 0, hi = 1;
+      for (let k = 0; k < 22; k++) { const m = (lo + hi) / 2; if (inside(dx * m, 0.05 + dy * m)) lo = m; else hi = m; }
+      body.push([dx * lo, 0.05 + dy * lo]);
+    }
+    const leaf = [];
+    const ca = Math.cos(0.75), sa = Math.sin(0.75);
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2, u = 0.075 * Math.cos(a), v = 0.17 * Math.sin(a) * (1 - 0.25 * Math.cos(a));
+      leaf.push([0.07 + u * ca - v * sa, -0.66 + u * sa + v * ca]);
+    }
+    APPLE = { body, leaf };
+    return APPLE;
+  }
+
   // ---------- period screen furniture, drawn in a screen's own units ----------
   const Icons = {
     // a 1-bit icon: a label under a framed pictogram
@@ -143,13 +168,18 @@
       p.fill(role, rr2(x - s * 0.34, y + s * 0.06, s * 0.68, s * 0.08, 0.5), 0.5);
       for (const dx of [-0.1, 0, 0.1]) p.fill(role, rr2(x + dx * s - s * 0.012, y + s * 0.28, s * 0.024, s * 0.46, 0.2), 0.5);
     },
-    // the Apple logo; rainbow-striped for the 1977–1998 logo, in one colour otherwise
+    // The Apple logo as a shape (so it prints anywhere, not only where the system font has it): two
+    // lobes over a rounded body, the dip at the top and bottom, the bite, and the leaf. Rainbow-striped
+    // for the 1977–1998 logo, one colour otherwise. size is its height; (x, y) its centre.
     apple(p, x, y, size, o = {}) {
-      const SYS = '-apple-system, "Helvetica Neue", system-ui, sans-serif';
-      if (!o.rainbow) { p.text(o.role || 'ink', '\uF8FF', x, y, size, { font: SYS, lod: 0.5 }); return; }
+      const { body, leaf } = appleShape();
+      const k = size / 1.3;
+      const at = (q) => [x + q[0] * k, y + (q[1] + 0.07) * k];
+      const B = body.map(at), Lf = leaf.map(at);
+      if (!o.rainbow) { p.fill(o.role || 'ink', B, o.lod ?? 0.5); p.fill(o.role || 'ink', Lf, o.lod ?? 0.5); return; }
       const bands = ['#61bb46', '#fdb827', '#f5821f', '#e03a3e', '#963d97', '#009ddc'];
-      const top = y - size * 0.5, hgt = size * 0.92;
-      bands.forEach((c, i) => p.withClip([x - size, top + (hgt * i) / 6, size * 2, hgt / 6 + 0.01], () => p.text(c, '\uF8FF', x, y, size, { font: SYS, lod: 0.5 })));
+      const top = y - size * 0.5, hgt = size;
+      bands.forEach((c, i) => p.withClip([x - size, top + (hgt * i) / 6, size * 2, hgt / 6 + 0.02], () => { p.fill(c, B, 0.5); p.fill(c, Lf, 0.5); }));
     },
     menubar(p, W, items, h, o = {}) {
       p.fill(o.bg || 'paper', [[0, 0], [W, 0], [W, h], [0, h]], 0.5);

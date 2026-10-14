@@ -600,6 +600,8 @@
         n: [0, 1, 0],
         frame: { o: [x0, H4, x0], U: [1, 0, 0], V: [0, 0, 1], w: W4, h: W4 },
         edge: 1.4,
+        // the Apple logo in the middle of the lid, upright to someone in front of it
+        deco(F) { F.draw((p) => Icons.apple(p, W4 / 2, W4 / 2, 3.4, { role: 'ink', lod: 0 })); },
       });
       m.op((p, P) => {
         p.dim(...P([x0, H4, x0 - 1]), ...P([-x0, H4, x0 - 1]), '5 in', { off: -12 });
