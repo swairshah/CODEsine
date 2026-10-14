@@ -118,28 +118,38 @@
     F.draw(() => F.p.text(o.role || 'ink', str, x, y, size, { lod: o.lod ?? 1, ...o }));
   }
 
-  // the logo's outline, in units where it is about 1.3 tall, traced once by rays from its middle
+  // The logo's outline from the standard vector drawing of it (814 × 1000, y down), flattened into
+  // polygons and scaled so it is 1.3 tall, centred on the origin: the body with its bite, and the leaf.
+  const APPLE_PATH = 'M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z';
   let APPLE = null;
   function appleShape() {
     if (APPLE) return APPLE;
-    const inC = (x, y, cx, cy, r) => (x - cx) ** 2 + (y - cy) ** 2 < r * r;
-    const inside = (x, y) =>
-      (inC(x, y, -0.24, -0.1, 0.36) || inC(x, y, 0.24, -0.1, 0.36) || ((x / 0.47) ** 2 + ((y - 0.13) / 0.42) ** 2 < 1) || inC(x, y, -0.19, 0.36, 0.21) || inC(x, y, 0.19, 0.36, 0.21)) &&
-      !inC(x, y, 0, -0.5, 0.13) && !inC(x, y, 0, 0.66, 0.1) && !inC(x, y, 0.58, -0.02, 0.21);
-    const body = [];
-    for (let i = 0; i < 160; i++) {
-      const a = (i / 160) * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a);
-      let lo = 0, hi = 1;
-      for (let k = 0; k < 22; k++) { const m = (lo + hi) / 2; if (inside(dx * m, 0.05 + dy * m)) lo = m; else hi = m; }
-      body.push([dx * lo, 0.05 + dy * lo]);
+    const tokens = APPLE_PATH.match(/[a-zA-Z]|-?(?:\d+\.?\d*|\.\d+)/g);
+    const subs = [];
+    let cur = null, x = 0, y = 0, sx = 0, sy = 0, lc = null, cmd = '', i = 0;
+    const num = () => parseFloat(tokens[i++]);
+    const cubic = (x1, y1, x2, y2, x3, y3) => {
+      for (let k = 1; k <= 10; k++) {
+        const t = k / 10, u = 1 - t;
+        cur.push([u * u * u * x + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3, u * u * u * y + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3]);
+      }
+      lc = [x2, y2]; x = x3; y = y3;
+    };
+    while (i < tokens.length) {
+      if (/[a-zA-Z]/.test(tokens[i])) cmd = tokens[i++];
+      const rel = cmd === cmd.toLowerCase(), ox = rel ? x : 0, oy = rel ? y : 0;
+      switch (cmd.toLowerCase()) {
+        case 'm': x = ox + num(); y = oy + num(); sx = x; sy = y; cur = [[x, y]]; subs.push(cur); cmd = rel ? 'c' : 'C'; lc = null; break;
+        case 'c': { const a = [ox + num(), oy + num(), ox + num(), oy + num(), ox + num(), oy + num()]; cubic(...a); break; }
+        case 's': { const r1 = lc ? [2 * x - lc[0], 2 * y - lc[1]] : [x, y]; const a = [ox + num(), oy + num(), ox + num(), oy + num()]; cubic(r1[0], r1[1], ...a); break; }
+        case 'z': x = sx; y = sy; lc = null; break;
+        default: i++;
+      }
     }
-    const leaf = [];
-    const ca = Math.cos(0.75), sa = Math.sin(0.75);
-    for (let i = 0; i < 40; i++) {
-      const a = (i / 40) * Math.PI * 2, u = 0.075 * Math.cos(a), v = 0.17 * Math.sin(a) * (1 - 0.25 * Math.cos(a));
-      leaf.push([0.07 + u * ca - v * sa, -0.66 + u * sa + v * ca]);
-    }
-    APPLE = { body, leaf };
+    // the drawing spans x 0–814 and y 0–1000; centre it and make it 1.3 tall
+    const k = 1.3 / 1000;
+    const norm = (pts) => pts.map(([px, py]) => [(px - 407) * k, (py - 500) * k]);
+    APPLE = { body: norm(subs[0]), leaf: norm(subs[1]) };
     return APPLE;
   }
 
@@ -174,7 +184,7 @@
     apple(p, x, y, size, o = {}) {
       const { body, leaf } = appleShape();
       const k = size / 1.3;
-      const at = (q) => [x + q[0] * k, y + (q[1] + 0.07) * k];
+      const at = (q) => [x + q[0] * k, y + q[1] * k];
       const B = body.map(at), Lf = leaf.map(at);
       if (!o.rainbow) { p.fill(o.role || 'ink', B, o.lod ?? 0.5); p.fill(o.role || 'ink', Lf, o.lod ?? 0.5); return; }
       const bands = ['#61bb46', '#fdb827', '#f5821f', '#e03a3e', '#963d97', '#009ddc'];
