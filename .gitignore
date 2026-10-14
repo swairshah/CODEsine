@@ -1,0 +1,7 @@
+# Audio stays out of the repository: local recordings are rebuilt from audio/custom/sources.json
+# with scripts/prepare-audio.py, and the narrated placeholders live only on this machine.
+audio/**/*.mp3
+audio/**/*.m4a
+audio/**/*.wav
+audio/previews/
+.DS_Store
