@@ -203,13 +203,19 @@
     rand(a = 0, b = 1) {
       return a + (b - a) * this.r();
     }
-    layer(role, lod) {
+    layer(role, lod, alpha = 1) {
       let L = this.layers[this.layers.length - 1];
-      if (!L || L.kind !== 'path' || L.role !== role || L.lod !== lod) {
-        L = { kind: 'path', role, lod, path: new Path2D() };
+      if (!L || L.kind !== 'path' || L.role !== role || L.lod !== lod || (L.alpha ?? 1) !== alpha) {
+        L = { kind: 'path', role, lod, alpha, path: new Path2D() };
         this.layers.push(L);
       }
       return L;
+    }
+    // a translucent wash of a role over a polygon, for flat tonal shading
+    wash(role, pts, alpha, lod = 0) {
+      if (!pts || pts.length < 3 || alpha < 0.02) return;
+      const q = this.tx(pts);
+      if (q.length >= 3) addPoly(this.layer(role, lod, Math.round(alpha * 20) / 20).path, q, 1);
     }
     fill(role, pts, lod = this.lod) {
       if (!pts || pts.length < 3) return;
@@ -268,7 +274,7 @@
           for (let i = 0; i + 1 < us.length; i += 2) {
             const u0 = us[i] + inset, u1 = us[i + 1] - inset;
             if (u1 - u0 < 3) continue;
-            let run = [], nextBreak = u0 + this.rand(400, 900);
+            let run = [], nextBreak = o.unbroken ? Infinity : u0 + this.rand(400, 900);
             const flush = () => {
               if (run.length >= 2) this.gouge(role, run, wAt, { lod, taper: o.taper ?? 0.22, smooth: false, n: 1, pow: 0.4 });
               run = [];
@@ -419,13 +425,29 @@
       const t0 = T(c[0], c[1]);
       const base = o.dark ? o.fill || 'ink' : o.fill ?? (t0 < 0.45 ? 'ink' : t0 > 0.9 ? 'light' : 'paper');
       this.fill(base, poly, o.lod ?? 0);
-      // Engraved like a banknote: one set of close, continuous lines running with the face, whose
-      // weight alone carries the tone, from hairlines in the light to lines that merge in deep shadow.
       const g = (o.gap ?? 8) * 0.62, ang = o.angle ?? 0, lod = o.hlod ?? 1;
-      const line = { angle: ang, gap: g, swell: true, lod, step: Math.max(3, g * 0.7), wave: 0.25 };
-      if (o.hatch !== false) {
-        if (o.dark || base === 'ink') {
-          // white-line work on a dark surface: the cuts open up toward the light
+      const dark = o.dark || base === 'ink';
+      const style = Plate.style;
+      if (o.hatch !== false && style === 'flat') {
+        // flat print: one wash of ink per face, its depth set by the light on it
+        this.wash('ink', poly, clamp((0.93 - t0) / 0.6, 0, 1) * (dark ? 0.5 : 0.72));
+      } else if (o.hatch !== false && style === 'restrained') {
+        // restrained engraving: light faces left clean, fine even lines in the mid-tones, shadow solid
+        if (!dark && t0 < 0.46) this.wash('ink', poly, 0.88);
+        else if (!dark) this.hatch(o.line ?? 'ink', poly, { angle: ang, gap: g * 1.35, swell: true, lod, step: Math.max(3, g * 0.8), wave: 0, unbroken: true, w: g * 0.5, tone: (x, y) => Math.pow(clamp((0.82 - T(x, y)) / 0.36, 0, 1.1), 1.2) });
+        else this.wash('ink', poly, 0.3);
+      } else if (o.hatch !== false && style === 'linocut') {
+        // linocut: light faces are bare paper; shadow is cut from solid black with a few white gouges
+        if (dark || t0 < 0.5) {
+          if (!dark) this.wash('ink', poly, 0.95);
+          this.hatch(o.cut ?? 'paper', poly, { angle: ang, gap: g * 2.6, w: g * 0.55, scoop: [40, 130], taper: 0.5, lod, tone: (x, y) => clamp((T(x, y) - 0.15) / 0.5, 0.25, 1) });
+        } else if (t0 < 0.72) {
+          this.hatch(o.line ?? 'ink', poly, { angle: ang, gap: g * 2.2, w: g * 0.4, scoop: [50, 150], taper: 0.5, lod, tone: (x, y) => clamp((0.75 - T(x, y)) / 0.25, 0.2, 1) });
+        }
+      } else if (o.hatch !== false) {
+        // engraving: one set of close, continuous lines whose weight alone carries the tone
+        const line = { angle: ang, gap: g, swell: true, lod, step: Math.max(3, g * 0.7), wave: 0.25 };
+        if (dark) {
           const lim = o.dark ? 0.5 : 0.45;
           this.hatch(o.cut ?? 'paper', poly, { ...line, w: g * 0.6, tone: (x, y) => Math.pow(clamp((T(x, y) - lim * 0.3) / (lim * 0.95), 0, 1.1), 1.4) });
         } else {
@@ -459,6 +481,8 @@
 
   Plate.notes = true;
   Plate.sketchy = false;
+  // how surfaces are rendered: 'engrave', 'restrained', 'linocut' or 'flat' (?style= in the URL)
+  Plate.style = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('style')) || 'engrave';
 
   const FONTS = {
     mono: '"IBM Plex Mono", ui-monospace, Menlo, monospace',
@@ -503,7 +527,7 @@
     for (const L of plate.layers) {
       const graphite = L.role.startsWith('graphite');
       // pencil shows up sooner than carving, so a small machine reads first as a sketch
-      let a = (graphite ? pencil : alpha) * lodAlpha(graphite ? L.lod * 0.4 : L.lod, detail);
+      let a = (graphite ? pencil : alpha) * lodAlpha(graphite ? L.lod * 0.4 : L.lod, detail) * (L.alpha ?? 1);
       // Seen close up, marks drawn for normal size would turn into scratches: pencil fades out, and
       // carved hatching thins so surfaces read as clean blocks of colour with crisp edges.
       if (graphite) a *= 1 - smooth(1.8, 3.6, detail);
