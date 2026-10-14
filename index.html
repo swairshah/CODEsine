@@ -139,30 +139,49 @@
 
   .fan { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
   /* on a wide screen the versions open evenly down an arc that bulges away from the name */
+  /* each one is a raised button: a bevel on the picture and an ink shadow beneath, pressed flat when tapped */
   .opt {
+    --lift: max(3px, calc(5 * var(--u)));
+    --ox: 0px;
+    --oy: -50%;
     position: absolute;
     left: calc(var(--x) * var(--u));
     top: calc(50% + var(--y) * var(--u));
     width: calc(112 * var(--u));
     aspect-ratio: 4 / 3;
-    translate: 0 -50%;
+    translate: var(--ox) var(--oy);
     display: block;
     border: max(2px, calc(3 * var(--u))) solid var(--ink);
+    border-radius: max(3px, calc(5 * var(--u)));
     background: #e9e5da;
+    box-shadow: var(--lift) var(--lift) 0 var(--ink);
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
     opacity: 0;
     transform: translateX(calc(-40 * var(--u))) scale(0.7);
-    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.15s ease;
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.15s ease, translate 0.08s ease;
   }
+  .opt::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, 0) 70%, rgba(0, 0, 0, 0.1));
+    box-shadow: inset max(2px, calc(3 * var(--u))) max(2px, calc(3 * var(--u))) 0 rgba(255, 255, 255, 0.6), inset calc(-1 * max(2px, calc(3 * var(--u)))) calc(-1 * max(2px, calc(3 * var(--u)))) 0 rgba(0, 0, 0, 0.18);
+  }
+  .opt:active, .opt.pressed { --ox: var(--lift); --oy: calc(-50% + var(--lift)); box-shadow: 0 0 0 var(--ink); }
+  .opt:active::after, .opt.pressed::after { box-shadow: inset max(2px, calc(3 * var(--u))) max(2px, calc(3 * var(--u))) 0 rgba(0, 0, 0, 0.16); }
   .open .opt {
     pointer-events: auto;
     opacity: 1;
     transform: none;
-    transition: opacity 0.25s ease calc(120ms + var(--n) * 45ms), transform 0.4s cubic-bezier(.2,.8,.2,1) calc(120ms + var(--n) * 45ms), box-shadow 0.15s ease;
+    transition: opacity 0.25s ease calc(120ms + var(--n) * 45ms), transform 0.4s cubic-bezier(.2,.8,.2,1) calc(120ms + var(--n) * 45ms), box-shadow 0.08s ease, translate 0.08s ease;
   }
   .opt img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.32); transition: opacity 0.35s ease, transform 0.5s cubic-bezier(.2,.8,.2,1); }
   .opt img.next { opacity: 0; }
-  .open .opt:hover, .open .opt:focus-visible { box-shadow: calc(5 * var(--u)) calc(5 * var(--u)) 0 var(--red); }
+  .open .opt:hover:not(:active):not(.pressed), .open .opt:focus-visible { box-shadow: var(--lift) var(--lift) 0 var(--red); }
   .opt:hover img, .opt:focus-visible img { transform: scale(1.45); }
 
   /* ---------- a tall screen: the line runs down, and branches into two columns ---------- */
@@ -184,9 +203,12 @@
       left: auto;
       top: auto;
       width: auto;
-      translate: none;
+      --oy: 0px;
       transform: translateY(calc(-30 * var(--u))) scale(0.8);
     }
+  }
+  @media (max-aspect-ratio: 1/1) {
+    .opt:active, .opt.pressed { --oy: var(--lift); }
   }
   @media (prefers-reduced-motion: reduce) {
     .reel, .opt, .opt img, .lines path, .open .opt, .open .lines path { transition: none; }
@@ -295,6 +317,63 @@
       });
     }
 
+    // ---------- feel: a buzz under the finger and a click in the ear ----------
+    // Vibration where the browser has it; an iPhone gives pages none, but answers a native switch's
+    // toggle with a tap, so a hidden one is flipped. The click is made in Web Audio, on the press.
+    let buzz = () => {};
+    if (matchMedia('(pointer: coarse)').matches) {
+      if (navigator.vibrate) buzz = () => { try { navigator.vibrate(10); } catch (e) {} };
+      else {
+        const label = document.createElement('label'), box = document.createElement('input');
+        box.type = 'checkbox';
+        box.setAttribute('switch', '');
+        box.tabIndex = -1;
+        label.append(box);
+        label.setAttribute('aria-hidden', 'true');
+        label.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+        document.body.append(label);
+        buzz = () => label.click();
+      }
+    }
+    let ac = null, noise = null;
+    function clack(pitch, at = 0) {
+      try {
+        if (!ac) {
+          ac = new (window.AudioContext || window.webkitAudioContext)();
+          noise = ac.createBuffer(1, ac.sampleRate * 0.04, ac.sampleRate);
+          const d = noise.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+          try { if (navigator.audioSession) navigator.audioSession.type = 'transient'; } catch (e) {}
+        }
+        if (ac.state !== 'running') ac.resume();
+        const t = ac.currentTime + 0.005 + at;
+        // the knock of the key: a short falling tone
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(pitch, t);
+        o.frequency.exponentialRampToValueAtTime(pitch * 0.55, t + 0.07);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.28, t + 0.003);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+        o.connect(g).connect(ac.destination);
+        o.start(t); o.stop(t + 0.1);
+        // and its click: a burst of filtered noise
+        const n = ac.createBufferSource(), f = ac.createBiquadFilter(), ng = ac.createGain();
+        n.buffer = noise; f.type = 'bandpass'; f.frequency.value = pitch * 5; f.Q.value = 0.9; ng.gain.value = 0.35;
+        n.connect(f).connect(ng).connect(ac.destination);
+        n.start(t);
+      } catch (e) {}
+    }
+    // a choice: a buzz and a two-part click, then the page, once the click has sounded
+    opts.forEach((o) => o.addEventListener('click', (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button) return;
+      e.preventDefault();
+      buzz();
+      clack(820); clack(520, 0.045);
+      o.classList.add('pressed');
+      setTimeout(() => { location.href = o.href; }, 150);
+    }));
+
     // ---------- opening and closing ----------
     let closeT = 0, openedAt = 0;
     const isOpen = () => stage.classList.contains('open');
@@ -314,7 +393,7 @@
       reel.setAttribute('aria-expanded', 'false');
       clearInterval(timer);
     }
-    reel.addEventListener('click', open);
+    reel.addEventListener('click', () => { if (!isOpen()) { buzz(); clack(440); } open(); });
     // a mouse also opens it by resting on the film; closing waits so the pointer can cross to a branch
     const fine = matchMedia('(hover: hover) and (pointer: fine)');
     // (the film's place and its branches are one zone: the film fades from under the pointer as they open)
@@ -329,7 +408,7 @@
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) { close(); reel.focus(); } });
     addEventListener('resize', () => { if (isOpen()) draw(); });
     // coming back from a version, start closed
-    addEventListener('pageshow', (e) => { if (e.persisted) close(); });
+    addEventListener('pageshow', (e) => { if (e.persisted) { close(); opts.forEach((o) => o.classList.remove('pressed')); } });
   })();
 </script>
 </body>
