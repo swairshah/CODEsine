@@ -4,43 +4,47 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CoDESINE</title>
-<meta name="description" content="iLoop: an endless zoom through thirteen Apple machines, drawn six ways.">
+<meta name="description" content="Code is a medium for art and design. Experiments in it, starting with iLoop.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap">
 <link rel="preload" as="image" href="home/iloop-poster.webp">
 <link rel="icon" href="home/favicon.svg" type="image/svg+xml">
 <script src="home/stills.js"></script>
 <style>
-  /* One line from the name to the film. Open it and the line branches, once for each version. */
+  /* A short note, then the experiments, one row each. A row's film opens into its versions. */
   :root {
     --paper: #eee5cf;
     --ink: #201c1b;
+    --soft: #201c1bcc;
+    --muted: #201c1b99;
     --red: #d23a22;
+    --card: #e9e5da;
     --blend: multiply;
     --grain: 0.09;
     --f-display: "Anton", "Oswald", Impact, sans-serif;
-    /* one unit that shrinks the whole drawing to fit the window */
-    --u: min(1px, 0.082vw, 0.118vh);
+    --f-text: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --line: 1.5px;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #181615; --ink: #efe6d2; --red: #e2492f; --blend: screen; --grain: 0.16; color-scheme: dark;
+      --paper: #181615; --ink: #efe6d2; --soft: #efe6d2cc; --muted: #efe6d299; --red: #e2492f; --card: #2a2724; --blend: screen; --grain: 0.16; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --paper: #181615; --ink: #efe6d2; --red: #e2492f; --blend: screen; --grain: 0.16; color-scheme: dark;
+    --paper: #181615; --ink: #efe6d2; --soft: #efe6d2cc; --muted: #efe6d299; --red: #e2492f; --card: #2a2724; --blend: screen; --grain: 0.16; color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
+    position: relative;
     margin: 0;
+    min-height: 100vh;
     background: var(--paper);
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
-    overflow: hidden;
   }
   /* the stock, printed over everything so the inks sit in the paper */
   body::after {
@@ -55,198 +59,161 @@
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 1.4 -.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .48 0 0 0 0 .38 0 0 0 .9 -.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
   }
-  :focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
 
-  .mark {
-    position: fixed;
-    z-index: 3;
-    top: calc(env(safe-area-inset-top, 0px) + 18px);
-    left: 20px;
-    margin: 0;
-    font: 400 1.05rem/1 var(--f-display);
-    letter-spacing: 0.06em;
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-inline: 32px;
+    padding-block: calc(env(safe-area-inset-top, 0px) + 40px) 64px;
   }
+
+  /* ---------- the note ---------- */
+  .head { display: grid; gap: 22px; max-width: 40rem; }
+  .mark { margin: 0; font: 400 2.6rem/0.9 var(--f-display); letter-spacing: 0.02em; }
   .mark span { color: var(--red); }
+  .note { margin: 0; font: 400 1.14rem/1.6 var(--f-text); color: var(--soft); text-wrap: pretty; }
 
-  /* ---------- the drawing: name, line, film ---------- */
-  .stage {
+  /* ---------- the experiments ---------- */
+  .work { margin-top: 48px; border-top: var(--line) solid var(--ink); }
+  .item {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 24px;
+    padding-block: 28px;
+    border-bottom: 1px solid var(--muted);
+  }
+  .name { margin: 0; font: 400 3.4rem/0.85 var(--f-display); letter-spacing: -0.005em; }
+  .name .i { color: var(--red); }
+
+  /* a raised button: a bevel on the picture and a shadow beneath it, pressed flat when tapped */
+  .btn {
+    --lift: 3px;
+    --dx: 0px;
+    --dy: 0px;
     position: relative;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    /* leave room on the right for the branches to open into */
-    padding-right: calc(20px + 150 * var(--u));
-  }
-  .word {
-    margin: 0;
-    font: 400 calc(210 * var(--u))/0.8 var(--f-display);
-    letter-spacing: -0.005em;
-    white-space: nowrap;
-  }
-  .word .i { color: var(--red); }
-  .trunk {
-    flex: none;
-    width: calc(210 * var(--u));
-    height: max(2px, calc(3 * var(--u)));
-    margin-left: calc(26 * var(--u));
-    background: var(--ink);
-  }
-  .end {
-    position: relative;
-    flex: none;
-    width: calc(300 * var(--u));
-    aspect-ratio: 300 / 474;
-  }
-
-  .reel {
-    all: unset;
-    position: absolute;
-    inset: 0;
-    cursor: pointer;
-    isolation: isolate;
-    transition: opacity 0.25s ease, transform 0.35s cubic-bezier(.2,.8,.2,1);
-  }
-  .reel .disc {
-    position: absolute;
-    z-index: -1;
-    width: 112%;
-    aspect-ratio: 1;
-    left: 34%;
-    top: 22%;
-    border-radius: 50%;
-    background: var(--red);
-    mix-blend-mode: var(--blend);
-  }
-  .reel .frame { position: absolute; inset: 0; border: max(4px, calc(7 * var(--u))) solid var(--ink); background: #e9e7e1; }
-  .reel img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .reel:focus-visible { outline-offset: 6px; }
-  .open .reel { opacity: 0; transform: scale(0.86); pointer-events: none; }
-
-  /* ---------- the branches ---------- */
-  .lines { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: visible; }
-  .lines path {
-    fill: none;
-    stroke: var(--ink);
-    stroke-width: max(2px, calc(3 * var(--u)));
-    stroke-linecap: round;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    transition: stroke-dashoffset 0.32s cubic-bezier(.4,0,.2,1);
-  }
-  .open .lines path { stroke-dashoffset: 0; transition: stroke-dashoffset 0.45s cubic-bezier(.2,.7,.2,1) calc(var(--n) * 45ms); }
-
-  .fan { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-  /* on a wide screen the versions open evenly down an arc that bulges away from the name */
-  /* each one is a raised button: a bevel on the picture and an ink shadow beneath, pressed flat when tapped */
-  .opt {
-    --lift: max(3px, calc(5 * var(--u)));
-    --ox: 0px;
-    --oy: -50%;
-    position: absolute;
-    left: calc(var(--x) * var(--u));
-    top: calc(50% + var(--y) * var(--u));
-    width: calc(112 * var(--u));
-    aspect-ratio: 4 / 3;
-    translate: var(--ox) var(--oy);
     display: block;
-    border: max(2px, calc(3 * var(--u))) solid var(--ink);
-    border-radius: max(3px, calc(5 * var(--u)));
-    background: #e9e5da;
-    box-shadow: var(--lift) var(--lift) 0 var(--ink);
+    padding: 0;
+    border: var(--line) solid var(--ink);
+    border-radius: 5px;
+    background: var(--card);
+    box-shadow: var(--lift) var(--lift) 0 var(--soft);
     overflow: hidden;
+    cursor: pointer;
+    translate: var(--dx) var(--dy);
+    transition: translate 0.08s ease, box-shadow 0.08s ease;
     -webkit-tap-highlight-color: transparent;
-    opacity: 0;
-    transform: translateX(calc(-40 * var(--u))) scale(0.7);
-    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.15s ease, translate 0.08s ease;
   }
-  .opt::after {
+  .btn::after {
     content: "";
     position: absolute;
     inset: 0;
     z-index: 1;
     pointer-events: none;
     border-radius: inherit;
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, 0) 70%, rgba(0, 0, 0, 0.1));
-    box-shadow: inset max(2px, calc(3 * var(--u))) max(2px, calc(3 * var(--u))) 0 rgba(255, 255, 255, 0.6), inset calc(-1 * max(2px, calc(3 * var(--u)))) calc(-1 * max(2px, calc(3 * var(--u)))) 0 rgba(0, 0, 0, 0.18);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, 0) 70%, rgba(0, 0, 0, 0.08));
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.55), inset -2px -2px 0 rgba(0, 0, 0, 0.14);
   }
-  .opt:active, .opt.pressed { --ox: var(--lift); --oy: calc(-50% + var(--lift)); box-shadow: 0 0 0 var(--ink); }
-  .opt:active::after, .opt.pressed::after { box-shadow: inset max(2px, calc(3 * var(--u))) max(2px, calc(3 * var(--u))) 0 rgba(0, 0, 0, 0.16); }
+  .btn:active, .btn.pressed { --dx: var(--lift); --dy: var(--lift); box-shadow: 0 0 0 var(--soft); }
+  .btn:active::after, .btn.pressed::after { box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.14); }
+  @media (hover: hover) { .btn:hover:not(:active):not(.pressed) { box-shadow: var(--lift) var(--lift) 0 var(--red); } }
+  .btn:focus-visible { box-shadow: var(--lift) var(--lift) 0 var(--red); }
+  .btn img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  /* ---------- a row: the film, and the branches it opens into ---------- */
+  .tree { position: relative; display: flex; align-items: flex-start; min-height: 221px; }
+  .reel { flex: none; width: 140px; aspect-ratio: 300 / 474; }
+  .lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .lines path {
+    fill: none;
+    stroke: var(--soft);
+    stroke-width: var(--line);
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  .open .lines path { stroke-dashoffset: 0; transition: stroke-dashoffset 0.45s cubic-bezier(.2,.7,.2,1) calc(var(--n) * 40ms); }
+
+  /* on a wide screen the branches run out to the right, a card hanging from each */
+  .fan {
+    display: grid;
+    grid-template-columns: repeat(6, 98px);
+    gap: 12px;
+    margin: 140px 0 0 40px; /* a little below the film's middle, where the line leaves it */
+    pointer-events: none;
+  }
+  .opt {
+    aspect-ratio: 4 / 3;
+    opacity: 0;
+    transform: translateY(-10px) scale(0.85);
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1), translate 0.08s ease, box-shadow 0.08s ease;
+  }
+  .open .fan { pointer-events: auto; }
   .open .opt {
-    pointer-events: auto;
     opacity: 1;
     transform: none;
-    transition: opacity 0.25s ease calc(120ms + var(--n) * 45ms), transform 0.4s cubic-bezier(.2,.8,.2,1) calc(120ms + var(--n) * 45ms), box-shadow 0.08s ease, translate 0.08s ease;
+    transition: opacity 0.25s ease calc(100ms + var(--n) * 40ms), transform 0.35s cubic-bezier(.2,.8,.2,1) calc(100ms + var(--n) * 40ms), translate 0.08s ease, box-shadow 0.08s ease;
   }
-  .opt img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.32); transition: opacity 0.35s ease, transform 0.5s cubic-bezier(.2,.8,.2,1); }
+  .opt img { position: absolute; inset: 0; transform: scale(1.32); transition: opacity 0.35s ease, transform 0.5s cubic-bezier(.2,.8,.2,1); }
   .opt img.next { opacity: 0; }
-  .open .opt:hover:not(:active):not(.pressed), .open .opt:focus-visible { box-shadow: var(--lift) var(--lift) 0 var(--red); }
   .opt:hover img, .opt:focus-visible img { transform: scale(1.45); }
 
-  /* ---------- a tall screen: the line runs down, and branches into two columns ---------- */
-  @media (max-aspect-ratio: 1/1) {
-    :root { --u: min(1px, 0.2vw, 0.1vh); }
-    .stage { flex-direction: column; padding: 56px 16px 32px; }
-    .word { font-size: calc(190 * var(--u)); }
-    .trunk { width: max(2px, calc(3 * var(--u))); height: calc(110 * var(--u)); margin: calc(24 * var(--u)) 0 0; }
-    .end { width: calc(300 * var(--u)); }
-    .fan {
-      display: grid;
-      grid-template-columns: repeat(2, calc(132 * var(--u)));
-      justify-content: center;
-      align-content: space-evenly;
-      column-gap: calc(56 * var(--u));
-    }
-    .opt {
-      position: relative;
-      left: auto;
-      top: auto;
-      width: auto;
-      --oy: 0px;
-      transform: translateY(calc(-30 * var(--u))) scale(0.8);
-    }
+  /* ---------- narrower: the line runs down from the film into two columns, only while open ---------- */
+  @media (max-width: 1080px) {
+    .page { padding-inline: 20px; }
+    .item { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+    .tree { flex-direction: column; align-items: center; min-height: 0; }
+    .reel { width: 132px; }
+    .fan { display: none; grid-template-columns: repeat(2, 132px); column-gap: 56px; row-gap: 22px; margin: 44px 0 0; }
+    .open .fan { display: grid; }
   }
-  @media (max-aspect-ratio: 1/1) {
-    .opt:active, .opt.pressed { --oy: var(--lift); }
+  @media (max-width: 400px) {
+    .page { padding-inline: 16px; }
+    .fan { grid-template-columns: repeat(2, 120px); column-gap: 44px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .reel, .opt, .opt img, .lines path, .open .opt, .open .lines path { transition: none; }
+    .btn, .opt, .opt img, .lines path, .open .opt, .open .lines path { transition: none; }
   }
 </style>
 </head>
 <body>
-<p class="mark" aria-label="CoDESINE"><span>Co</span>DESINE</p>
+<main class="page">
+  <header class="head">
+    <h1 class="mark" aria-label="CoDESINE"><span>Co</span>DESINE</h1>
+    <p class="note">Code is a medium for art, for design. Historically, different inventions have opened up newer forms of art. Computational art has been a small field for a few decades now, but in language models we now have machines that can write code. This has reduced the barrier for people to express themselves more fluidly in this medium. In October 2026, as I write this, the abstractions at play for this medium are still being explored. I’ll share some of my experiments here.</p>
+  </header>
 
-<main class="stage" id="stage">
-  <h1 class="word" aria-label="iLoop"><span class="i">i</span>Loop</h1>
-  <span class="trunk" aria-hidden="true"></span>
-  <div class="end">
-    <button class="reel" id="reel" type="button" aria-expanded="false" aria-controls="fan" aria-label="iLoop, an endless zoom through thirteen Apple machines. Choose a version.">
-      <span class="disc" aria-hidden="true"></span>
-      <span class="frame"><img id="film" src="home/iloop-poster.webp" data-gif="home/iloop.gif" width="300" height="474" alt=""></span>
-    </button>
-    <nav class="fan" id="fan" aria-label="Versions of iLoop">
-      <a class="opt" style="--n:0; --x:60; --y:-250" href="iLoop-real/" aria-label="Real: photographic, rendered live"><img alt="" data-v="real" decoding="async"></a>
-      <a class="opt" style="--n:1; --x:143; --y:-150" href="iLoop/" aria-label="Engraving: ink and linocut"><img alt="" data-v="engraving" decoding="async"></a>
-      <a class="opt" style="--n:2; --x:176; --y:-50" href="iLoop-watercolor/" aria-label="Watercolour: wash and pen"><img alt="" data-v="watercolor" decoding="async"></a>
-      <a class="opt" style="--n:3; --x:176; --y:50" href="iLoop-pencil/" aria-label="Pencil: graphite and crayon"><img alt="" data-v="pencil" decoding="async"></a>
-      <a class="opt" style="--n:4; --x:143; --y:150" href="iLoop-graphic/" aria-label="Graphic: screenprint"><img alt="" data-v="graphic" decoding="async"></a>
-      <a class="opt" style="--n:5; --x:60; --y:250" href="iLoop-graphic-clean/" aria-label="Graphic, clean: flat vector inks"><img alt="" data-v="graphic-clean" decoding="async"></a>
-    </nav>
-  </div>
-  <svg class="lines" id="lines" aria-hidden="true"></svg>
+  <section class="work" aria-label="Experiments">
+    <article class="item" id="iloop">
+      <h2 class="name" aria-label="iLoop"><span class="i">i</span>Loop</h2>
+      <div class="tree" id="tree">
+        <svg class="lines" id="lines" aria-hidden="true"></svg>
+        <button class="btn reel" id="reel" type="button" aria-expanded="false" aria-controls="fan" aria-label="iLoop, an endless zoom through thirteen Apple machines. Choose a version.">
+          <img id="film" src="home/iloop-poster.webp" data-gif="home/iloop.gif" width="300" height="474" alt="">
+        </button>
+        <nav class="fan" id="fan" aria-label="Versions of iLoop">
+          <a class="btn opt" style="--n:0" href="iLoop-real/" aria-label="Real: photographic, rendered live"><img alt="" data-v="real" decoding="async"></a>
+          <a class="btn opt" style="--n:1" href="iLoop/" aria-label="Engraving: ink and linocut"><img alt="" data-v="engraving" decoding="async"></a>
+          <a class="btn opt" style="--n:2" href="iLoop-watercolor/" aria-label="Watercolour: wash and pen"><img alt="" data-v="watercolor" decoding="async"></a>
+          <a class="btn opt" style="--n:3" href="iLoop-pencil/" aria-label="Pencil: graphite and crayon"><img alt="" data-v="pencil" decoding="async"></a>
+          <a class="btn opt" style="--n:4" href="iLoop-graphic/" aria-label="Graphic: screenprint"><img alt="" data-v="graphic" decoding="async"></a>
+          <a class="btn opt" style="--n:5" href="iLoop-graphic-clean/" aria-label="Graphic, clean: flat vector inks"><img alt="" data-v="graphic-clean" decoding="async"></a>
+        </nav>
+      </div>
+    </article>
+  </section>
 </main>
 
 <script>
   'use strict';
   (function () {
-    const stage = document.getElementById('stage');
+    const item = document.getElementById('iloop');
+    const tree = document.getElementById('tree');
     const reel = document.getElementById('reel');
     const film = document.getElementById('film');
-    const trunk = stage.querySelector('.trunk');
     const lines = document.getElementById('lines');
-    const opts = [...stage.querySelectorAll('.opt')];
+    const opts = [...tree.querySelectorAll('.opt')];
     let imgs = opts.map((o) => o.querySelector('img'));
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const later = window.requestIdleCallback || ((f) => setTimeout(f, 200));
@@ -264,7 +231,7 @@
     const READY = window.STILLS || [];
     const src = (v, i) => `home/${v}-${String(i % MACHINES).padStart(2, '0')}.webp`;
     const at = imgs.map((_, n) => n * 2);
-    let tick = 0, timer = 0, loaded = false;
+    let turn = 0, timer = 0, loaded = false;
     const ok = (im) => READY.includes(im.dataset.v);
     function load() {
       if (loaded) return;
@@ -274,7 +241,7 @@
       later(() => imgs.forEach((im, n) => { if (ok(im)) for (let j = 1; j <= 3; j++) new Image().src = src(im.dataset.v, at[n] + j); }));
     }
     function cycle() {
-      const n = tick++ % imgs.length, im = imgs[n];
+      const n = turn++ % imgs.length, im = imgs[n];
       if (!ok(im)) return;
       at[n]++;
       new Image().src = src(im.dataset.v, at[n] + 3);
@@ -288,26 +255,31 @@
       imgs[n] = nx;
     }
 
-    // ---------- the branches: from the end of the line to each version ----------
-    const tall = matchMedia('(max-aspect-ratio: 1/1)');
+    // ---------- the branches: from the film to each version ----------
+    // Wide: out of the film's side, along, and down into each card. Narrow: down from the film to a
+    // spine between the two columns, and out to each card.
+    const wide = matchMedia('(min-width: 1081px)');
     const ns = 'http://www.w3.org/2000/svg';
+    const box = (el) => { const t = tree.getBoundingClientRect(), b = el.getBoundingClientRect(); return { l: b.left - t.left, t: b.top - t.top, r: b.right - t.left, b: b.bottom - t.top, w: b.width, h: b.height }; };
+    // where a card settles, not where it is mid-flight: its layout box in the row, before any transform
+    const settled = (o) => {
+      let l = 0, t = 0;
+      for (let e = o; e && e !== tree; e = e.offsetParent) { l += e.offsetLeft; t += e.offsetTop; }
+      return { l, t, r: l + o.offsetWidth, b: t + o.offsetHeight, w: o.offsetWidth, h: o.offsetHeight };
+    };
     function draw() {
-      const t = trunk.getBoundingClientRect();
-      const f = opts[0].offsetParent.getBoundingClientRect();
+      const f = box(reel), c = 10;
       lines.replaceChildren();
       opts.forEach((o, n) => {
-        // where the card settles, not where it is mid-flight
-        const w = o.offsetWidth, h = o.offsetHeight, x0 = f.left + o.offsetLeft;
-        const y0 = f.top + o.offsetTop - (tall.matches ? 0 : h / 2); // the arc cards are centred on their point
+        const k = settled(o);
         let d;
-        if (!tall.matches) {
-          const px = t.right, py = t.top + t.height / 2, ax = x0, ay = y0 + h / 2, dx = (ax - px) * 0.55;
-          d = `M${px} ${py} C${px + dx} ${py} ${ax - dx} ${ay} ${ax} ${ay}`;
+        if (wide.matches) {
+          const px = f.r, py = f.t + f.h * 0.5, cx = k.l + k.w / 2;
+          d = `M${px} ${py} L${cx - c} ${py} Q${cx} ${py} ${cx} ${py + c} L${cx} ${k.t}`;
         } else {
-          // a spine down between the two columns, a twig out to each card
-          const px = t.left + t.width / 2, py = t.bottom, left = x0 + w / 2 < px;
-          const ax = left ? x0 + w : x0, ay = y0 + h / 2, c = Math.min(18, Math.abs(ax - px));
-          d = `M${px} ${py} L${px} ${ay - c} Q${px} ${ay} ${px + (left ? -c : c)} ${ay} L${ax} ${ay}`;
+          const px = f.l + f.w / 2, py = f.b, left = k.l + k.w / 2 < px;
+          const ax = left ? k.r : k.l, ay = k.t + k.h / 2, r = Math.min(c, Math.abs(ax - px));
+          d = `M${px} ${py} L${px} ${ay - r} Q${px} ${ay} ${px + (left ? -r : r)} ${ay} L${ax} ${ay}`;
         }
         const p = document.createElementNS(ns, 'path');
         p.setAttribute('d', d);
@@ -324,11 +296,11 @@
     if (matchMedia('(pointer: coarse)').matches) {
       if (navigator.vibrate) buzz = () => { try { navigator.vibrate(10); } catch (e) {} };
       else {
-        const label = document.createElement('label'), box = document.createElement('input');
-        box.type = 'checkbox';
-        box.setAttribute('switch', '');
-        box.tabIndex = -1;
-        label.append(box);
+        const label = document.createElement('label'), sw = document.createElement('input');
+        sw.type = 'checkbox';
+        sw.setAttribute('switch', '');
+        sw.tabIndex = -1;
+        label.append(sw);
         label.setAttribute('aria-hidden', 'true');
         label.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
         document.body.append(label);
@@ -376,35 +348,37 @@
 
     // ---------- opening and closing ----------
     let closeT = 0, openedAt = 0;
-    const isOpen = () => stage.classList.contains('open');
+    const isOpen = () => item.classList.contains('open');
     function open() {
       clearTimeout(closeT);
       if (isOpen()) return;
       load();
+      item.classList.add('open');
       draw();
       openedAt = performance.now();
-      lines.getBoundingClientRect(); // so the lines start undrawn and grow
-      stage.classList.add('open');
       reel.setAttribute('aria-expanded', 'true');
       if (!still) { clearInterval(timer); timer = setInterval(cycle, 420); }
     }
     function close() {
-      stage.classList.remove('open');
+      item.classList.remove('open');
       reel.setAttribute('aria-expanded', 'false');
       clearInterval(timer);
     }
-    reel.addEventListener('click', () => { if (!isOpen()) { buzz(); clack(440); } open(); });
-    // a mouse also opens it by resting on the film; closing waits so the pointer can cross to a branch
-    const fine = matchMedia('(hover: hover) and (pointer: fine)');
-    // (the film's place and its branches are one zone: the film fades from under the pointer as they open)
-    const end = reel.parentElement;
-    end.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && fine.matches) open(); });
-    end.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && fine.matches) closeT = setTimeout(close, 450); });
-    // a tap or click anywhere off the branches puts them away
-    document.addEventListener('pointerdown', (e) => {
-      if (isOpen() && performance.now() - openedAt > 300 && !e.target.closest('.opt, .reel')) close();
+    // the film opens or closes its branches
+    reel.addEventListener('click', () => {
+      if (!isOpen()) { buzz(); clack(440); open(); }
+      else if (performance.now() - openedAt > 400) { buzz(); clack(360); close(); }
     });
-    stage.addEventListener('focusin', (e) => { if (e.target.closest('.opt')) open(); });
+    // a mouse also opens them by resting on the film; closing waits so the pointer can cross to a card
+    const fine = matchMedia('(hover: hover) and (pointer: fine)');
+    reel.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && fine.matches) open(); });
+    tree.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && fine.matches) closeT = setTimeout(close, 450); });
+    tree.addEventListener('pointerenter', () => clearTimeout(closeT));
+    // a tap or click anywhere off the row puts them away
+    document.addEventListener('pointerdown', (e) => {
+      if (isOpen() && performance.now() - openedAt > 300 && !e.target.closest('.tree')) close();
+    });
+    item.addEventListener('focusin', (e) => { if (e.target.closest('.opt')) open(); });
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) { close(); reel.focus(); } });
     addEventListener('resize', () => { if (isOpen()) draw(); });
     // coming back from a version, start closed
