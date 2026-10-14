@@ -3,68 +3,49 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CODEsine</title>
-<meta name="description" content="An index of code sketches. 01: iLoop, an endless zoom through thirteen Apple machines, drawn in six media.">
+<title>CoDESINE</title>
+<meta name="description" content="iLoop: an endless zoom through thirteen Apple machines, drawn six ways.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
 <link rel="preload" as="image" href="home/iloop-poster.webp">
 <link rel="icon" href="home/favicon.svg" type="image/svg+xml">
 <script src="home/stills.js"></script>
 <style>
-  /* A screenprinted index, after the Graphic version: cream stock, flat black and signal red with an
-     ochre and a blue spot, each ink a hair off register, halftone where a tone is needed. */
+  /* One line from the name to the film. Open it and the line branches, once for each version. */
   :root {
     --paper: #eee5cf;
     --ink: #201c1b;
     --red: #d23a22;
-    --ochre: #e0a134;
-    --blue: #2a53a0;
-    --muted: #201c1bb8;
-    --rule: #201c1b;
     --blend: multiply;
     --grain: 0.09;
     --f-display: "Anton", "Oswald", Impact, sans-serif;
-    --f-cond: "Oswald", "Arial Narrow", sans-serif;
-    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    /* one unit that shrinks the whole drawing to fit the window */
+    --u: min(1px, 0.082vw, 0.118vh);
     color-scheme: light;
   }
-  /* at night the same inks are pulled on black stock, the cream becoming the key ink */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #181615;
-      --ink: #efe6d2;
-      --red: #e2492f;
-      --ochre: #e3a63c;
-      --blue: #4d7cd1;
-      --muted: #efe6d2b3;
-      --rule: #efe6d2;
-      --blend: screen;
-      --grain: 0.16;
-      color-scheme: dark;
+      --paper: #181615; --ink: #efe6d2; --red: #e2492f; --blend: screen; --grain: 0.16; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --paper: #181615; --ink: #efe6d2; --red: #e2492f; --ochre: #e3a63c; --blue: #4d7cd1;
-    --muted: #efe6d2b3; --rule: #efe6d2; --blend: screen; --grain: 0.16; color-scheme: dark;
+    --paper: #181615; --ink: #efe6d2; --red: #e2492f; --blend: screen; --grain: 0.16; color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
+  html, body { height: 100%; }
   body {
-    position: relative;
-    min-height: 100vh;
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font: 400 17px/1.45 var(--f-cond);
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    overflow: hidden;
   }
-  /* the stock: fine tooth and a slow mottle, printed over everything so the inks sit in the paper */
+  /* the stock, printed over everything so the inks sit in the paper */
   body::after {
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 50;
@@ -74,499 +55,276 @@
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 1.4 -.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .48 0 0 0 0 .38 0 0 0 .9 -.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
   }
-
-  a { color: inherit; }
   :focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
 
-  /* the shapes run out to the edges of the window and are trimmed there, never scrolled to */
-  .page { overflow-x: clip; }
-  .sheet {
-    position: relative;
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: calc(env(safe-area-inset-top, 0px) + 28px) 40px 40px;
-  }
-
-  /* ---------- the masthead ---------- */
-  .mast { position: relative; padding: 24px 0 40px; isolation: isolate; }
-  .mast .shapes { position: absolute; top: 0; bottom: 0; left: calc(50% - 50vw); right: calc(50% - 50vw); z-index: -1; pointer-events: none; }
-  .mast .shapes svg { position: absolute; display: block; }
-  .mast .shapes .sun { right: max(-6vw, calc(50vw - 660px)); top: -96px; width: min(40vw, 500px); height: auto; }
-  .ink { mix-blend-mode: var(--blend); }
-
-  .kicker {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-    margin: 0 0 18px;
-    font: 500 0.78rem/1 var(--f-cond);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-  .kicker span { padding: 6px 9px 5px; }
-  .kicker .k1 { background: var(--ink); color: var(--paper); }
-  .kicker .k2 { background: var(--red); color: var(--paper); }
-  .kicker .k3 { border: 1.5px solid var(--ink); padding: 4.5px 9px 3.5px; margin-left: 6px; }
-
-  /* the wordmark, pulled twice: red a hair off the black */
-  .word {
-    position: relative;
+  .mark {
+    position: fixed;
+    z-index: 3;
+    top: calc(env(safe-area-inset-top, 0px) + 18px);
+    left: 20px;
     margin: 0;
-    font: 400 clamp(4.4rem, 18.5vw, 15.5rem)/0.8 var(--f-display);
-    letter-spacing: -0.005em;
-    text-transform: uppercase;
+    font: 400 1.05rem/1 var(--f-display);
+    letter-spacing: 0.06em;
   }
-  .word .k { position: relative; display: block; color: var(--ink); }
-  .word .r {
+  .mark span { color: var(--red); }
+
+  /* ---------- the drawing: name, line, film ---------- */
+  .stage {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    /* leave room on the right for the branches to open into */
+    padding-right: calc(20px + 200 * var(--u));
+  }
+  .word {
+    margin: 0;
+    font: 400 calc(210 * var(--u))/0.8 var(--f-display);
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+  }
+  .word .i { color: var(--red); }
+  .trunk {
+    flex: none;
+    width: calc(210 * var(--u));
+    height: max(4px, calc(9 * var(--u)));
+    margin-left: calc(26 * var(--u));
+    background: var(--ink);
+  }
+  .end {
+    position: relative;
+    flex: none;
+    width: calc(300 * var(--u));
+    aspect-ratio: 300 / 474;
+  }
+
+  .reel {
+    all: unset;
     position: absolute;
     inset: 0;
-    color: var(--red);
-    transform: translate(0.014em, -0.008em);
-    mix-blend-mode: var(--blend);
-    opacity: 0.9;
-  }
-  .word::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    left: 54%;
-    right: calc(-1 * (50vw - 50%) - 40px);
-    top: 47%;
-    height: 0.075em;
-    background: var(--ink);
-    transform: rotate(-4.5deg);
-    transform-origin: left center;
-    mix-blend-mode: var(--blend);
-  }
-  .word .lo { font-size: 0.42em; vertical-align: 0.92em; margin-left: 0.04em; letter-spacing: 0.01em; }
-  .intro {
-    position: relative;
-    max-width: 30rem;
-    margin: 22px 0 0;
-    font: 400 1.12rem/1.4 var(--f-cond);
-    border-left: 6px solid var(--red);
-    padding-left: 12px;
-  }
-
-  /* ---------- the index ---------- */
-  .index { position: relative; margin-top: 34px; }
-  .index-head {
-    display: grid;
-    grid-template-columns: 88px 1fr auto;
-    align-items: end;
-    gap: 16px;
-    padding-bottom: 8px;
-    border-bottom: 6px solid var(--rule);
-    font: 500 0.74rem/1 var(--f-cond);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-  }
-  .index-head h2 { margin: 0; font: 400 1.9rem/0.9 var(--f-display); letter-spacing: 0.01em; grid-column: 2; }
-  .index-head .count { font-family: var(--f-mono); letter-spacing: 0.04em; text-transform: none; }
-
-  .entry {
-    position: relative;
-    display: grid;
-    grid-template-columns: 88px minmax(0, 1fr) 300px;
-    gap: 16px 32px;
-    padding: 30px 0 34px;
-    border-bottom: 2px solid var(--rule);
-  }
-  .no {
-    font: 400 4.6rem/0.82 var(--f-display);
-    color: var(--red);
-    font-variant-numeric: tabular-nums;
-  }
-  .body { position: relative; min-width: 0; display: flex; flex-direction: column; }
-  .title {
-    all: unset;
     cursor: pointer;
-    display: inline-block;
-    font: 400 clamp(3.6rem, 9vw, 7.4rem)/0.84 var(--f-display);
-    letter-spacing: -0.005em;
+    isolation: isolate;
+    transition: opacity 0.25s ease, transform 0.35s cubic-bezier(.2,.8,.2,1);
   }
-  .title:focus-visible { outline: 3px solid var(--red); outline-offset: 4px; }
-  .title .i { color: var(--red); }
-  .entry h3 { margin: 0; }
-  .desc { margin: 18px 0 0; max-width: 34rem; font-size: 1.12rem; line-height: 1.42; }
-  .tags {
-    list-style: none;
-    margin: 18px 0 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    font: 500 0.74rem/1 var(--f-cond);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-  .tags li { border: 1.5px solid var(--ink); padding: 5px 8px 4px; }
-  .tags li:first-child { background: var(--ink); color: var(--paper); }
-  .roll {
-    list-style: none;
-    margin: 26px 0 0;
-    padding: 12px 0 0;
-    border-top: 2px solid var(--rule);
-    max-width: 36rem;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(5, auto);
-    grid-auto-flow: column;
-    gap: 5px 18px;
-    font: 500 0.78rem/1.25 var(--f-cond);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-  .roll li { display: flex; gap: 9px; white-space: nowrap; }
-  .roll b { font: 400 0.74rem/1.3 var(--f-mono); letter-spacing: 0; color: var(--red); }
-  .cue {
-    margin: auto 0 0;
-    padding-top: 26px;
-    font: 500 0.8rem/1 var(--f-cond);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-  .cue b { font-weight: 600; background: var(--ink); color: var(--paper); padding: 3px 7px 2px; }
-  .cue b::after { content: " →"; color: var(--red); }
-  .cue .touch { display: none; }
-  @media (hover: none) { .cue .mouse { display: none; } .cue .touch { display: inline; } }
-
-  /* the film: the photorealistic loop, behind a red disc and a black bar */
-  .reel { position: relative; margin: 0; align-self: start; isolation: isolate; }
   .reel .disc {
     position: absolute;
     z-index: -1;
-    width: 108%;
+    width: 112%;
     aspect-ratio: 1;
-    left: -36%;
-    top: 14%;
+    left: 34%;
+    top: 22%;
     border-radius: 50%;
     background: var(--red);
     mix-blend-mode: var(--blend);
-    transform: translate(2px, -1px);
   }
-  .reel .slab {
-    position: absolute;
-    z-index: -1;
-    right: -18px;
-    top: -18px;
-    width: 46%;
-    height: 34%;
-    background: radial-gradient(circle, var(--ink) 38%, transparent 41%) 0 0 / 6px 6px;
-    mix-blend-mode: var(--blend);
-  }
-  .reel .frame { position: relative; border: 6px solid var(--ink); background: #e9e7e1; line-height: 0; }
-  .reel img { display: block; width: 100%; height: auto; aspect-ratio: 300 / 474; }
-  .reel figcaption {
-    margin-top: 10px;
-    font: 500 0.72rem/1.2 var(--f-cond);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-  .reel figcaption b { background: var(--red); color: var(--paper); padding: 2px 6px 1px; font-weight: 600; }
+  .reel .frame { position: absolute; inset: 0; border: max(4px, calc(7 * var(--u))) solid var(--ink); background: #e9e7e1; }
+  .reel img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .reel:focus-visible { outline-offset: 6px; }
+  .open .reel { opacity: 0; transform: scale(0.86); pointer-events: none; }
 
-  /* ---------- the picker: six pulls of the same machines ---------- */
-  .pick {
-    position: absolute;
-    top: 18px;
-    bottom: 18px;
-    left: calc(88px + 32px - 12px);
-    right: -12px;
-    z-index: 5;
-    display: grid;
-    grid-template-columns: 1.45fr repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    padding: 12px;
-    background: var(--paper);
-    border: 6px solid var(--ink);
-    box-shadow: 9px 9px 0 var(--red);
-    opacity: 0;
-    visibility: hidden;
-    transform: translate(-6px, 6px);
-    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(.2,.8,.2,1), visibility 0s linear 0.22s;
+  /* ---------- the branches ---------- */
+  .lines { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: visible; }
+  .lines path {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: max(3px, calc(6 * var(--u)));
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 0.32s cubic-bezier(.4,0,.2,1);
   }
-  .entry[data-open] .pick { opacity: 1; visibility: visible; transform: none; transition: opacity 0.18s ease, transform 0.22s cubic-bezier(.2,.8,.2,1), visibility 0s; }
-  .pick-head {
-    grid-column: 4;
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px 12px 10px;
-    background: var(--red);
-    color: var(--paper);
-    font: 500 0.74rem/1.2 var(--f-cond);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .pick-head strong { font: 400 clamp(1.6rem, 2.6vw, 2.3rem)/0.9 var(--f-display); letter-spacing: 0.01em; }
-  .pick-head .now { font-family: var(--f-mono); letter-spacing: 0.02em; text-transform: none; }
+  .open .lines path { stroke-dashoffset: 0; transition: stroke-dashoffset 0.45s cubic-bezier(.2,.7,.2,1) calc(var(--n) * 45ms); }
+
+  .fan { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  /* on a wide screen the versions open evenly down an arc that bulges away from the name */
   .opt {
-    position: relative;
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
-    min-height: 0;
-    text-decoration: none;
-    border: 3px solid var(--ink);
-    background: var(--paper);
-    overflow: hidden;
-  }
-  .opt.hero { grid-row: 1 / 3; }
-  /* a version whose stills are not printed yet: a flat red disc under a black bar */
-  .press { position: absolute; inset: 0; display: none; place-items: center; overflow: hidden; background: var(--paper); }
-  .press i { position: absolute; width: 74%; aspect-ratio: 1; border-radius: 50%; background: var(--red); left: 34%; top: -18%; }
-  .press::before { content: ""; position: absolute; left: -20%; right: -20%; top: 58%; height: 12%; background: var(--ink); transform: rotate(-14deg); }
-  .press em { position: relative; font: 600 0.7rem/1 var(--f-cond); font-style: normal; letter-spacing: 0.18em; text-transform: uppercase; background: var(--ink); color: var(--paper); padding: 4px 7px 3px; }
-  .opt.pending .press { display: grid; }
-  .opt.pending img { display: none; }
-  .opt .pic { position: relative; overflow: hidden; min-height: 0; background: #e9e5da; }
-  .opt img {
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.6s cubic-bezier(.2,.8,.2,1), opacity 0.35s ease;
+    left: calc(var(--x) * var(--u));
+    top: calc(50% + var(--y) * var(--u));
+    width: calc(150 * var(--u));
+    aspect-ratio: 4 / 3;
+    translate: 0 -50%;
+    display: block;
+    border: max(3px, calc(5 * var(--u))) solid var(--ink);
+    background: #e9e5da;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateX(calc(-40 * var(--u))) scale(0.7);
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.15s ease;
   }
+  .open .opt {
+    pointer-events: auto;
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.25s ease calc(120ms + var(--n) * 45ms), transform 0.4s cubic-bezier(.2,.8,.2,1) calc(120ms + var(--n) * 45ms), box-shadow 0.15s ease;
+  }
+  .opt img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.35s ease, transform 0.5s cubic-bezier(.2,.8,.2,1); }
   .opt img.next { opacity: 0; }
-  .opt:hover img, .opt:focus-visible img { transform: scale(1.09); }
-  .opt .lab {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
-    padding: 6px 8px 5px;
-    background: var(--ink);
-    color: var(--paper);
-  }
-  .opt .lab b { font: 400 1.05rem/1 var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; }
-  .opt .lab span { font: 500 0.66rem/1.2 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.8; text-align: right; }
-  .opt.hero .lab b { font-size: 1.5rem; }
-  .opt:hover .lab, .opt:focus-visible .lab { background: var(--red); }
-  .opt:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  .open .opt:hover, .open .opt:focus-visible { box-shadow: calc(8 * var(--u)) calc(8 * var(--u)) 0 var(--red); }
+  .opt:hover img, .opt:focus-visible img { transform: scale(1.08); }
 
-  /* ---------- the foot ---------- */
-  .foot {
-    display: grid;
-    grid-template-columns: 88px minmax(0, 1fr);
-    gap: 16px 32px;
-    margin-top: 40px;
-    padding-top: 14px;
-    border-top: 6px solid var(--rule);
-    font-size: 0.92rem;
-  }
-  .foot .mark { font: 400 1.9rem/0.9 var(--f-display); color: var(--red); }
-  .foot p { margin: 0 0 8px; max-width: 46rem; }
-  .foot .how { font: 500 0.78rem/1.5 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; }
-  .foot .how kbd { font: 500 0.78rem/1 var(--f-mono); border: 1.5px solid var(--ink); padding: 1px 5px; }
-  .foot .fine { color: var(--muted); }
-
-  /* ---------- narrower ---------- */
-  @media (max-width: 980px) {
-    .entry { grid-template-columns: 64px minmax(0, 1fr); }
-    .index-head, .foot { grid-template-columns: 64px minmax(0, 1fr) auto; }
-    .no { font-size: 3.6rem; }
-    .reel { grid-column: 2; max-width: 300px; }
-    /* the picker opens in place, under the description */
-    .pick {
-      position: static;
-      grid-column: 2;
-      display: none;
-      margin: 4px 0 0;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      grid-template-rows: auto;
-      opacity: 1;
-      visibility: visible;
-      transform: none;
-      box-shadow: 6px 6px 0 var(--red);
+  /* ---------- a tall screen: the line runs down, and branches into two columns ---------- */
+  @media (max-aspect-ratio: 1/1) {
+    :root { --u: min(1px, 0.2vw, 0.1vh); }
+    .stage { flex-direction: column; padding: 56px 16px 32px; }
+    .word { font-size: calc(190 * var(--u)); }
+    .trunk { width: max(4px, calc(9 * var(--u))); height: calc(110 * var(--u)); margin: calc(24 * var(--u)) 0 0; }
+    .end { width: calc(300 * var(--u)); }
+    .fan {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-content: space-evenly;
+      column-gap: calc(52 * var(--u));
+      left: -14%;
+      right: -14%;
     }
-    .entry[data-open] .pick { display: grid; }
-    .pick-head { grid-column: 1 / -1; grid-row: auto; flex-direction: row; align-items: baseline; }
-    .pick-head strong br { display: none; }
-    .opt { aspect-ratio: 4 / 3.7; }
-    .opt.hero { grid-column: 1 / -1; grid-row: auto; aspect-ratio: 16 / 10; }
-    .body { order: 0; }
-    .pick { order: 1; }
-    .reel { order: 2; }
-  }
-  @media (max-width: 720px) {
-    .sheet { padding: calc(env(safe-area-inset-top, 0px) + 18px) 16px 28px; }
-    .mast { padding-bottom: 26px; }
-    .mast .shapes .sun { width: 50vw; right: -20vw; top: -96px; }
-    .word::before { right: -16px; top: 50%; }
-    .roll { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(7, auto); gap: 5px 12px; }
-    .index-head { grid-template-columns: 1fr auto; }
-    .index-head h2 { grid-column: 1; }
-    .index-head .spacer { display: none; }
-    .entry { grid-template-columns: minmax(0, 1fr); padding-top: 22px; }
-    .no { font-size: 2.6rem; }
-    .pick { grid-column: 1; grid-template-columns: 1fr 1fr; padding: 10px; gap: 8px; box-shadow: 5px 5px 0 var(--red); }
-    .pick-head { flex-direction: column; align-items: flex-start; }
-    .opt:last-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
-    .opt:not(.hero):not(:last-child) .lab span { display: none; }
-    .reel { grid-column: 1; width: min(300px, 78%); justify-self: center; margin-top: 8px; }
-    .reel .disc { left: -26%; }
-    .foot { grid-template-columns: minmax(0, 1fr); }
-    .foot .mark { display: none; }
-    .cue { padding-top: 18px; }
+    .opt {
+      position: relative;
+      left: auto;
+      top: auto;
+      width: auto;
+      translate: none;
+      transform: translateY(calc(-30 * var(--u))) scale(0.8);
+    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .pick, .opt img { transition: none; }
-    .opt:hover img, .opt:focus-visible img { transform: none; }
+    .reel, .opt, .opt img, .lines path, .open .opt, .open .lines path { transition: none; }
   }
 </style>
 </head>
 <body>
-<div class="page">
-<main class="sheet">
+<p class="mark" aria-label="CoDESINE"><span>Co</span>DESINE</p>
 
-  <header class="mast">
-    <div class="shapes" aria-hidden="true">
-      <svg class="sun ink" viewBox="0 0 400 400"><circle cx="200" cy="200" r="196" fill="var(--ochre)"/><circle cx="206" cy="194" r="118" fill="var(--blue)"/></svg>
-    </div>
-    <p class="kicker"><span class="k1">CODEsine</span><span class="k2">Index</span><span class="k3">Code sketches that draw</span></p>
-    <h1 class="word" aria-label="CODEsine"><span class="k">Code<span class="lo">sine</span></span><span class="r" aria-hidden="true">Code<span class="lo">sine</span></span></h1>
-    <p class="intro">Small programs that draw, animate and play sound. Each entry runs in your browser; open one and scroll.</p>
-  </header>
-
-  <section class="index" aria-labelledby="index-title">
-    <div class="index-head">
-      <span class="spacer">No.</span>
-      <h2 id="index-title">The index</h2>
-      <span class="count">01 entry</span>
-    </div>
-
-    <article class="entry" id="iloop">
-      <div class="no" aria-hidden="true">01</div>
-      <div class="body">
-        <h3><button class="title" type="button" aria-expanded="false" aria-controls="pick"><span class="i">i</span>Loop</button></h3>
-        <p class="desc">An endless zoom through thirteen Apple machines, from the Apple I to the Mac mini. Each one leads into the next through a chip, a screen or an assembly, with the music and voices of its year. The same loop, drawn six ways.</p>
-        <ul class="tags" aria-label="About iLoop">
-          <li>1976 → 2024</li>
-          <li>Thirteen machines</li>
-          <li>Six media</li>
-          <li>Music and voices</li>
-        </ul>
-        <ol class="roll" aria-label="The machines, in order">
-          <li><b>1976</b>Apple I</li><li><b>1977</b>Apple II</li><li><b>1984</b>Macintosh 128K</li><li><b>1991</b>PowerBook 100</li><li><b>1998</b>iMac G3</li>
-          <li><b>2001</b>iPod</li><li><b>2007</b>iPhone</li><li><b>2008</b>MacBook Air</li><li><b>2015</b>Apple Watch</li><li><b>2020</b>Apple M1</li>
-          <li><b>2021</b>iMac 24″</li><li><b>2021</b>MacBook Pro 14″</li><li><b>2024</b>Mac mini</li>
-        </ol>
-        <p class="cue"><span class="mouse">Hover to choose a version</span><span class="touch">Tap to choose a version</span> <b>Pick a print</b></p>
-
-      </div>
-
-      <figure class="reel">
-        <span class="disc" aria-hidden="true"></span>
-        <span class="slab" aria-hidden="true"></span>
-        <div class="frame"><img id="reel" src="home/iloop-poster.webp" data-gif="home/iloop.gif" width="300" height="474" alt="The photorealistic iLoop in motion: the camera travels from one Apple machine into the next."></div>
-        <figcaption><b>Real</b> &nbsp;the loop, twenty seconds of it</figcaption>
-      </figure>
-
-      <div class="pick" id="pick" role="region" aria-label="Choose a version of iLoop">
-          <div class="pick-head"><strong>Choose <br>a print</strong><span class="now" aria-live="polite">Macintosh 128K, 1984</span></div>
-          <a class="opt hero" href="iLoop-real/" data-v="real"><span class="pic"><img alt="" data-v="real" decoding="async"></span><span class="lab"><b>Real</b><span>Photographic, rendered live</span></span></a>
-          <a class="opt" href="iLoop/" data-v="engraving"><span class="pic"><img alt="" data-v="engraving" decoding="async"></span><span class="lab"><b>Engraving</b><span>Ink and linocut</span></span></a>
-          <a class="opt" href="iLoop-watercolor/" data-v="watercolor"><span class="pic"><img alt="" data-v="watercolor" decoding="async"></span><span class="lab"><b>Watercolour</b><span>Wash and pen</span></span></a>
-          <a class="opt" href="iLoop-pencil/" data-v="pencil"><span class="pic"><img alt="" data-v="pencil" decoding="async"></span><span class="lab"><b>Pencil</b><span>Graphite and crayon</span></span></a>
-          <a class="opt" href="iLoop-graphic/" data-v="graphic"><span class="pic"><img alt="" data-v="graphic" decoding="async"></span><span class="lab"><b>Graphic</b><span>Screenprint</span></span></a>
-          <a class="opt" href="iLoop-graphic-clean/" data-v="graphic-clean"><span class="pic"><img alt="" data-v="graphic-clean" decoding="async"><span class="press" aria-hidden="true"><i></i><em>In press</em></span></span><span class="lab"><b>Graphic, clean</b><span>Flat vector inks</span></span></a>
-        </div>
-    </article>
-  </section>
-
-  <footer class="foot">
-    <span class="mark" aria-hidden="true">↻</span>
-    <div>
-      <p class="how">Scroll to travel into each machine · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>▶</kbd> plays the loop · the music starts at your first click, the voice clips have their own button · notes are hidden until you turn them on</p>
-      <p class="fine">Apple and the product names are trademarks of Apple Inc. This is a fan project, not affiliated with Apple. Music and clips belong to their owners.</p>
-    </div>
-  </footer>
+<main class="stage" id="stage">
+  <h1 class="word" aria-label="iLoop"><span class="i">i</span>Loop</h1>
+  <span class="trunk" aria-hidden="true"></span>
+  <div class="end">
+    <button class="reel" id="reel" type="button" aria-expanded="false" aria-controls="fan" aria-label="iLoop, an endless zoom through thirteen Apple machines. Choose a version.">
+      <span class="disc" aria-hidden="true"></span>
+      <span class="frame"><img id="film" src="home/iloop-poster.webp" data-gif="home/iloop.gif" width="300" height="474" alt=""></span>
+    </button>
+    <nav class="fan" id="fan" aria-label="Versions of iLoop">
+      <a class="opt" style="--n:0; --x:70; --y:-330" href="iLoop-real/" aria-label="Real: photographic, rendered live"><img alt="" data-v="real" decoding="async"></a>
+      <a class="opt" style="--n:1; --x:190; --y:-198" href="iLoop/" aria-label="Engraving: ink and linocut"><img alt="" data-v="engraving" decoding="async"></a>
+      <a class="opt" style="--n:2; --x:240; --y:-66" href="iLoop-watercolor/" aria-label="Watercolour: wash and pen"><img alt="" data-v="watercolor" decoding="async"></a>
+      <a class="opt" style="--n:3; --x:240; --y:66" href="iLoop-pencil/" aria-label="Pencil: graphite and crayon"><img alt="" data-v="pencil" decoding="async"></a>
+      <a class="opt" style="--n:4; --x:190; --y:198" href="iLoop-graphic/" aria-label="Graphic: screenprint"><img alt="" data-v="graphic" decoding="async"></a>
+      <a class="opt" style="--n:5; --x:70; --y:330" href="iLoop-graphic-clean/" aria-label="Graphic, clean: flat vector inks"><img alt="" data-v="graphic-clean" decoding="async"></a>
+    </nav>
+  </div>
+  <svg class="lines" id="lines" aria-hidden="true"></svg>
 </main>
-</div>
 
 <script>
   'use strict';
   (function () {
-    // ---------- the film: a still first, the GIF once the page has painted ----------
+    const stage = document.getElementById('stage');
     const reel = document.getElementById('reel');
+    const film = document.getElementById('film');
+    const trunk = stage.querySelector('.trunk');
+    const lines = document.getElementById('lines');
+    const opts = [...stage.querySelectorAll('.opt')];
+    let imgs = opts.map((o) => o.querySelector('img'));
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const later = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+
+    // ---------- the film: a still first, the GIF once the page has painted ----------
     if (!still) addEventListener('load', () => later(() => {
       const gif = new Image();
-      gif.onload = () => { reel.src = gif.src; };
-      gif.src = reel.dataset.gif;
+      gif.onload = () => { film.src = gif.src; };
+      gif.src = film.dataset.gif;
     }));
 
-    // ---------- the picker ----------
-    const entry = document.getElementById('iloop');
-    const btn = entry.querySelector('.title');
-    const pick = document.getElementById('pick');
-    const now = pick.querySelector('.now');
-    const imgs = [...pick.querySelectorAll('img[data-v]')];
-    // the machines each version's picture cycles through (stills in home/, made by home/capture.cjs)
-    const SET = [['02', 'Macintosh 128K, 1984'], ['06', 'iPhone, 2007'], ['11', 'MacBook Pro 14″, 2021'], ['01', 'Apple II, 1977']];
-    const src = (v, k) => `home/${v}-${SET[k][0]}.webp`;
-    let k = 0, timer = 0, loaded = false, closeT = 0, openedAt = 0;
-
+    // ---------- the versions: each picture cycles through the same machines (stills made by home/capture.cjs) ----------
+    const SET = ['02', '06', '11', '01'];
+    const READY = window.STILLS || [];
+    const src = (v, k) => `home/${v}-${SET[k]}.webp`;
+    let k = 0, timer = 0, loaded = false;
     function load() {
       if (loaded) return;
       loaded = true;
-      // a version without its stills yet (see home/stills.js) is shown in press, and nothing is asked for
-      const ready = window.STILLS || [];
-      imgs.forEach((im) => {
-        if (!ready.includes(im.dataset.v)) { im.closest('.opt').classList.add('pending'); return; }
-        im.onerror = () => im.closest('.opt').classList.add('pending');
-        im.src = src(im.dataset.v, 0);
-      });
-      // the other machines come in behind, so the cycle never waits
-      later(() => SET.forEach((_, j) => { if (j) imgs.forEach((im) => { if (ready.includes(im.dataset.v)) { const p = new Image(); p.src = src(im.dataset.v, j); } }); }));
+      imgs.forEach((im) => { if (READY.includes(im.dataset.v)) im.src = src(im.dataset.v, 0); });
+      later(() => SET.forEach((_, j) => { if (j) imgs.forEach((im) => { if (READY.includes(im.dataset.v)) new Image().src = src(im.dataset.v, j); }); }));
     }
-    function step() {
+    function cycle() {
       k = (k + 1) % SET.length;
-      now.textContent = SET[k][1];
-      imgs.forEach((im) => {
-        if (im.closest('.opt').classList.contains('pending')) return;
-        // cross-fade: a second picture on top fades in, then becomes the picture
+      imgs = imgs.map((im) => {
+        if (!READY.includes(im.dataset.v)) return im;
         const nx = im.cloneNode();
         nx.classList.add('next');
         nx.src = src(im.dataset.v, k);
         im.after(nx);
         const show = () => requestAnimationFrame(() => { nx.classList.remove('next'); setTimeout(() => im.remove(), 380); });
         if (nx.complete) show(); else nx.onload = show;
-        imgs[imgs.indexOf(im)] = nx;
+        return nx;
       });
     }
+
+    // ---------- the branches: from the end of the line to each version ----------
+    const tall = matchMedia('(max-aspect-ratio: 1/1)');
+    const ns = 'http://www.w3.org/2000/svg';
+    function draw() {
+      const t = trunk.getBoundingClientRect();
+      const f = opts[0].offsetParent.getBoundingClientRect();
+      lines.replaceChildren();
+      opts.forEach((o, n) => {
+        // where the card settles, not where it is mid-flight
+        const w = o.offsetWidth, h = o.offsetHeight, x0 = f.left + o.offsetLeft;
+        const y0 = f.top + o.offsetTop - (tall.matches ? 0 : h / 2); // the arc cards are centred on their point
+        let d;
+        if (!tall.matches) {
+          const px = t.right, py = t.top + t.height / 2, ax = x0, ay = y0 + h / 2, dx = (ax - px) * 0.55;
+          d = `M${px} ${py} C${px + dx} ${py} ${ax - dx} ${ay} ${ax} ${ay}`;
+        } else {
+          // a spine down between the two columns, a twig out to each card
+          const px = t.left + t.width / 2, py = t.bottom, left = x0 + w / 2 < px;
+          const ax = left ? x0 + w : x0, ay = y0 + h / 2, c = Math.min(18, Math.abs(ax - px));
+          d = `M${px} ${py} L${px} ${ay - c} Q${px} ${ay} ${px + (left ? -c : c)} ${ay} L${ax} ${ay}`;
+        }
+        const p = document.createElementNS(ns, 'path');
+        p.setAttribute('d', d);
+        p.setAttribute('pathLength', '1');
+        p.style.setProperty('--n', n);
+        lines.appendChild(p);
+      });
+    }
+
+    // ---------- opening and closing ----------
+    let closeT = 0, openedAt = 0;
+    const isOpen = () => stage.classList.contains('open');
     function open() {
       clearTimeout(closeT);
-      if (entry.hasAttribute('data-open')) return;
+      if (isOpen()) return;
       load();
+      draw();
       openedAt = performance.now();
-      entry.setAttribute('data-open', '');
-      btn.setAttribute('aria-expanded', 'true');
-      if (!still) { clearInterval(timer); timer = setInterval(step, 1700); }
+      lines.getBoundingClientRect(); // so the lines start undrawn and grow
+      stage.classList.add('open');
+      reel.setAttribute('aria-expanded', 'true');
+      if (!still) { clearInterval(timer); timer = setInterval(cycle, 1700); }
     }
     function close() {
-      entry.removeAttribute('data-open');
-      btn.setAttribute('aria-expanded', 'false');
+      stage.classList.remove('open');
+      reel.setAttribute('aria-expanded', 'false');
       clearInterval(timer);
     }
+    reel.addEventListener('click', open);
+    // a mouse also opens it by resting on the film; closing waits so the pointer can cross to a branch
     const fine = matchMedia('(hover: hover) and (pointer: fine)');
-    entry.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && fine.matches) open(); });
-    entry.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && fine.matches) closeT = setTimeout(close, 160); });
-    // a tap (or a click without hover) opens it; the options are links, so a second tap goes
-    // (a tap focuses the button first, which has already opened it: that click must not close it again)
-    btn.addEventListener('click', () => {
-      if (!entry.hasAttribute('data-open')) open();
-      else if (!fine.matches && performance.now() - openedAt > 400) close();
+    // (the film's place and its branches are one zone: the film fades from under the pointer as they open)
+    const end = reel.parentElement;
+    end.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && fine.matches) open(); });
+    end.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && fine.matches) closeT = setTimeout(close, 450); });
+    // a tap or click anywhere off the branches puts them away
+    document.addEventListener('pointerdown', (e) => {
+      if (isOpen() && performance.now() - openedAt > 300 && !e.target.closest('.opt, .reel')) close();
     });
-    entry.addEventListener('focusin', open);
-    entry.addEventListener('focusout', (e) => { if (!entry.contains(e.relatedTarget)) closeT = setTimeout(close, 120); });
-    addEventListener('keydown', (e) => { if (e.key === 'Escape' && entry.hasAttribute('data-open')) { close(); btn.focus(); } });
-    // on a touch screen, a tap elsewhere puts it away
-    document.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse' && !entry.contains(e.target)) close(); });
+    stage.addEventListener('focusin', (e) => { if (e.target.closest('.opt')) open(); });
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) { close(); reel.focus(); } });
+    addEventListener('resize', () => { if (isOpen()) draw(); });
+    // coming back from a version, start closed
+    addEventListener('pageshow', (e) => { if (e.persisted) close(); });
   })();
 </script>
 </body>
