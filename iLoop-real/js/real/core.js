@@ -291,8 +291,10 @@
       this.h = h;
       this.composer.setSize(w, h);
     }
-    // o.focus: distance to the plane of focus (mm); o.aperture: blur scale in pixels (0 = none)
+    // o.focus: distance to the plane of focus (mm); o.aperture: blur scale in pixels (0 = none);
+    // o.quality: 0 while moving (no AO, no depth of field: the costly passes), 1 at rest
     render(scene, camera, o = {}) {
+      const q = o.quality ?? 1;
       this.renderPass.scene = scene;
       this.renderPass.camera = camera;
       this.gtao.scene = scene;
@@ -300,21 +302,21 @@
       const dist = o.focus ?? camera.position.length();
       const aoR = clamp(dist * (Q.has('aor') ? +Q.get('aor') : 0.03), 0.3, 120);
       this.gtao.updateGtaoMaterial({ radius: aoR, thickness: aoR * (Q.has('aot') ? +Q.get('aot') : 2), scale: Q.has('aos') ? +Q.get('aos') : 1 });
-      this.gtao.blendIntensity = o.ao ?? 1;
+      this.gtao.blendIntensity = (o.ao ?? 1) * q;
       const u = this.dof.uniforms;
       u.tDepth.value = this.gtao.depthTexture;
       u.uNear.value = camera.near;
       u.uFar.value = camera.far;
       u.uFocus.value = dist;
       const k = this.h / 900;
-      u.uAperture.value = (o.aperture ?? 0) * k;
+      u.uAperture.value = (o.aperture ?? 0) * k * q;
       u.uMaxBlur.value = Math.max(1, (o.maxBlur ?? 12) * k);
       u.uRes.value.set(this.w, this.h);
       // depth of field reads the depth the AO pass renders, so it needs that pass
-      this.dof.enabled = (o.aperture ?? 0) > 0.01 && !Q.has('nodof') && !Q.has('noao');
+      this.dof.enabled = (o.aperture ?? 0) * q > 0.01 && !Q.has('nodof') && !Q.has('noao');
       this.bloom.strength = o.bloom ?? 0.28;
       this.bloom.enabled = !Q.has('nobloom');
-      this.gtao.enabled = !Q.has('noao');
+      this.gtao.enabled = q > 0.02 && !Q.has('noao');
       if (Q.has('aoview')) this.gtao.output = T.GTAOPass.OUTPUT.Denoise;
       this.composer.render();
       return this.composer.readBuffer.texture;

@@ -302,7 +302,7 @@
   function renderDev(pipe, dev, P, o = {}) {
     applyPose(o.camera || cam, P, W / H);
     screensFor(dev, o.camera || cam, pipe.w, pipe.h);
-    return pipe.render(dev.M.scene, o.camera || cam, { focus: P.focus, aperture: o.aperture ?? (dev.view && dev.view.aperture) ?? 5, maxBlur: o.maxBlur ?? 10, bloom: o.bloom ?? 0.26, ao: o.ao ?? 1 });
+    return pipe.render(dev.M.scene, o.camera || cam, { focus: P.focus, aperture: o.aperture ?? (dev.view && dev.view.aperture) ?? 5, maxBlur: o.maxBlur ?? 10, bloom: o.bloom ?? 0.26, ao: o.ao ?? 1, quality: o.quality ?? quality });
   }
   // A machine at rest, as it is shown on the previous machine's screen: rendered once (per window
   // size) at reduced size, with its own screen showing its next machine's snapshot if there is one.
@@ -315,7 +315,7 @@
     restScreen(dev);
     restDie(dev);
     paintScreens(dev);
-    const tex = renderDev(aux, dev, restPose(dev), { camera: camB });
+    const tex = renderDev(aux, dev, restPose(dev), { camera: camB, quality: 1 });
     if (!dev._snap || dev._snap.width !== w || dev._snap.height !== h) {
       if (dev._snap) dev._snap.dispose();
       dev._snap = mipTarget(w, h);
@@ -338,7 +338,7 @@
     const pipe = full ? auxFull() : aux;
     const w = pipe.w, h = pipe.h;
     const nx = DEV[mod(dev.index + 1, N)];
-    const key = `${dev.index}|${sizeKey}|${JSON.stringify(state || {})}|${nx._snap && nx._snapKey === sizeKey ? 1 : 0}`;
+    const key = `${dev.index}|${sizeKey}|${JSON.stringify(state || {})}|${nx._snap && nx._snapKey === sizeKey ? 1 : 0}|${quality > 0.5 ? 1 : 0}`;
     const kept = liveRT[full ? 'full' : 'half'];
     if (kept && kept.key === key && kept.width === w && kept.height === h) { live = kept; return live; }
     homeParts(dev);
@@ -650,22 +650,39 @@
   ui.play.addEventListener('click', togglePlay);
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   const notesBtn = $('b-notes');
-  const setNotes = (onOff) => {
+  const setNotes = (onOff, save) => {
     document.body.classList.toggle('notes-off', !onOff);
     notesBtn.setAttribute('aria-pressed', onOff ? 'true' : 'false');
-    store.set('em-notes', onOff ? '1' : '0');
+    if (save) store.set('iloop-notes', onOff ? '1' : '0');
   };
-  setNotes(store.get('em-notes') !== '0');
-  notesBtn.addEventListener('click', () => setNotes(document.body.classList.contains('notes-off')));
-  const soundSwitch = (btn, name, set) => btn.addEventListener('click', () => {
-    const on = window.Sound ? set(btn.getAttribute('aria-pressed') !== 'true') : false;
+  // the notes start hidden; turning them on is remembered
+  setNotes(store.get('iloop-notes') === '1');
+  notesBtn.addEventListener('click', () => setNotes(document.body.classList.contains('notes-off'), true));
+  const mark = (btn, name, on) => {
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.setAttribute('aria-label', `${name} ${on ? 'on' : 'off'}`);
+  };
+  const soundSwitch = (btn, name, set, key) => btn.addEventListener('click', () => {
+    const on = window.Sound ? set(btn.getAttribute('aria-pressed') !== 'true') : false;
+    mark(btn, name, on);
+    if (key) store.set(key, on ? '1' : '0');
     touched();
   });
   // music and the voice clips are switched separately
-  soundSwitch($('b-music'), 'Music', (on) => Sound.setMusic(on));
+  const musicBtn = $('b-music');
+  soundSwitch(musicBtn, 'Music', (on) => Sound.setMusic(on), 'iloop-music');
   soundSwitch($('b-bites'), 'Voice clips', (on) => Sound.setBites(on));
+  // The music is on unless you have turned it off. A browser lets a page make sound only after the
+  // first click, tap or key (scrolling does not count), so it starts then.
+  if (window.Sound && store.get('iloop-music') !== '0') {
+    mark(musicBtn, 'Music', true);
+    const WAKE = ['pointerdown', 'pointerup', 'touchend', 'keydown'];
+    const wake = () => {
+      for (const e of WAKE) removeEventListener(e, wake, true);
+      if (musicBtn.getAttribute('aria-pressed') === 'true' && !Sound.music) Sound.setMusic(true);
+    };
+    for (const e of WAKE) addEventListener(e, wake, true);
+  }
   function togglePlay() {
     S.playing = !S.playing;
     S.playNext = performance.now() + 300;
@@ -709,7 +726,8 @@
   // ---------- loop ----------
   let resized = true;
   function resize() {
-    const want = Q.has('dpr') ? parseFloat(Q.get('dpr')) : Math.min(2, devicePixelRatio || 1);
+    // 1.5 is all but as sharp as 2 on a Retina screen, at little over half the pixels; ?dpr=2 for full
+    const want = Q.has('dpr') ? parseFloat(Q.get('dpr')) : Math.min(1.5, devicePixelRatio || 1);
     DPR = clamp(want * dynScale, 0.75, 3);
     W = innerWidth;
     H = innerHeight;
@@ -732,6 +750,10 @@
   const perfEl = PERF ? Object.assign(document.createElement('div'), { className: 'perf' }) : null;
   if (perfEl) document.body.appendChild(perfEl);
   let last = performance.now(), prevL = 0, lastSig = '', frames = 0, slowFrames = 0, fpsAcc = 0, fpsN = 0, idleSince = 0;
+  // Render quality: 0 while the view moves, easing back to 1 over a third of a second once it stops.
+  // Animated screens tick for a while after you arrive, then hold still, so a page at rest costs nothing.
+  let quality = 1, stillSince = 0;
+  const SETTLE = 350, ANIMATE_FOR = 8000;
   function frame(now) {
     const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
     last = now;
@@ -775,7 +797,13 @@
     const A = DEV[mod(K, N)].build();
     const anim = A.M.screens.some((d) => d.o.animate);
     const sig = `${S.L.toFixed(5)}|${sizeKey}`;
-    if (sig !== lastSig || resized || frames < 40 || (anim && now - idleSince > 1000 / (A.M.screens[0].o.animate || 10))) {
+    const moving = sig !== lastSig && frames >= 40 && AT === null;
+    if (moving) stillSince = now;
+    const q = moving ? 0 : clamp((now - stillSince) / SETTLE, 0, 1);
+    const settling = q !== quality;
+    quality = q;
+    const ticking = anim && now - stillSince < ANIMATE_FOR && now - idleSince > 1000 / (A.M.screens[0].o.animate || 10);
+    if (sig !== lastSig || resized || frames < 40 || settling || ticking) {
       const t0 = performance.now();
       if (!DEV[mod(K + 1, N)]._snap || DEV[mod(K + 1, N)]._snapKey !== sizeKey) snapshot(DEV[mod(K + 1, N)].build());
       const f = frameFor(S.L);

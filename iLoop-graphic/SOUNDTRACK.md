@@ -16,7 +16,7 @@ All of this is copyrighted. The app now selects one song and a short sound bite 
 - [6. iPod, 2001](#6-ipod-2001)
 - [7. iPhone, 2007](#7-iphone-2007)
 - [8. MacBook Air, 2008](#8-macbook-air-2008)
-- [9. Apple Watch, 2016](#9-apple-watch-2016)
+- [9. Apple Watch, 2015](#9-apple-watch-2015)
 - [10. Apple M1, 2020](#10-apple-m1-2020)
 - [11. iMac 24″, 2021](#11-imac-24-2021)
 - [12. MacBook Pro 14″, 2021](#12-macbook-pro-14-2021)
@@ -144,9 +144,9 @@ No song is tied to PowerBook adverts, so these are 1990–91 hits.
 3. [MGMT, "Time to Pretend"](https://www.youtube.com/watch?v=B9dSYgd5Elk). 2008.
 4. [M.I.A., "Paper Planes"](https://www.youtube.com/watch?v=ewRjZoRtu0Y). 2008.
 
-## 9. Apple Watch, 2016
+## 9. Apple Watch, 2015
 
-Apple Watch Series 2 was announced on 7 September 2016 and went on sale on 16 September. (The first Apple Watch shipped in April 2015.)
+The first Apple Watch was announced on 9 September 2014 and went on sale on 24 April 2015, with the S1 inside. (Apple Watch Series 2 followed in September 2016; the 2016 clips and songs below are from its launch.)
 
 **Sound bites**
 

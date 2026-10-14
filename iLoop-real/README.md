@@ -15,8 +15,8 @@ Open `index.html` in a browser. No build step or server is needed.
 | iMac G3 | `js/machines/imac-g3.js` | Mac OS 9 at 1024 × 768, the iPod in iTunes |
 | iPod | `js/machines/ipod.js` | Now Playing on the 160 × 128 LCD, the iPhone as the album's silhouette |
 | iPhone | `js/machines/iphone.js` | The iPhone OS 1 home screen; the Mail egg opens the envelope on the MacBook Air |
-| MacBook Air | `js/machines/macbook-air.js` | Leopard; the clock egg runs Time Machine forward to 2016 and the Apple Watch |
-| Apple Watch | `js/machines/apple-watch.js` | The Activity face; inside, down to the S2, then swiped to the M1 |
+| MacBook Air | `js/machines/macbook-air.js` | Leopard; the clock egg runs Time Machine forward to 2015 and the Apple Watch |
+| Apple Watch | `js/machines/apple-watch.js` | The Activity face; inside, down to the S1, then swiped to the M1 |
 | Apple M1 | `js/machines/apple-m1.js` | The package; the iMac 24″ assembles round its lid |
 | iMac 24″ | `js/machines/imac-24.js` | Big Sur and Safari on apple.com, the MacBook Pro as the page's hero picture |
 | MacBook Pro 14″ | `js/machines/macbook-pro-14.js` | Monterey and AirDrop; the airdrop egg opens the Mac mini's circle |
@@ -24,9 +24,9 @@ Open `index.html` in a browser. No build step or server is needed.
 
 ## Controls
 
-The same as `iLoop`: scroll (or swipe) down to travel into each machine and up to come back out; ← and → step one machine; `p` or ▶ plays the whole loop; the Notes button hides the captions; click a year on the rail to jump; `#iphone`, `#apple-m1` and so on open on a machine.
+The same as `iLoop`: scroll (or swipe) down to travel into each machine and up to come back out; ← and → step one machine; `p` or ▶ plays the whole loop; the Notes button shows the captions, which start hidden; click a year on the rail to jump; `#iphone`, `#apple-m1` and so on open on a machine.
 
-The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own, and both start off. With the voice clips on, ▶ stays on each machine until its clip has finished (then a breath of music, and never more than 30 seconds).
+The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own. The music is on unless you turn it off (a browser lets it start only at your first click, tap or key press); the voice clips start off. Both choices are remembered. With the voice clips on, ▶ stays on each machine until its clip has finished (then a breath of music, and never more than 30 seconds).
 
 For checking and debugging:
 
@@ -34,7 +34,7 @@ For checking and debugging:
 | --- | --- |
 | `?at=6.7` | freezes the level at 6.7 (the iPhone, 70% of the way into its Mail icon); input is ignored |
 | `?perf` | shows the time spent per rendered frame |
-| `?dpr=1` | sets the rendering pixel ratio (default: the screen's, up to 2) |
+| `?dpr=2` | sets the rendering pixel ratio (default: the screen's, up to 1.5) |
 | `?noao`, `?nodof`, `?nobloom` | turn off ambient occlusion (and with it depth of field, which reads its depth), depth of field, bloom |
 | `?nosweep` | lights every set with the bare studio, without the paper sweep in its reflections |
 | `?nox` | leaves out the last stretch's hand-off to the next machine, to see the screen alone |
@@ -49,6 +49,7 @@ Unchanged from `iLoop`: `js/sound.js`, `js/soundtrack.js`, `js/music-picker.js`,
 - **The studio** (`js/real/core.js`). Image-based light from a studio built out of emissive panels and prefiltered (PMREM): a key softbox above left, a broad overhead, a scrim behind, a dim fill, two strip lights behind for edges, white cards low on each side. Each set's reflections also hold its paper sweep, lit, with the shaded band where it curves up (`Real.sweepEnv(paper)`): a vertical face of metal mostly mirrors the paper in front of it, so the sides of a Mac mini read silver and the front edge of a MacBook Pro reads, rather than going black. Glass and polished metal reflect these shapes, as in a product photograph. A key light casts a soft (VSM) shadow onto a paper sweep sized to the machine.
 - **The camera** is a long lens (85–105 mm equivalent) with a shift lens, so the machine sits in the free part of the page while its verticals stay true.
 - **Post-processing**: ground-truth ambient occlusion, a depth-of-field gather, bloom (only screens and glints are bright enough), and Khronos PBR Neutral tone mapping, which keeps product colours true.
+- **Rendering only when needed.** A frame is drawn only when the view changes. While it moves, ambient occlusion and depth of field are skipped, the two costly passes, and they ease back in over a third of a second once it stops. Animated screens tick for 8 seconds after you arrive and then hold still, so a page at rest draws nothing. The pixel ratio is capped at 1.5.
 - **Materials** (`js/real/materials.js`) are physically based: moulded ABS with its stipple, bead-blasted and brushed aluminium, polished steel and chrome, black glass, translucent polycarbonate, epoxy and ceramic chip packages, rubber. Fine surface texture comes from noise in the object's own space, so it needs no UVs and holds up at any zoom.
 - **Screens** (`js/real/display.js`). Each screen is drawn by its machine into a canvas at the screen's own resolution: 512 × 342 for the Macintosh, 320 × 480 for the iPhone. Every frame, only the part of the screen in view is composited, at the resolution it is seen at, through a shader for its technology: a CRT's phosphor, beam and scan lines; a passive-matrix LCD's pale panel and pixel gaps; an LCD's RGB stripes and black matrix; an aperture grille. The result lights the glass as emission, and the glass reflects the studio. Up close you see the pixels and then the subpixels; from further away than one device pixel per screen pixel, a dither is seen as its average tone, as a lens would see it, rather than aliasing into stripes.
 - **The portal.** Wherever a screen's canvas is transparent, the next machine shows through. It is rendered live (or from a snapshot, at rest) and drawn the way that screen would draw it: dithered to one bit on the Macintosh, in phosphor on the Apple II, as a silhouette on the iPod. As the camera arrives the screen's look, structure and glass fade, the portal opens out over the whole frame, and the picture hands over to the machine itself.

@@ -13,7 +13,7 @@
 // The screen: Mac OS X Leopard at 1280 × 800, the Aurora wallpaper, the translucent menu bar, a
 // Finder window and the glass Dock. The egg 'clock' is Time Machine, run forwards: the desktop
 // drops away into space, the stack of windows comes toward you a year at a time while the timeline
-// counts up from 2008 to 2016, and the last window holds the Apple Watch.
+// counts up from 2008 to 2015, and the last window holds the Apple Watch.
 'use strict';
 
 (function () {
@@ -418,8 +418,8 @@
   // the front window's place; its content is the portal
   const FW = { x: 300, y: 150, w: 680, h: 460 };
   const VP = [640, 132]; // where the stack recedes to
-  const YEARS = [2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016];
-  const DATES = ['Today (Now)', 'September 2009', 'October 2010', 'October 2011', 'October 2012', 'October 2013', 'October 2014', 'October 2015', 'September 16, 2016'];
+  const YEARS = [2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015];
+  const DATES = ['Today (Now)', 'September 2009', 'October 2010', 'October 2011', 'October 2012', 'October 2013', 'October 2014', 'April 24, 2015'];
   let spaceCache = null, winCache = null;
   function space() {
     if (spaceCache) return spaceCache;

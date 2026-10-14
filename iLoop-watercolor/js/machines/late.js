@@ -102,9 +102,9 @@
     if (o.dock !== false) macDock(p, W, H, H * 0.06);
   }
 
-  // ---------- Apple Watch Series 2, 2016 ----------
+  // ---------- Apple Watch, 2015 ----------
   // A 42 mm aluminium case lying face up, its sport band laid out above and below, the Activity face
-  // on the display. Inside, under the display, the S2: Apple silicon on the wrist, which is where the
+  // on the display. Inside, under the display, the S1: Apple silicon on the wrist, which is where the
   // Mac's own chip comes from. Zooming in lifts the display away and drops you onto it.
   const alum = { base: 0.95, gap: 5, w: 1.0, sheen: 0.2 };
   const band = { base: 0.9, fill: 'tint', gap: 4, w: 0.9 };
@@ -124,9 +124,9 @@
   add({
     name: 'Apple Watch',
     era: 'watch',
-    year: '2016',
+    year: '2015',
     kind: 'Watch',
-    line: 'Series 2: swimproof to 50 metres, built-in GPS, and an Apple-designed S2 chip inside.',
+    line: 'The first Apple Watch: the Digital Crown, a Retina display, and the whole computer sealed in one package, the S1.',
     verb: 'Go inside to the chip',
     tint: '#d9b3a4',
     tint2: '#1d1d1f',
@@ -153,7 +153,7 @@
       m.box(x0, 0, z0, CW, CH - 0.2, CD, alum, { r: 0.95, skip: ['top'] });
       m.cyl([-x0 + 0.12, CH * 0.55, z0 + 1.15], 0.36, 0.34, 'x', { base: 0.9, gap: 2, w: 0.6, sheen: 0.2 });
       m.box(-x0 - 0.02, CH * 0.3, z0 + 2.2, 0.14, 0.42, 1.3, { base: 0.88, gap: 2, w: 0.6 }, { r: 0.12 });
-      // inside: the battery, the Taptic Engine and the S2 system in package
+      // inside: the battery, the Taptic Engine and the S1 system in package
       m.part('inside');
       m.flat([[x0 + 0.2, CH - 0.25, z0 + 0.2], [-x0 - 0.2, CH - 0.25, z0 + 0.2], [-x0 - 0.2, CH - 0.25, -z0 - 0.2], [x0 + 0.2, CH - 0.25, -z0 - 0.2]], { base: 0.35, dark: true, fill: 'ink', gap: 2, w: 0.6 }, { n: [0, 1, 0] });
       m.box(x0 + 0.4, CH - 0.25, z0 + 0.4, 2.8, 0.12, 1.4, { base: 0.97, fill: 'warm', gap: 2, w: 0.6 }, {
@@ -161,7 +161,7 @@
       });
       m.box(x0 + 0.5, CH - 0.25, -z0 - 1.1, 1.0, 0.1, 0.7, { base: 0.5, gap: 2, w: 0.6 });
       m.box(-0.75, CH - 0.25, -0.2, 1.5, 0.08, 1.7, { base: 0.25, dark: true, fill: 'ink', gap: 2, w: 0.5 }, {
-        faces: { top(F) { F.model.mark('chip', F, 0, 0, F.w, F.h); F.draw((p) => p.text('earth', 'S2', 0.75, 0.85, 0.42, { weight: 600, lod: 1 })); } },
+        faces: { top(F) { F.model.mark('chip', F, 0, 0, F.w, F.h); F.draw((p) => p.text('earth', 'S1', 0.75, 0.85, 0.42, { weight: 600, lod: 1 })); } },
       });
       // the display, which lifts off: a rounded slab of glass on the case, the Activity face in it
       m.part('display', { peel: [0.0, 0.3], lift: [0, -320] });
@@ -177,7 +177,7 @@
           screen(F, [0.38, 0.4, CW - 0.76, CD - 0.8], { ui: [312, 390], bg: 'ink', r: 0.5, draw: activityFace });
         },
       });
-      note(m, [-6.5, 0, 5], 'swimproof to 50 m');
+      note(m, [-6.5, 0, 5], 'splash resistant');
     },
   });
 

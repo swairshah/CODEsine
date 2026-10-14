@@ -377,42 +377,154 @@
       for (const [fx, fz] of [[-130, 120], [130, 120]]) M.mesh(G.rbox(40, 12, 22, 5, 3), iceSolid, { pos: [fx, 8, fz] });
       M.mesh(G.loftRR([{ w: 90, d: 40, r: 14, y: 0 }, { w: 84, d: 36, r: 12, y: 3 }, { w: 64, d: 26, r: 10, y: 46 }], { seg: 6 }), iceSolid, { pos: [0, 0, -138] });
 
-      // ---- the keyboard ----
+      // ---- the keyboard: the Apple USB Keyboard (M2452), 390 × 140 × 35 mm ----
+      // A translucent Bondi Blue case with a frosted top, black keys with white legends, a half-height
+      // function row, inverted-T arrows tucked into the main block, help/home/page keys above the
+      // keypad, and a frosted rail across the back whose round ends hold the two USB ports.
       M.part('keyboard');
       const kb = M.group({ pos: [-34, 0, 330], rot: [0, 2, 0] });
-      const KW = 382, KD = 150;
-      const kcase = G.loftRR([
-        { w: KW - 6, d: KD - 6, r: 14, y: 0 }, { w: KW, d: KD, r: 16, y: 4 }, { w: KW, d: KD, r: 16, y: 14 }, { w: KW - 3, d: KD - 3, r: 15, y: 19 }, { w: KW - 10, d: KD - 10, r: 12, y: 21 },
-      ], { seg: 8 });
-      // the case tilts: higher at the back
-      const pos = kcase.attributes.position;
-      for (let i = 0; i < pos.count; i++) pos.setY(i, pos.getY(i) * (1 + (-pos.getZ(i) / KD) * 0.55));
-      kcase.computeVertexNormals();
-      M.mesh(G.splitGroups(kcase, (c) => (c.y < 6 ? 1 : 0)), [bondi, ice], { to: kb });
-      M.mesh(G.rbox(KW - 26, 3, KD - 26, 8), Mat.plastic('#2a3438', { rough: 0.7 }), { to: kb, pos: [0, 14, 0] });
+      const KW = 390, KF = 70, KB = -56; // width; front and back edges of the deck (z)
+      const kTop = (z) => 16 * (1 + 0.75 * (KF - z) / (KF - KB)); // the deck rises toward the back
+      const frost = new T.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.42, metalness: 0, transmission: 0.62, thickness: 4, ior: 1.585, attenuationColor: new T.Color('#5fbcd3'), attenuationDistance: 9, clearcoat: 0.3, clearcoatRoughness: 0.35 });
+      Mat.micro(frost, { size: 0.35, bump: 0.1, rough: 0.12 });
+      // the keyboard's and mouse's clear plastic: the shell's, without the long moulding streaks
+      const clear = Mat.micro(bondi.clone(), { size: 0.5, bump: 0.08, rough: 0.12 });
+      // the case: a rounded slab with a tongue under the rail, and a well for the keys
+      const plan = G.rrect(KW, KF - KB, 16, 0, -(KF + KB) / 2);
+      const tongue = G.rrect(316, 18, 8, 0, -(KB - 7));
+      const KX = 357, KZ0 = -51.5, KZ1 = 54;
+      plan.holes.push(G.rrectHole(KX, KZ1 - KZ0, 4.5, 0, -(KZ0 + KZ1) / 2));
+      const slab = (shape, d, bev) => {
+        const g = G.extrude(shape, d, bev, { bevelSeg: 4, curveSeg: 12 });
+        g.rotateX(-Math.PI / 2);
+        const ps = g.attributes.position;
+        for (let i = 0; i < ps.count; i++) ps.setY(i, ps.getY(i) * kTop(ps.getZ(i)) / 16);
+        g.computeVertexNormals();
+        return g;
+      };
+      const body = slab(plan, 16, 3);
+      // the sides and edge are clear Bondi Blue, the top surface frosted
+      M.mesh(G.splitGroups(body, (c) => (c.y > kTop(c.z) - 1.2 ? 1 : 0)), [clear, frost], { to: kb });
+      M.mesh(slab(tongue, 15, 3), clear, { to: kb });
+      // under the keys: the dark membrane plate, seen through the clear sides as well
+      const plate = G.rbox(KX - 2, 2, KZ1 - KZ0 - 2, 4);
+      const kTilt = Math.atan2(16 * 0.75, KF - KB);
+      M.mesh(plate, Mat.plastic('#16191b', { rough: 0.8 }), { to: kb, pos: [0, kTop((KZ0 + KZ1) / 2) - 4.6, (KZ0 + KZ1) / 2], rot: [(kTilt * 180) / Math.PI, 0, 0] });
+      M.mesh(G.rbox(KW - 30, 3, KF - KB - 30, 8), Mat.plastic('#2a3134', { rough: 0.7 }), { to: kb, pos: [0, 3, (KF + KB) / 2] });
+      // the keys
+      const half = { h: 0.55 }, lo = { h: 0.5, dz: 0.5, size: 2 }, hi = { h: 0.5, size: 2 };
+      const fk = (l) => [1, l, { ...half, size: 1.7 }];
+      const mod = (w, l) => [w, l, { size: 1.7 }];
+      const P = 18;
       const keyRows = [
-        [[1, 'esc', { size: 1.3 }], { gap: 5 }, 'F1', 'F2', 'F3', 'F4', { gap: 5 }, 'F5', 'F6', 'F7', 'F8', { gap: 5 }, 'F9', 'F10', 'F11', 'F12', { gap: 23 }, [1, '⏏', { size: 2.2 }]],
-        [[1, '`', { l2: '~' }], [1, '1', { l2: '!' }], [1, '2', { l2: '@' }], [1, '3', { l2: '#' }], [1, '4', { l2: '$' }], [1, '5', { l2: '%' }], [1, '6', { l2: '^' }], [1, '7', { l2: '&' }], [1, '8', { l2: '*' }], [1, '9', { l2: '(' }], [1, '0', { l2: ')' }], [1, '-', { l2: '_' }], [1, '=', { l2: '+' }], [1.5, 'delete', { size: 1.3 }], { gap: 5 }, 'clear', '=', '/', '*'],
-        [[1.5, 'tab', { size: 1.3 }], 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', [1, '[', { l2: '{' }], [1, ']', { l2: '}' }], [1, '\\', { l2: '|' }], { gap: 5 }, '7', '8', '9', '-'],
-        [[1.75, 'caps lock', { size: 1.3 }], 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', [1, ';', { l2: ':' }], [1, "'", { l2: '"' }], [1.75, 'return', { size: 1.3 }], { gap: 5 }, '4', '5', '6', '+'],
-        [[2.25, 'shift', { size: 1.3 }], 'Z', 'X', 'C', 'V', 'B', 'N', 'M', [1, ',', { l2: '<' }], [1, '.', { l2: '>' }], [1, '/', { l2: '?' }], [1.25, 'shift', { size: 1.3 }], [1, '↑'], { gap: 5 }, '1', '2', '3', 'enter'],
-        [[1.25, 'control', { size: 1.1 }], [1.25, 'option', { size: 1.1 }], [1.25, '⌘', { size: 2.2 }], [5.75, ''], [1.25, '⌘', { size: 2.2 }], [1, '←'], [1, '↓'], [1, '→'], { gap: 5 }, [2, '0'], '.', ''],
+        [fk('esc'), { gap: P }, fk('F1'), fk('F2'), fk('F3'), fk('F4'), { gap: P / 2 }, fk('F5'), fk('F6'), fk('F7'), fk('F8'), { gap: P / 2 }, fk('F9'), fk('F10'), fk('F11'), fk('F12'),
+          { gap: P * 0.6 }, fk('help'), [1, '↖', { ...half, size: 1.6 }], [1, '⇞', { ...half, size: 1.6 }], [1, '⇟', { ...half, size: 1.6 }]],
+        [[1, '`', { l2: '~' }], [1, '1', { l2: '!' }], [1, '2', { l2: '@' }], [1, '3', { l2: '#' }], [1, '4', { l2: '$' }], [1, '5', { l2: '%' }], [1, '6', { l2: '^' }], [1, '7', { l2: '&' }], [1, '8', { l2: '*' }], [1, '9', { l2: '(' }], [1, '0', { l2: ')' }], [1, '-', { l2: '_' }], [1, '=', { l2: '+' }], mod(2, 'delete'),
+          { gap: P * 0.6 }, mod(1, 'clear'), '=', '/', '*'],
+        [mod(1.5, 'tab'), 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', [1, '[', { l2: '{' }], [1, ']', { l2: '}' }], [1.5, '\\', { l2: '|' }], { gap: P * 0.6 }, '7', '8', '9', '−'],
+        [mod(1.75, 'caps lock'), 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', [1, ';', { l2: ':' }], [1, "'", { l2: '"' }], mod(2.25, 'return'), { gap: P * 0.6 }, '4', '5', '6', '+'],
+        [mod(2.25, 'shift'), 'Z', 'X', 'C', 'V', 'B', 'N', 'M', [1, ',', { l2: '<' }], [1, '.', { l2: '>' }], [1, '/', { l2: '?' }], mod(2.75, 'shift'), { gap: P * 0.6 }, '1', '2', '3', [1, 'enter', { h: 2, size: 1.25 }]],
+        [mod(1.5, 'control'), mod(1.25, 'option'), [1.5, '⌘', { size: 2 }], [6.25, ''], [1.5, '⌘', { size: 2 }], [1, '←', lo], [1, '↑', hi], { gap: -P }, [1, '↓', lo], [1, '→', lo], { gap: P * 0.6 }, [2, '0'], '.'],
       ];
-      const keys = D.keyboard(keyRows, { color: '#e9edef', ink: '#30373c', size: 2.1, pitch: 17.6, align: 'tl', cap: { h: 6.5, inset: 1.8, fillet: 1.2, topR: 2, r: 1.6 }, rough: 0.42 });
-      keys.position.set(0, 15.5, 2);
-      keys.rotation.x = Math.atan2(21 * 0.55, KD);
+      const keys = D.keyboard(keyRows, { color: '#1b1d1f', ink: '#eef1f2', size: 2.6, weight: 500, pitch: P, align: 'tl', rowZ: [0, 0.62, 1.62, 2.62, 3.62, 4.62], cap: { h: 7, inset: 2, fillet: 1.3, topR: 2.4, r: 1.6 }, rough: 0.5 });
+      keys.position.set(0, kTop((KZ0 + KZ1) / 2) - 3.5, (KZ0 + KZ1) / 2);
+      keys.rotation.x = kTilt;
       kb.add(keys);
-      M.mesh(G.tube([[0, 8, -KD / 2], [6, 6, -KD / 2 - 40], [60, 2, -KD / 2 - 90], [150, 2, -KD / 2 - 120], [200, 30, -KD / 2 - 170]], 2.2, { seg: 60 }), Mat.plastic('#e8ecee', { rough: 0.4 }), { to: kb }).userData.noFit = true;
+      // the rail across the back: frosted, with round ends that hold a USB port each
+      const RZ = KB - 7, RY = kTop(RZ) + 1.5, RX = 162;
+      M.mesh(G.cyl(7, RX * 2, 1.5, 48), frost, { to: kb, pos: [RX, RY, RZ], rot: [0, 0, 90] });
+      for (const sx of [-1, 1]) {
+        M.mesh(G.cyl(7.8, 11, 3.2, 48), frost, { to: kb, pos: [sx > 0 ? RX + 10 : -RX + 1, RY, RZ], rot: [0, 0, 90] });
+        M.mesh(G.rbox(1.2, 4.6, 9.4, 0.6), Mat.hole('#0e1416'), { to: kb, pos: [sx * (RX + 9.7), RY, RZ] });
+        M.mesh(G.rbox(1.4, 1.6, 7, 0.3), Mat.alu('#b9bec1', { rough: 0.3 }), { to: kb, pos: [sx * (RX + 9.5), RY + 0.8, RZ] });
+      }
+      // the power key on the rail, above the keypad, facing up and toward you
+      const pa = (24 * Math.PI) / 180, pn = [Math.cos(pa), Math.sin(pa)]; // the key's axis (y, z)
+      M.mesh(G.cyl(5.4, 2.4, 1, 40), frost, { to: kb, pos: [128, RY + pn[0] * 6.6, RZ + pn[1] * 6.6], rot: [24, 0, 0] });
+      const kpwr = D.decal(8, 8, (g, w, h) => {
+        g.strokeStyle = '#6f8f99'; g.lineWidth = 0.7; g.lineCap = 'round';
+        g.beginPath(); g.arc(w / 2, h / 2 + 0.3, 2.3, -Math.PI / 2 + 0.6, -Math.PI / 2 - 0.6 + Math.PI * 2); g.stroke();
+        g.beginPath(); g.moveTo(w / 2, h / 2 - 2.6); g.lineTo(w / 2, h / 2); g.stroke();
+      }, { ppm: 40 });
+      kpwr.position.set(128, RY + pn[0] * 9.05, RZ + pn[1] * 9.05);
+      kpwr.rotation.x = -(Math.PI / 2 - pa);
+      kb.add(kpwr);
+      // the cable leaves the right end of the rail and runs back over the desk to the iMac's side ports
+      const cord = Mat.translucent('#dfe6e8', { depth: 30, rough: 0.35, transmission: 0.55 });
+      M.mesh(G.tube([[RX + 4, RY, RZ - 7], [RX + 7, RY - 4, RZ - 16], [RX + 16, 2, RZ - 40], [RX + 54, 2, RZ - 120], [RX + 70, 2, RZ - 230], [RX + 66, 40, RZ - 290], [RX + 62, 150, RZ - 300], [RX + 62, 168, RZ - 300]], 1.9, { seg: 90 }), cord, { to: kb }).userData.noFit = true;
 
-      // ---- the round mouse ----
+      // the mouse's plug, in the port at the right end
+      M.mesh(G.rbox(14, 7.5, 12.5, 2.4), cord, { to: kb, pos: [RX + 17, RY, RZ] });
+
+      // ---- the mouse: the Apple USB Mouse (M4848), 75 mm across and 30 mm high ----
+      // A round puck of clear Bondi Blue under a frosted button that wraps over the front and the back,
+      // leaving the colour to show as a crescent at each side; a dimple with the Apple logo; and a
+      // short cord from the back into the keyboard's right-hand port.
       M.part('mouse');
-      const ms = M.group({ pos: [224, 0, 330] });
-      M.mesh(G.lathe([[0, 0], [29, 0], [31, 2], [31.5, 8], [30.8, 13], [29, 15], [0, 15]], 64), bondi, { to: ms });
-      M.mesh(G.lathe([[0, 15], [28.6, 15], [29.4, 15.8], [29, 19.5], [26, 23.5], [18, 26.4], [0, 27.2]], 64), ice, { to: ms });
-      M.mesh(G.lathe([[0, 0], [29.2, 0], [29.2, 0.6], [0, 0.6]], 64), Mat.plastic('#1e3d47', { rough: 0.7 }), { to: ms, pos: [0, 15.1, 0] });
-      // the dimple that tells you which way is up
-      M.mesh(G.cyl(4, 0.6, 0.3, 24), Mat.translucent(BONDI, { depth: 4 }), { to: ms, pos: [0, 25.2, -19], rot: [-28, 0, 0] });
-      M.mesh(G.tube([[0, 8, -31], [0, 6, -50], [-20, 2, -90], [-60, 2, -120], [-120, 6, -150]], 1.6, { seg: 40 }), Mat.plastic('#e8ecee', { rough: 0.4 }), { to: ms }).userData.noFit = true;
+      const ms = M.group({ pos: [226, 0, 330] });
+      const prof = [[37.6, 8], [37.3, 12], [36.4, 15.5], [34.6, 19], [31.5, 22.5], [27, 25.4], [20, 27.8], [12, 29.3], [5, 29.9], [0, 30]];
+      M.mesh(G.lathe([[0, 0], [33, 0], [35.5, 1.2], [37.2, 4], ...prof], 96), clear, { to: ms });
+      // what shows through the clear sides: the dark chassis, the ball cage, the green board
+      M.mesh(G.lathe([[0, 1], [27, 1], [28, 3], [27, 6], [0, 6]], 48), Mat.plastic('#4a5558', { rough: 0.6 }), { to: ms });
+      M.mesh(G.cyl(25, 1.2, 0.4, 48), Mat.plastic('#3d6e55', { rough: 0.5 }), { to: ms, pos: [0, 6.2, 0] });
+      M.mesh(G.lathe([[0, 0], [34, 0], [34, 1], [0, 1]], 64), Mat.plastic('#1f2b2f', { rough: 0.75 }), { to: ms, pos: [0, -0.4, 0] });
+      // the button: the top of the profile, from the centre outward, as far as each direction reaches
+      const mtop = prof.slice().reverse(); // centre → edge
+      const segLen = [0];
+      for (let i = 1; i < mtop.length; i++) segLen.push(segLen[i - 1] + Math.hypot(mtop[i][0] - mtop[i - 1][0], mtop[i][1] - mtop[i - 1][1]));
+      const sAt = (s) => {
+        let i = 1;
+        while (i < mtop.length - 1 && segLen[i] < s) i++;
+        const k = (s - segLen[i - 1]) / (segLen[i] - segLen[i - 1] || 1);
+        const a = mtop[i - 1], b = mtop[i];
+        const r = a[0] + (b[0] - a[0]) * k, y = a[1] + (b[1] - a[1]) * k;
+        // the outward normal of the profile there
+        const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+        return { r, y, nr: -dy / l, ny: dx / l };
+      };
+      const sOf = (r) => { for (let s = 0; s <= segLen[segLen.length - 1]; s += 0.1) if (sAt(s).r >= r) return s; return segLen[segLen.length - 1]; };
+      const sSide = sOf(23.5), sFront = segLen[segLen.length - 1], sBack = sOf(37.3);
+      const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+      const reach = (th) => {
+        const a = Math.abs(Math.atan2(Math.sin(th), Math.cos(th))); // 0 at the front, π at the back
+        const wf = 1 - sm(0.72, 1.12, a), wb = sm(2.18, 2.62, a);
+        return sSide + (sFront - sSide) * wf + (sBack - sSide) * wb;
+      };
+      const NA = 180, NS = 44, lift = 0.35, lip = 1.1;
+      // the dimple: a shallow round dip a little behind the centre, that tells your finger where to press
+      const DZ = -7, DR = 6.8, DIP = 0.3;
+      const bv = [], bi = [];
+      const vert = (th, s, off) => {
+        const p = sAt(s);
+        const r = p.r + p.nr * off, y = p.y + p.ny * off;
+        const x = Math.sin(th) * r, z = Math.cos(th) * r, d = Math.hypot(x, z - DZ) / DR;
+        bv.push(x, y - (d < 1 ? DIP * (1 - d * d) ** 2 : 0), z);
+      };
+      for (let i = 0; i <= NA; i++) {
+        const th = (i / NA) * Math.PI * 2, sm0 = reach(th);
+        for (let j = 0; j <= NS; j++) vert(th, (sm0 * j) / NS, lift);
+        vert(th, sm0, lift - lip); // the edge of the moulding, turned under
+      }
+      const W1 = NS + 2;
+      for (let i = 0; i < NA; i++) for (let j = 0; j < W1 - 1; j++) {
+        const a0 = i * W1 + j, a1 = (i + 1) * W1 + j;
+        bi.push(a0, a0 + 1, a1, a1, a0 + 1, a1 + 1);
+      }
+      const btn = new T.BufferGeometry();
+      btn.setAttribute('position', new T.Float32BufferAttribute(bv, 3));
+      btn.setIndex(bi);
+      btn.computeVertexNormals();
+      // the button is a denser frost than the case, nearly white, so it reads over the coloured body
+      const frostBtn = new T.MeshPhysicalMaterial({ color: '#f3f7f8', roughness: 0.4, metalness: 0, transmission: 0.3, thickness: 3, ior: 1.585, attenuationColor: new T.Color('#cfe6ec'), attenuationDistance: 18, clearcoat: 0.45, clearcoatRoughness: 0.3, side: T.DoubleSide });
+      Mat.micro(frostBtn, { size: 0.35, bump: 0.1, rough: 0.12 });
+      M.mesh(btn, frostBtn, { to: ms });
+      // the Apple logo moulded in the dimple
+      const mlogo = D.appleLogo(5.2, 0.25, Mat.plastic('#d5e2e6', { rough: 0.35 }));
+      mlogo.rotation.x = -Math.PI / 2;
+      mlogo.position.set(0, 30.35 - DIP + 0.02, DZ);
+      ms.add(mlogo);
+      // the cord: out of the back, round toward the keyboard's right-hand port
+      M.mesh(G.tube([[0, 9, -36.8], [0, 6, -46], [-12, 2, -62], [-36, 2, -78], [-58, 4, -82], [-70, 18, -76], [-76.3, 30.2, -69.5]], 1.6, { seg: 60 }), cord, { to: ms }).userData.noFit = true;
     },
   });
 })();

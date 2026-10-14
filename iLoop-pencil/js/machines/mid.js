@@ -761,7 +761,7 @@
                 ui: [320, 200],
                 bg: 'ink',
                 // Leopard: the aurora, the menu bar and the reflective Dock. Time Machine's clock in
-                // the Dock is drawn by the app: zoom in and it runs forward to 2016 and becomes a watch.
+                // the Dock is drawn by the app: zoom in and it runs forward to 2015 and becomes a watch.
                 portal: [194, 167, 18],
                 draw(p, W, H) {
                   for (let i = 0; i < 9; i++) {

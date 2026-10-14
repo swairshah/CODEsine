@@ -480,7 +480,7 @@
       ctx.globalAlpha = 1;
     },
 
-    // MacBook Air → Apple Watch: Time Machine's clock in the Dock runs forward from 2008 to 2016,
+    // MacBook Air → Apple Watch: Time Machine's clock in the Dock runs forward from 2008 to 2015,
     // its face rounds into the watch's display, the case and band close round it, and the Activity
     // rings sweep shut.
     clock(dev, nxt, cam, childCam, t, ink, pencil, depth) {
@@ -554,11 +554,11 @@
             ctx.stroke();
           }
         }
-        // the hands, sweeping forward through eight years and coming to rest at 10:09
+        // the hands, sweeping forward through seven years and coming to rest at 10:09
         const hands = fa * (1 - smooth(0.45, 0.66, u));
         if (hands > 0.003) {
-          const mA = (2 * Math.PI * 9) / 60 - 2 * Math.PI * 8 * 12 * (1 - spin) - Math.PI / 2;
-          const hA = (2 * Math.PI * (10 + 9 / 60)) / 12 - 2 * Math.PI * 8 * (1 - spin) - Math.PI / 2;
+          const mA = (2 * Math.PI * 9) / 60 - 2 * Math.PI * 7 * 12 * (1 - spin) - Math.PI / 2;
+          const hA = (2 * Math.PI * (10 + 9 / 60)) / 12 - 2 * Math.PI * 7 * (1 - spin) - Math.PI / 2;
           ctx.globalAlpha = hands;
           ctx.strokeStyle = '#f4f1e8';
           ctx.lineCap = 'round';
@@ -881,23 +881,40 @@
   // the notes beside each machine can be put away
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   const notesBtn = $('b-notes');
-  const setNotes = (onOff) => {
+  const setNotes = (onOff, save) => {
     document.body.classList.toggle('notes-off', !onOff);
     Ink.Plate.notes = onOff;
     notesBtn.setAttribute('aria-pressed', onOff ? 'true' : 'false');
-    store.set('em-notes', onOff ? '1' : '0');
+    if (save) store.set('iloop-notes', onOff ? '1' : '0');
   };
-  setNotes(store.get('em-notes') !== '0');
-  notesBtn.addEventListener('click', () => setNotes(document.body.classList.contains('notes-off')));
-  const soundSwitch = (btn, name, set) => btn.addEventListener('click', () => {
-    const on = window.Sound ? set(btn.getAttribute('aria-pressed') !== 'true') : false;
+  // the notes start hidden; turning them on is remembered
+  setNotes(store.get('iloop-notes') === '1');
+  notesBtn.addEventListener('click', () => setNotes(document.body.classList.contains('notes-off'), true));
+  const mark = (btn, name, on) => {
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.setAttribute('aria-label', `${name} ${on ? 'on' : 'off'}`);
+  };
+  const soundSwitch = (btn, name, set, key) => btn.addEventListener('click', () => {
+    const on = window.Sound ? set(btn.getAttribute('aria-pressed') !== 'true') : false;
+    mark(btn, name, on);
+    if (key) store.set(key, on ? '1' : '0');
     touched();
   });
   // music and the voice clips are switched separately
-  soundSwitch($('b-music'), 'Music', (on) => Sound.setMusic(on));
+  const musicBtn = $('b-music');
+  soundSwitch(musicBtn, 'Music', (on) => Sound.setMusic(on), 'iloop-music');
   soundSwitch($('b-bites'), 'Voice clips', (on) => Sound.setBites(on));
+  // The music is on unless you have turned it off. A browser lets a page make sound only after the
+  // first click, tap or key (scrolling does not count), so it starts then.
+  if (window.Sound && store.get('iloop-music') !== '0') {
+    mark(musicBtn, 'Music', true);
+    const WAKE = ['pointerdown', 'pointerup', 'touchend', 'keydown'];
+    const wake = () => {
+      for (const e of WAKE) removeEventListener(e, wake, true);
+      if (musicBtn.getAttribute('aria-pressed') === 'true' && !Sound.music) Sound.setMusic(true);
+    };
+    for (const e of WAKE) addEventListener(e, wake, true);
+  }
 
   function togglePlay() {
     S.playing = !S.playing;

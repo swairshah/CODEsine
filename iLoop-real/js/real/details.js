@@ -116,6 +116,8 @@
     capCache.set(key, g);
     return g;
   }
+  // o.rowZ: each row's position in row pitches (default 0, 1, 2…), for a half-height row; a key's dz
+  // moves it within its row (in row pitches), for half-height keys sitting low, like inverted-T arrows
   function keyboard(rows, o = {}) {
     const P = o.pitch ?? 19.05, RP = o.rowPitch ?? P, gap = o.gap ?? 0.9;
     const cap = Object.assign({ h: 8, inset: 2.6, r: 1.2, topR: 2.2, fillet: 1.4 }, o.cap || {});
@@ -125,11 +127,11 @@
       for (const k0 of row) {
         const k = typeof k0 === 'string' ? { w: 1, l: k0 } : Array.isArray(k0) ? { w: k0[0], l: k0[1], ...(k0[2] || {}) } : k0;
         if (k.gap) { x += k.gap; continue; }
-        keys.push({ ...k, x: x + (k.w * P) / 2, z: ri * RP + RP / 2, row: ri, h: k.h ?? 1 });
+        keys.push({ ...k, x: x + (k.w * P) / 2, z: (o.rowZ ? o.rowZ[ri] : ri) * RP + RP / 2 + (k.dz || 0) * RP, row: ri, h: k.h ?? 1 });
         x += k.w * P;
       }
     });
-    const wTot = Math.max(...keys.map((k) => k.x + (k.w * P) / 2)), dTot = rows.length * RP;
+    const wTot = Math.max(...keys.map((k) => k.x + (k.w * P) / 2)), dTot = (o.rowZ ? o.rowZ[rows.length - 1] + 1 : rows.length) * RP;
     // the legend atlas: one cell per key, the cap colour all over, the legend printed in the middle
     // (2048 square for a full keyboard: about 15 texels per mm of keycap, so legends stay crisp in
     // a close-up and their mipmaps keep their contrast from the rest view)

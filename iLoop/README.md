@@ -5,7 +5,7 @@ An endless zoom through thirteen machines, engraved in clean ink, like a banknot
 | How | Where |
 | --- | --- |
 | A chip becomes a machine. You zoom into a chip, and the next machine's parts fly in and close around it. | Apple I to Apple II (the 6502); Apple M1 to iMac 24″, as an exploded diagram that collapses while the seven iMac colours run past, and the screen says hello |
-| You go inside. The shell lifts away, you zoom onto the chip, and the chip becomes the next thing. | Apple Watch to Apple M1 (the display lifts off the S2, Apple silicon on the wrist); Mac mini to the Apple I, etched into the M4's silicon |
+| You go inside. The shell lifts away, you zoom onto the chip, and the chip becomes the next thing. | Apple Watch to Apple M1 (the display lifts off the S1, Apple silicon on the wrist); Mac mini to the Apple I, etched into the M4's silicon |
 | An easter egg on screen. Each screen draws the next machine its own way, there from the start, and you zoom into it. | Apple II (in phosphor, after `RUN MACINTOSH`), Macintosh 128K (a MacPaint drawing), PowerBook 100 (a QuickTime movie on its LCD), iMac G3 (an iPod in iTunes), iPod (a silhouette album cover while Jet, from the iPod advert, plays), iPhone (the Mail icon), MacBook Air (Time Machine, run forwards), iMac 24″ (a FaceTime call), MacBook Pro 14″ (AirDrop) |
 
 The machines follow their reference photos: the Apple II with two Disk II drives and a Monitor III, the dark-grey PowerBook 100 with its centred trackball, the G3's white front and Bondi Blue shell, and so on. The 2012 MacBook Pro was swapped for the M1 MacBook Air, so going inside to find the M1 is historically true.
@@ -16,8 +16,8 @@ Open `index.html` in a browser. No build step or server is needed.
 
 - Scroll down to travel into each machine and up to come back out. On a phone, swipe up and down. Pinch and drag gestures are turned off on purpose.
 - Use the ← and → keys or buttons to step one machine. `p` or ▶ runs the whole loop.
-- The Notes button (four lines) shows or hides the descriptions and the notes drawn beside each machine. Your choice is remembered in this browser.
-- The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own, and both start off. With the voice clips on, ▶ stays on each machine until its clip has finished.
+- The Notes button (four lines) shows or hides the descriptions and the notes drawn beside each machine. They start hidden, and turning them on is remembered in this browser.
+- The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own. The music is on unless you turn it off (a browser lets it start only at your first click, tap or key press); the voice clips start off. Both choices are remembered. With the voice clips on, ▶ stays on each machine until its clip has finished.
 - Click a year on the rail to jump to it. `#iphone`, `#apple-m1` and similar names in the URL open on that machine.
 
 ## Sound
