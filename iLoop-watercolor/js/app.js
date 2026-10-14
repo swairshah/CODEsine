@@ -890,6 +890,8 @@
   // the notes start hidden; turning them on is remembered
   setNotes(store.get('iloop-notes') === '1');
   notesBtn.addEventListener('click', () => setNotes(document.body.classList.contains('notes-off'), true));
+  // home: back to the front page, where every version of the loop starts
+  $('b-home').addEventListener('click', () => { location.href = '../index.html'; });
   const mark = (btn, name, on) => {
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.setAttribute('aria-label', `${name} ${on ? 'on' : 'off'}`);
