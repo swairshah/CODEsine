@@ -29,7 +29,7 @@ The camera paths are the same as in `iLoop`. On top of them:
 - Scroll down to travel into each machine and up to come back out. On a phone, swipe up and down.
 - Use the ← and → keys or buttons to step one machine. `p` or ▶ runs the whole loop.
 - The Notes button shows or hides the caption and the notes beside each machine. They start hidden.
-- The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own. The music is on unless you turn it off (a browser lets it start only at your first click, tap or key press); the voice clips start off. Both choices are remembered. With the voice clips on, ▶ stays on each machine until its clip has finished.
+- The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own. Both are on unless you turn them off (a browser lets sound start only at your first click, tap or key press), and both choices are remembered. Sound pauses while the page is hidden and picks up where it was when you come back. On a phone the timeline runs along the top and the buttons along the bottom, and the buttons give a small tap of haptic feedback. With the voice clips on, ▶ stays on each machine until its clip has finished.
 - Click a year on the rail to jump to it. `#iphone`, `#apple-m1` and similar names in the URL open on that machine.
 - `?at=6.5` holds the view at one moment, here halfway from the iPhone to the MacBook Air. This is for checking transitions.
 

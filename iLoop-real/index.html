@@ -179,11 +179,14 @@
 
   @media (max-width: 900px) { .rail button .n { display: none; } }
   @media (max-width: 640px) {
-    .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 66px); }
-    .tools { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 32px); }
-    .tools button { min-width: 34px; height: 34px; padding: 0 8px; }
+    .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 60px); }
+    .tools { top: auto; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); justify-content: space-between; }
+    .tools button { min-width: 44px; height: 44px; padding: 0 8px; }
     .line { font-size: 0.92rem; }
-    .rail { left: 8px; right: 8px; }
+    /* on a phone the timeline runs along the top, and the buttons along the bottom, under the thumb */
+    .rail { left: 8px; right: 8px; top: 0; bottom: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; border-top: 0; border-bottom: 1px solid var(--rule); }
+    .track { top: auto; bottom: -5px; }
+    .hint, .yt-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
     .rail button { font-size: 0.56rem; padding-inline: 0; }
   }
 </style>

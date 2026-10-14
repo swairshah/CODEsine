@@ -687,7 +687,7 @@
   // The page's own type (caption, buttons, hint, the rail) and the colour bar are
   // measured, in css px, whenever the window or the fonts change. The poster's shapes are cut away
   // from the caption with a margin, and each year is set where it touches none of it.
-  const LAY = { caps: [], tools: null, foot: null, railTop: 0, key: '' };
+  const LAY = { caps: [], tools: null, foot: null, view: [0, 0, 0, 0], key: '' };
   const grow = (r, m) => [r[0] - m, r[1] - m, r[2] + m, r[3] + m];
   const rectOf = (el) => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };
   const meets = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
@@ -707,13 +707,15 @@
     cap.style.transform = prevT;
     S.idx = -1;
     LAY.tools = rectOf(document.querySelector('.tools'));
-    LAY.railTop = rectOf(document.querySelector('.rail'))[1];
-    // the hint sits in the band above the rail, centred
+    // the rail runs along the bottom, or on a phone along the top with the buttons at the bottom
+    const rail = rectOf(document.querySelector('.rail')), atTop = rail[1] < H / 2;
+    LAY.view = [28, atTop ? rail[3] + 10 : 20, W - 28, (atTop ? LAY.tools[1] : rail[1]) - 10];
+    // the hint sits in the band above the rail (or the buttons), centred
     const hint = document.createRange();
     hint.selectNodeContents(ui.hint);
     const hb = hint.getBoundingClientRect();
     const half = Math.min(W / 2 - 16, Math.max(380, hb.width / 2 + 40));
-    LAY.foot = [W / 2 - half, H - 150, W / 2 + half, LAY.railTop];
+    LAY.foot = [W / 2 - half, H - 150, W / 2 + half, LAY.view[3] + 10];
     LAY.key = `${W}x${H}:${Date.now()}`;
     for (const d of DEV) d.spots = null;
   }
@@ -788,7 +790,7 @@
       return [p[0], p[1], q[0], q[1]];
     };
     const avoid = [grow(LAY.caps[dev.index] || [0, 0, 0, 0], 22), grow(LAY.tools, 12), LAY.foot];
-    const view = [28, 20, W - 28, LAY.railTop - 10];
+    const view = LAY.view;
     let best = null;
     for (const f of [1, 0.82, 0.66, 0.52]) {
       const size = base * f;
@@ -1214,19 +1216,41 @@
     touched();
   });
   // music and the voice clips are switched separately
-  const musicBtn = $('b-music');
+  const musicBtn = $('b-music'), bitesBtn = $('b-bites');
   soundSwitch(musicBtn, 'Music', (on) => Sound.setMusic(on), 'iloop-music');
-  soundSwitch($('b-bites'), 'Voice clips', (on) => Sound.setBites(on));
-  // The music is on unless you have turned it off. A browser lets a page make sound only after the
-  // first click, tap or key (scrolling does not count), so it starts then.
-  if (window.Sound && store.get('iloop-music') !== '0') {
-    mark(musicBtn, 'Music', true);
+  soundSwitch(bitesBtn, 'Voice clips', (on) => Sound.setBites(on), 'iloop-bites');
+  // Music and voice clips are on unless you have turned them off. A browser lets a page make sound
+  // only after the first click, tap or key (scrolling does not count), so they start then.
+  const want = { music: store.get('iloop-music') !== '0', bites: store.get('iloop-bites') !== '0' };
+  if (window.Sound && (want.music || want.bites)) {
+    mark(musicBtn, 'Music', want.music);
+    mark(bitesBtn, 'Voice clips', want.bites);
     const WAKE = ['pointerdown', 'pointerup', 'touchend', 'keydown'];
     const wake = () => {
       for (const e of WAKE) removeEventListener(e, wake, true);
-      if (musicBtn.getAttribute('aria-pressed') === 'true' && !Sound.music) Sound.setMusic(true);
+      const m = musicBtn.getAttribute('aria-pressed') === 'true', b = bitesBtn.getAttribute('aria-pressed') === 'true';
+      if ((m && !Sound.music) || (b && !Sound.bites)) Sound.set(m || Sound.music, b || Sound.bites);
     };
     for (const e of WAKE) addEventListener(e, wake, true);
+  }
+
+  // A tick under the finger when a button is pressed: a short vibration where the browser has one,
+  // and on an iPhone, which gives pages none, a hidden native switch, whose toggle iOS answers with a tap.
+  if (matchMedia('(pointer: coarse)').matches) {
+    let tick = null;
+    if (navigator.vibrate) tick = () => { try { navigator.vibrate(8); } catch (e) {} };
+    else {
+      const label = document.createElement('label'), box = document.createElement('input');
+      box.type = 'checkbox';
+      box.setAttribute('switch', '');
+      box.tabIndex = -1;
+      label.append(box);
+      label.setAttribute('aria-hidden', 'true');
+      label.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      document.body.append(label);
+      tick = () => label.click();
+    }
+    document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest && e.target.closest('.tools button, .rail button')) tick(); }, true);
   }
 
   function togglePlay() {

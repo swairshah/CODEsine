@@ -901,19 +901,41 @@
     touched();
   });
   // music and the voice clips are switched separately
-  const musicBtn = $('b-music');
+  const musicBtn = $('b-music'), bitesBtn = $('b-bites');
   soundSwitch(musicBtn, 'Music', (on) => Sound.setMusic(on), 'iloop-music');
-  soundSwitch($('b-bites'), 'Voice clips', (on) => Sound.setBites(on));
-  // The music is on unless you have turned it off. A browser lets a page make sound only after the
-  // first click, tap or key (scrolling does not count), so it starts then.
-  if (window.Sound && store.get('iloop-music') !== '0') {
-    mark(musicBtn, 'Music', true);
+  soundSwitch(bitesBtn, 'Voice clips', (on) => Sound.setBites(on), 'iloop-bites');
+  // Music and voice clips are on unless you have turned them off. A browser lets a page make sound
+  // only after the first click, tap or key (scrolling does not count), so they start then.
+  const want = { music: store.get('iloop-music') !== '0', bites: store.get('iloop-bites') !== '0' };
+  if (window.Sound && (want.music || want.bites)) {
+    mark(musicBtn, 'Music', want.music);
+    mark(bitesBtn, 'Voice clips', want.bites);
     const WAKE = ['pointerdown', 'pointerup', 'touchend', 'keydown'];
     const wake = () => {
       for (const e of WAKE) removeEventListener(e, wake, true);
-      if (musicBtn.getAttribute('aria-pressed') === 'true' && !Sound.music) Sound.setMusic(true);
+      const m = musicBtn.getAttribute('aria-pressed') === 'true', b = bitesBtn.getAttribute('aria-pressed') === 'true';
+      if ((m && !Sound.music) || (b && !Sound.bites)) Sound.set(m || Sound.music, b || Sound.bites);
     };
     for (const e of WAKE) addEventListener(e, wake, true);
+  }
+
+  // A tick under the finger when a button is pressed: a short vibration where the browser has one,
+  // and on an iPhone, which gives pages none, a hidden native switch, whose toggle iOS answers with a tap.
+  if (matchMedia('(pointer: coarse)').matches) {
+    let tick = null;
+    if (navigator.vibrate) tick = () => { try { navigator.vibrate(8); } catch (e) {} };
+    else {
+      const label = document.createElement('label'), box = document.createElement('input');
+      box.type = 'checkbox';
+      box.setAttribute('switch', '');
+      box.tabIndex = -1;
+      label.append(box);
+      label.setAttribute('aria-hidden', 'true');
+      label.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      document.body.append(label);
+      tick = () => label.click();
+    }
+    document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest && e.target.closest('.tools button, .rail button')) tick(); }, true);
   }
 
   function togglePlay() {

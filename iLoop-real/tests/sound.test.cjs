@@ -16,6 +16,7 @@ function harness({ strict = false } = {}) {
   const node = () => ({ gain: param(), threshold: param(), ratio: param(), frequency: param(), Q: param(), detune: param(), connect(n) { return n; }, start() {}, stop() {} });
   class AudioContext {
     currentTime = 0; sampleRate = 100; state = 'running'; destination = node();
+    suspend() { this.state = 'suspended'; } resume() { this.state = 'running'; }
     createGain = node; createDynamicsCompressor = node; createConvolver = node;
     createOscillator = node; createBiquadFilter = node; createBufferSource = node;
     createBuffer(c, n) { return { getChannelData: () => new Float32Array(n) }; }
@@ -35,7 +36,7 @@ function harness({ strict = false } = {}) {
   const el = () => ({ classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {}, append() {}, appendChild() {}, remove() {}, querySelector: el });
   const context = {
     window: { AudioContext, btoa: (s) => Buffer.from(s, 'binary').toString('base64'), addEventListener: (e, fn) => (listeners[e] = listeners[e] || []).push(fn) }, Audio,
-    document: { createElement: el, getElementById: el, body: el() },
+    document: { createElement: el, getElementById: el, body: el(), hidden: false, addEventListener: (e, fn) => (listeners['doc:' + e] = listeners['doc:' + e] || []).push(fn) },
     location: { protocol: 'file:' }, performance: { now: () => now },
     setInterval: () => 1, clearInterval() {}, setTimeout() {},
   };
@@ -44,7 +45,9 @@ function harness({ strict = false } = {}) {
   const sound = context.window.Sound;
   const frame = (level = 0, rest = 0, elapsed = 100) => { now += elapsed; sound.update(level, rest, now); };
   const arrive = () => { frame(); frame(0, 0, 700); };
-  return { config: context.window.SOUNDTRACK, sound, elements, frame, arrive, gesture, tap };
+  // the page hidden, or shown again
+  const visible = (on) => { context.document.hidden = !on; for (const fn of listeners['doc:visibilitychange'] || []) fn(); };
+  return { config: context.window.SOUNDTRACK, sound, elements, frame, arrive, gesture, tap, visible };
 }
 
 test('all 13 stages prefer existing local audio and retain both original fallbacks', () => {
@@ -179,4 +182,16 @@ test('a file refused for want of a gesture waits for the next one instead of fal
   tap();
   await new Promise((r) => setImmediate(r));
   assert.ok(elements.some((el) => el.src.endsWith('00-music.mp3') && !el.paused));
+});
+
+test('hiding the page pauses what is playing, and showing it again picks up from there', async () => {
+  const { sound, elements, arrive, visible } = harness();
+  sound.set(true, true); arrive();
+  const playing = () => elements.filter((el) => /custom\/00-(music|bite)\.mp3$/.test(el.src) && !el.paused).length;
+  assert.equal(playing(), 2);
+  visible(false);
+  assert.equal(playing(), 0);
+  visible(true);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(playing(), 2);
 });

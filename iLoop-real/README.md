@@ -26,7 +26,7 @@ Open `index.html` in a browser. No build step or server is needed.
 
 The same as `iLoop`: scroll (or swipe) down to travel into each machine and up to come back out; ← and → step one machine; `p` or ▶ plays the whole loop; the Notes button shows the captions, which start hidden; click a year on the rail to jump; `#iphone`, `#apple-m1` and so on open on a machine.
 
-The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own. The music is on unless you turn it off (a browser lets it start only at your first click, tap or key press); the voice clips start off. Both choices are remembered. With the voice clips on, ▶ stays on each machine until its clip has finished (then a breath of music, and never more than 30 seconds).
+The note button turns the music on or off, and the speech-bubble button the voice clips. Each works on its own. Both are on unless you turn them off (a browser lets sound start only at your first click, tap or key press), and both choices are remembered. Sound pauses while the page is hidden and picks up where it was when you come back. On a phone the timeline runs along the top and the buttons along the bottom, and the buttons give a small tap of haptic feedback. With the voice clips on, ▶ stays on each machine until its clip has finished (then a breath of music, and never more than 30 seconds).
 
 For checking and debugging:
 

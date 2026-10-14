@@ -564,6 +564,30 @@
     }
   }
 
+  // ---------- leaving the page ----------
+  // When the page is hidden (another tab, another app, the phone locked) everything pauses where it
+  // is, and picks up from there when you come back, instead of playing on in the background.
+  let away = null;
+  function hide() {
+    if (!enabled || away) return;
+    away = players.filter((p) => p.owner && !p.el.paused);
+    for (const p of away) p.el.pause();
+    if (ac && ac.state === 'running') ac.suspend();
+  }
+  function show() {
+    if (!away) return;
+    const list = away;
+    away = null;
+    if (!enabled) return;
+    if (ac && ac.state !== 'running') ac.resume();
+    for (const p of list) if (p.owner) p.owner.play();
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('visibilitychange', () => (document.hidden ? hide() : show()));
+    global.addEventListener('pagehide', hide);
+    global.addEventListener('pageshow', show);
+  }
+
   // ---------- what the page calls ----------
   const Sound = {
     get on() { return enabled; },
