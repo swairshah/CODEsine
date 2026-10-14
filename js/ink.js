@@ -95,7 +95,8 @@
       const u = cum[i] / tot;
       const wu = u < sk ? (0.5 * u) / sk : 0.5 + (0.5 * (u - sk)) / (1 - sk);
       const prof = taper + (1 - taper) * Math.pow(Math.sin(Math.PI * wu), pw);
-      const hw = 0.5 * w * prof;
+      // w may be a function of position, so one line can swell and thin along its length
+      const hw = 0.5 * (typeof w === 'function' ? w(P[i][0], P[i][1]) : w) * prof;
       L.push([P[i][0] + nx * hw, P[i][1] + ny * hw]);
       R.push([P[i][0] - nx * hw, P[i][1] - ny * hw]);
     }
@@ -258,6 +259,30 @@
           }
         }
         us.sort((a, b) => a - b);
+        if (o.swell) {
+          // Engraver's lines: each runs the width of the face, swelling where the tone is dark and
+          // thinning to nothing in the light, with a slight waver and the odd break where the burin lifted.
+          const step = o.step ?? 5, maxW = w * 1.1, minW = o.minW ?? 0.25, wave = o.wave ?? 0.5, ph = this.rand(0, 6.28);
+          const at = (u) => { const vv = v + wave * Math.sin(u * 0.045 + ph); return [u * ca - vv * sa, u * sa + vv * ca]; };
+          const wAt = (x, y) => Math.min(maxW, w * o.tone(x, y));
+          for (let i = 0; i + 1 < us.length; i += 2) {
+            const u0 = us[i] + inset, u1 = us[i + 1] - inset;
+            if (u1 - u0 < 3) continue;
+            let run = [], nextBreak = u0 + this.rand(90, 260);
+            const flush = () => {
+              if (run.length >= 2) this.gouge(role, run, wAt, { lod, taper: o.taper ?? 0.22, smooth: false, n: 1, pow: 0.4 });
+              run = [];
+            };
+            for (let u = u0; u <= u1 + 0.01; u += step) {
+              const uu = Math.min(u, u1), q = at(uu);
+              if (uu > nextBreak) { flush(); nextBreak = uu + this.rand(90, 260); continue; }
+              if (wAt(q[0], q[1]) > minW) run.push(q);
+              else flush();
+            }
+            flush();
+          }
+          continue;
+        }
         for (let i = 0; i + 1 < us.length; i += 2) {
           const u0 = us[i] + inset, u1 = us[i + 1] - inset;
           if (u1 - u0 < 4) continue;
@@ -392,25 +417,23 @@
       const t0 = T(c[0], c[1]);
       const base = o.dark ? o.fill || 'ink' : o.fill ?? (t0 < 0.45 ? 'ink' : t0 > 0.9 ? 'light' : 'paper');
       this.fill(base, poly, o.lod ?? 0);
-      const h = { angle: o.angle ?? 0, gap: o.gap ?? 8, w: o.w ?? 2.3, scoop: o.scoop, bow: o.bow, lod: o.hlod ?? 1, jitter: 0.03 };
+      // Engraved like a print: close lines whose weight carries the tone, so light areas are fine
+      // hairlines and shadows thicken until the lines merge, with a second set crossing them in shadow.
+      const g = (o.gap ?? 8) * 0.62, ang = o.angle ?? 0, lod = o.hlod ?? 1;
+      const line = { angle: ang, gap: g, swell: true, lod, step: Math.max(3, g * 0.7) };
       if (o.dark || base === 'ink') {
-        // white-line work on a dark surface: long cuts that swell where the light falls and thin away in shadow
+        // white-line work on a dark surface: cuts that open up toward the light, crossed into a
+        // grid where it is brightest
         if (o.hatch !== false) {
-          // the cuts vanish into solid colour on the shadow side and only open up toward the light
-          const lim = o.dark ? 0.5 : 0.45;
-          this.hatch(o.cut ?? 'paper', poly, { ...h, gap: h.gap * 1.15, w: h.w * 0.9, scoop: [60, 170], tone: (x, y) => Math.pow(clamp((T(x, y) - lim * 0.42) / (lim * 0.8), 0, 1.1), 1.5) });
+          const lim = o.dark ? 0.5 : 0.45, cut = o.cut ?? 'paper';
+          this.hatch(cut, poly, { ...line, w: g * 0.62, tone: (x, y) => Math.pow(clamp((T(x, y) - lim * 0.3) / (lim * 0.95), 0, 1.1), 1.4) });
+          this.hatch(cut, poly, { ...line, angle: ang + 1.15, gap: g * 1.25, w: g * 0.4, tone: (x, y) => clamp((T(x, y) - lim * 0.7) / (lim * 0.6), 0, 1) });
         }
-      } else {
-        // engraving on a light surface: even lines along the form, and in real shadow a second,
-        // finer set crossing them at a steady angle
-        if (o.hatch !== false) {
-          const line = o.line ?? 'ink';
-          this.hatch(line, poly, { ...h, tone: (x, y) => Math.pow(clamp((1 - T(x, y)) / 0.6, 0, 1.15), 1.25) });
-          this.hatch(line, poly, { ...h, angle: h.angle + 0.78, w: h.w * 0.55, tone: (x, y) => clamp((0.52 - T(x, y)) / 0.25, 0, 1) });
-        }
-        if (o.shade !== false) {
-          this.hatch('graphite2', poly, { angle: (o.angle ?? 0) + 0.85, gap: o.pgap ?? 4.4, w: 0.85, scoop: [50, 110], bow: 0.5, taper: 0.2, minW: 0.18, lod: 1, inset: 1, tone: (x, y) => clamp((0.95 - T(x, y)) / 0.45, 0, 1) });
-        }
+      } else if (o.hatch !== false) {
+        const ln = o.line ?? 'ink';
+        this.hatch(ln, poly, { ...line, w: g * 0.92, tone: (x, y) => Math.pow(clamp((0.97 - T(x, y)) / 0.66, 0, 1.15), 1.5) });
+        this.hatch(ln, poly, { ...line, angle: ang + 0.9, gap: g * 1.1, w: g * 0.7, tone: (x, y) => clamp((0.62 - T(x, y)) / 0.24, 0, 1) });
+        this.hatch(ln, poly, { ...line, angle: ang - 0.7, gap: g * 1.2, w: g * 0.6, tone: (x, y) => clamp((0.42 - T(x, y)) / 0.18, 0, 1) });
       }
       if (o.edge) this.ring(o.edgeRole ?? 'ink', poly, o.edge, o.edgeLod ?? 0);
       if (o.pencil !== false) this.sketch(poly, { lod: 0.5 });

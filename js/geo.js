@@ -382,7 +382,8 @@
 
     tone(n, mat) {
       const ndl = Math.max(0, v3.dot(n, LIGHT));
-      return clamp((mat.base ?? 0.9) * (0.55 + 0.45 * ndl) + (mat.lift || 0), 0, 1);
+      // wide range of light, so turned-away faces go properly dark, as in a print
+      return clamp((mat.base ?? 0.9) * (0.4 + 0.6 * ndl) + (mat.lift || 0), 0, 1);
     }
 
     drawFace(p, f) {
