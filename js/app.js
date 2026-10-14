@@ -196,6 +196,7 @@
     const childCam = Af.mul(cam, Mp);
     if (Af.scaleOf(childCam) * 1000 < 8) return;
     const onScreen = dev.next.type === 'screen';
+    if (onScreen && EGGS[dev.next.egg]) return EGGS[dev.next.egg](dev, nxt, cam, childCam, t, ink, pencil, depth);
     const a = onScreen ? 1 : smooth(0.12, 0.34, t);
     if (a < 0.003) return;
     setM(cam);
@@ -222,6 +223,384 @@
     else drawAtRest(nxt, childCam, dev.next.fg ? invertPal(pal0, dev, 1 - ease(t)) : pal0, ink * smooth(0.22, 0.62, t), pencil * smooth(0.03, 0.3, t));
     ctx.restore();
   }
+  // ---------- easter eggs that are events, not pictures ----------
+  // Each is drawn in place of a plain portal and is driven by t, so scrolling scrubs it both ways.
+  // It must end, at t = 1, on the next machine exactly as it stands at rest.
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const lerp2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
+  function pathOf(pts) {
+    ctx.beginPath();
+    pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
+    ctx.closePath();
+  }
+  function rrPath(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  // a convex polygon cut to an axis-aligned box (Sutherland–Hodgman)
+  function clipBox(poly, x0, y0, x1, y1) {
+    let out = poly;
+    const edges = [[(q) => q[0] >= x0, (a, b) => [x0, a[1] + ((b[1] - a[1]) * (x0 - a[0])) / (b[0] - a[0])]],
+      [(q) => q[0] <= x1, (a, b) => [x1, a[1] + ((b[1] - a[1]) * (x1 - a[0])) / (b[0] - a[0])]],
+      [(q) => q[1] >= y0, (a, b) => [a[0] + ((b[0] - a[0]) * (y0 - a[1])) / (b[1] - a[1]), y0]],
+      [(q) => q[1] <= y1, (a, b) => [a[0] + ((b[0] - a[0]) * (y1 - a[1])) / (b[1] - a[1]), y1]]];
+    for (const [inside, cut] of edges) {
+      const src = out;
+      out = [];
+      for (let i = 0; i < src.length; i++) {
+        const A = src[i], B = src[(i + 1) % src.length];
+        if (inside(B)) { if (!inside(A)) out.push(cut(A, B)); out.push(B); }
+        else if (inside(A)) out.push(cut(A, B));
+      }
+      if (!out.length) break;
+    }
+    return out;
+  }
+
+  const EGGS = {
+    // Apple II → Macintosh: the 1984 advert. A sledgehammer spins in and shatters Big Brother's
+    // telescreen; the glass flies out in a flash of light, and the Macintosh is drawn in the light.
+    '1984'(dev, nxt, cam, childCam, t, ink, pencil, depth) {
+      const W = dev.screen.w, H = dev.screen.h, R = 21, I = [150, 140], hit = 0.3;
+      const ui = Af.mul(cam, dev.screen.M);
+      const k = Af.scaleOf(ui);
+      if (!dev.shards) {
+        // radial cracks from the point of impact, two rings of them, cut to the tube
+        let r = 11;
+        const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
+        const n = 17, angles = Array.from({ length: n }, (_, i) => ((i + 0.2 + rnd() * 0.6) / n) * 2 * Math.PI);
+        const rings = [0, 22 + rnd() * 8, 52 + rnd() * 12, 100 + rnd() * 20, 400];
+        dev.shards = [];
+        for (let i = 0; i < n; i++) for (let j = 0; j < rings.length - 1; j++) {
+          const a0 = angles[i], a1 = angles[(i + 1) % n] + (i === n - 1 ? 2 * Math.PI : 0);
+          const p = (a, rr) => [I[0] + rr * Math.cos(a), I[1] + rr * Math.sin(a)];
+          const poly = clipBox(j === 0 ? [I, p(a0, rings[1]), p(a1, rings[1])] : [p(a0, rings[j]), p(a0, rings[j + 1]), p(a1, rings[j + 1]), p(a1, rings[j])], 0, 0, W, H);
+          if (poly.length < 3) continue;
+          const c = poly.reduce((m, q) => [m[0] + q[0] / poly.length, m[1] + q[1] / poly.length], [0, 0]);
+          const d = Math.hypot(c[0] - I[0], c[1] - I[1]) || 1;
+          dev.shards.push({ poly, c, dir: [(c[0] - I[0]) / d, (c[1] - I[1]) / d], dist: d, spin: (rnd() - 0.5) * 5, lift: 0.6 + rnd() * 1.4 });
+        }
+      }
+      const after = clamp((t - hit) / (1 - hit), 0, 1);
+      if (t > hit) {
+        // behind the glass: white light, settling to paper
+        setM(ui);
+        ctx.save();
+        rrPath(0, 0, W, H, R);
+        ctx.clip();
+        ctx.globalAlpha = ink;
+        ctx.fillStyle = css(mix(BASE.rgb.light, BASE.rgb.paper, smooth(0.15, 0.7, after)));
+        ctx.fillRect(-W, -H, 3 * W, 3 * H);
+        ctx.restore();
+        // the Macintosh, sketched in the light and then inked
+        drawMachine(nxt, childCam, BASE, ink * smooth(0.12, 0.45, after), pencil * smooth(0.02, 0.2, after), depth + 1);
+        // the line that closed the advert
+        const say = smooth(0.18, 0.32, after) * (1 - smooth(0.62, 0.8, after));
+        if (say > 0.01) {
+          setM(ui);
+          ctx.globalAlpha = say * ink;
+          ctx.fillStyle = BASE.ink;
+          ctx.font = `italic 400 11px ${Ink.FONTS.serif}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('…and you’ll see why 1984 won’t be like “1984.”', W / 2, 36);
+        }
+        // the glass flies out at you, turning, and is gone
+        setM(ui);
+        for (const sh of dev.shards) {
+          const e = 1 - Math.pow(1 - after, 2.2);
+          const a = ink * (1 - smooth(0.25, 0.75, after));
+          if (a < 0.01) break;
+          const go = (40 + sh.dist * 1.6) * e;
+          const sc = 1 + sh.lift * e;
+          ctx.save();
+          ctx.translate(sh.c[0] + sh.dir[0] * go, sh.c[1] + sh.dir[1] * go - 30 * e * sh.lift);
+          ctx.rotate(sh.spin * e);
+          ctx.scale(sc, sc);
+          ctx.translate(-sh.c[0], -sh.c[1]);
+          ctx.globalAlpha = a * 0.78;
+          pathOf(sh.poly);
+          ctx.fillStyle = '#1d2520';
+          ctx.fill();
+          ctx.globalAlpha = a * 0.9;
+          ctx.lineWidth = 1.1;
+          ctx.strokeStyle = '#bfe3b0';
+          ctx.stroke();
+          ctx.restore();
+        }
+        // the flash at the moment of impact
+        const flash = 1 - smooth(0, 0.16, after);
+        if (flash > 0.01) {
+          ctx.save();
+          rrPath(-20, -20, W + 40, H + 40, R);
+          ctx.globalAlpha = flash * ink;
+          ctx.fillStyle = '#fffdf6';
+          ctx.fill();
+          ctx.restore();
+        }
+      } else if (t > 0.02) {
+        // the hammer, thrown from below and spinning toward the face
+        const h = smooth(0.02, hit, t);
+        const pos = lerp2([-90, H + 140], I, h);
+        const sc = lerp(2.6, 0.9, h);
+        setM(ui);
+        ctx.save();
+        ctx.translate(pos[0], pos[1]);
+        ctx.rotate(-3.4 * Math.PI * (1 - h) - 0.5);
+        ctx.scale(sc, sc);
+        ctx.globalAlpha = ink * smooth(0.02, 0.06, t);
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = BASE.ink;
+        // handle
+        ctx.fillStyle = '#8a6a44';
+        rrPath(-2.6, 6, 5.2, 64, 2);
+        ctx.fill();
+        ctx.stroke();
+        // head
+        ctx.fillStyle = '#6d6a64';
+        rrPath(-16, -8, 32, 16, 2.5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#b9b5ac';
+        ctx.fillRect(-14, -6, 28, 3);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    },
+
+    // iPhone → MacBook Air: the Mail icon's envelope opens, turns into the interoffice envelope from
+    // Macworld 2008, and the MacBook Air is pulled out of it and laid down on top.
+    mail(dev, nxt, cam, childCam, t, ink, pencil, depth) {
+      // paced by how large the tile is on screen, not by scroll: it plays out once you can see it
+      const grown = Af.scaleOf(childCam) / Af.scaleOf(rest());
+      const u = clamp(1 + Math.log(grown) / Math.log(5), 0, 1);
+      const flap = smooth(0.02, 0.2, u), out = smooth(0.16, 0.5, u), lay = smooth(0.5, 0.9, u);
+      const k = Af.scaleOf(childCam), npal = withTint(BASE, nxt);
+      const lw = (px) => px / k;
+      // the tile
+      setM(cam);
+      ctx.save();
+      clipTo(dev.marks.portal);
+      ctx.globalAlpha = ink;
+      ctx.fillStyle = css(mix(hex(dev.next.eggBg), BASE.rgb.paper, smooth(0.25, 0.75, u)));
+      ctx.fill();
+      ctx.restore();
+      // the envelope: a white Mail envelope, front on, that becomes the manila one lying on the table
+      const E0 = [[170, 330], [830, 330], [830, 730], [170, 730]];
+      const E1 = nxt.model.envelope.map((q) => nxt.model.P(q));
+      const E = E0.map((q, i) => lerp2(q, E1[i], lay));
+      const white = [244, 241, 232], manila = hex(nxt.tint);
+      const paperCol = css(mix(white, manila, smooth(0.1, 0.6, out + lay * 0.5)));
+      const real = smooth(0.82, 1, u);
+      const flapTip = [500, lerp(560, 120, flap)];
+      const flapPts = [E[0], E[1], lerp2(flapTip, [(E[0][0] + E[1][0]) / 2, (E[0][1] + E[1][1]) / 2], lay)];
+      const drawFlap = () => {
+        if (lay > 0.98) return;
+        setM(childCam);
+        ctx.globalAlpha = ink * (1 - lay);
+        pathOf(flapPts);
+        ctx.fillStyle = css(mix(mix(white, manila, smooth(0.1, 0.6, out)), [0, 0, 0], flap > 0.5 ? 0.1 : 0));
+        ctx.fill();
+        ctx.lineWidth = lw(1.3);
+        ctx.strokeStyle = BASE.ink;
+        ctx.stroke();
+      };
+      const drawFront = () => {
+        setM(childCam);
+        ctx.globalAlpha = ink * (1 - real);
+        pathOf(E);
+        ctx.fillStyle = paperCol;
+        ctx.fill();
+        ctx.lineWidth = lw(1.4);
+        ctx.strokeStyle = BASE.ink;
+        ctx.stroke();
+        // the folds of a Mail envelope, from its bottom corners to the middle
+        ctx.globalAlpha = ink * (1 - real) * (1 - lay) * 0.6;
+        ctx.beginPath();
+        const mid = lerp2(E[0], E[2], 0.55);
+        ctx.moveTo(E[3][0], E[3][1]); ctx.lineTo(mid[0], mid[1]); ctx.lineTo(E[2][0], E[2][1]);
+        ctx.stroke();
+        if (real > 0.003) drawParts(nxt, childCam, npal, () => ({ ink: ink * real, pencil: pencil * real }), (p) => p.name === 'envelope');
+      };
+      // the laptop: small and hidden in the envelope, drawn up out of its mouth, then laid down at rest
+      const sc = lerp(lerp(0.6, 0.66, out), 1, lay);
+      const cy = lerp(lerp(640, 150, out), 500, lay);
+      const T = Af.chain(Af.T(500, cy), Af.S(sc), Af.T(-500, -500));
+      const camL = Af.mul(childCam, T);
+      const laptop = () => {
+        drawParts(nxt, camL, npal, () => ({ ink, pencil }), (p) => p.name !== 'envelope' && p.name !== 'body');
+        if (depth < 2 && nxt.next.type === 'screen') drawPortalChild(nxt, camL, 0, BASE, ink, pencil, depth + 1);
+        drawGlass(nxt, camL, npal, ink);
+      };
+      const inside = out < 0.97 && lay < 0.01;
+      if (flap > 0.5) drawFlap();
+      if (inside) {
+        // while it is inside, only what has cleared the envelope's mouth shows
+        setM(childCam);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-4000, -4000, 9000, 4000 + 330);
+        ctx.clip();
+        if (out > 0.01) laptop();
+        ctx.restore();
+        drawFront();
+      } else {
+        drawFront();
+        laptop();
+      }
+      if (flap <= 0.5) drawFlap();
+      ctx.globalAlpha = 1;
+    },
+
+    // MacBook Air → Apple Watch: Time Machine's clock in the Dock runs forward from 2008 to 2016,
+    // its face rounds into the watch's display, the case and band close round it, and the Activity
+    // rings sweep shut.
+    clock(dev, nxt, cam, childCam, t, ink, pencil, depth) {
+      const grown = Af.scaleOf(childCam) / Af.scaleOf(rest());
+      const u = clamp(1 + Math.log(grown) / Math.log(6), 0, 1);
+      const spin = smooth(0, 0.45, u), morph = smooth(0.3, 0.7, u), build = smooth(0.42, 0.85, u), real = smooth(0.86, 1, u);
+      const md = nxt.marks.display, k = Af.scaleOf(childCam), npal = withTint(BASE, nxt);
+      // a ripple of paper spreads from the clock as you go forward in time
+      if (u > 0.25) {
+        setM(childCam);
+        ctx.globalAlpha = ink;
+        ctx.fillStyle = BASE.paper;
+        ctx.beginPath();
+        ctx.arc(500, 500, lerp(0, 820, smooth(0.28, 0.85, u)), 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      // the band slides in from both ends, the case closes round the face
+      if (build > 0.003) {
+        drawParts(nxt, childCam, npal, (part) => {
+          if (part.name === 'inside' || part.name === 'display') return null;
+          const r = { ink: ink * build, pencil: pencil * smooth(0.36, 0.6, u) };
+          if (part.fly && part.fly.d3) { const o = nxt.model.PL(part.fly.d3); r.T = Af.T(o[0] * (1 - build), o[1] * (1 - build)); }
+          return r;
+        });
+        setM(childCam);
+        ctx.globalAlpha = ink * build * (1 - real);
+        pathOf(nxt.model.watchTop.map((q) => nxt.model.P(q)));
+        ctx.fillStyle = BASE.light;
+        ctx.fill();
+        ctx.lineWidth = 1.2 / k;
+        ctx.strokeStyle = BASE.ink;
+        ctx.stroke();
+      }
+      // the face: a circle in unit coordinates, becoming the display's rounded rectangle
+      const F0 = [380, 0, 0, 380, 500, 500], F1 = Af.mul(md, [0.5, 0, 0, 0.5, 0.5, 0.5]);
+      const Fm = F0.map((v, i) => lerp(v, F1[i], morph));
+      const shape = Array.from({ length: 72 }, (_, i) => {
+        const a = (i / 72) * 2 * Math.PI, c = Math.cos(a), sn = Math.sin(a);
+        const q = [Math.sign(c) * Math.pow(Math.abs(c), 0.4), Math.sign(sn) * Math.pow(Math.abs(sn), 0.4)];
+        return lerp2(Af.apply(F0, [c, sn]), Af.apply(F1, q), morph);
+      });
+      const fa = ink * (1 - real);
+      if (fa > 0.003) {
+        setM(childCam);
+        ctx.save();
+        pathOf(shape);
+        ctx.globalAlpha = fa;
+        ctx.fillStyle = css(mix([31, 91, 79], [8, 8, 9], morph));
+        ctx.fill();
+        if (morph < 1) {
+          ctx.globalAlpha = fa * (1 - morph);
+          ctx.lineWidth = 60 * (1 - morph) + 1 / k;
+          ctx.strokeStyle = '#cfccc4';
+          ctx.stroke();
+          ctx.globalAlpha = fa;
+        }
+        ctx.clip();
+        // in the display's own pixels, 312 × 390, the same as the watch face it becomes
+        setM(Af.chain(childCam, Fm, [2 / 312, 0, 0, 2 / 390, -1, -1]));
+        const cx = 156, cy = 195;
+        const tick = fa * (1 - morph);
+        if (tick > 0.003) {
+          ctx.globalAlpha = tick;
+          ctx.strokeStyle = '#f4f1e8';
+          for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * 2 * Math.PI;
+            ctx.lineWidth = i % 3 ? 5 : 10;
+            ctx.beginPath();
+            ctx.moveTo(cx + 120 * Math.cos(a), cy + 150 * Math.sin(a));
+            ctx.lineTo(cx + 140 * Math.cos(a), cy + 175 * Math.sin(a));
+            ctx.stroke();
+          }
+        }
+        // the hands, sweeping forward through eight years and coming to rest at 10:09
+        const hands = fa * (1 - smooth(0.45, 0.66, u));
+        if (hands > 0.003) {
+          const mA = (2 * Math.PI * 9) / 60 - 2 * Math.PI * 8 * 12 * (1 - spin) - Math.PI / 2;
+          const hA = (2 * Math.PI * (10 + 9 / 60)) / 12 - 2 * Math.PI * 8 * (1 - spin) - Math.PI / 2;
+          ctx.globalAlpha = hands;
+          ctx.strokeStyle = '#f4f1e8';
+          ctx.lineCap = 'round';
+          for (const [a, len, w] of [[hA, 80, 14], [mA, 128, 9]]) {
+            ctx.lineWidth = w;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + len * Math.cos(a), cy + len * 1.25 * Math.sin(a));
+            ctx.stroke();
+          }
+          ctx.lineCap = 'butt';
+          ctx.fillStyle = '#fa114f';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 9, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+        // the years go by
+        const yr = fa * smooth(0.02, 0.08, u) * (1 - smooth(0.4, 0.55, u));
+        if (yr > 0.003) {
+          ctx.globalAlpha = yr;
+          ctx.fillStyle = '#f4f1e8';
+          ctx.font = `600 54px ${Ink.FONTS.mono}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(2008 + Math.round(8 * spin)), cx, cy + 92);
+        }
+        // the Activity rings close
+        const ringsA = fa * smooth(0.5, 0.72, u), close = smooth(0.55, 0.92, u);
+        if (ringsA > 0.003) {
+          ctx.lineWidth = 22;
+          for (const [on, off, r, f] of nxt.rings) {
+            ctx.globalAlpha = ringsA;
+            ctx.strokeStyle = off;
+            ctx.beginPath();
+            ctx.arc(cx, 214, r, 0, 2 * Math.PI);
+            ctx.stroke();
+            if (close > 0.003) {
+              ctx.strokeStyle = on;
+              ctx.beginPath();
+              ctx.arc(cx, 214, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * f * close);
+              ctx.stroke();
+            }
+          }
+          ctx.globalAlpha = fa * smooth(0.72, 0.9, u);
+          ctx.textBaseline = 'middle';
+          ctx.font = `500 32px ${Ink.FONTS.mono}`;
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#f4f1e8';
+          ctx.fillText('10:09', 312 - 22, 34);
+          ctx.font = `600 20px ${Ink.FONTS.mono}`;
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#a6ff00';
+          ctx.fillText('FRI 16', 22, 34);
+        }
+        ctx.restore();
+      }
+      // and it is the watch
+      if (real > 0.003) {
+        drawParts(nxt, childCam, npal, () => ({ ink: ink * real, pencil: pencil * real }), (p) => p.name === 'display');
+        drawGlass(nxt, childCam, npal, ink * real);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+
   function drawMachine(dev, cam, pal0, ink = 1, pencil = ink, depth = 0) {
     drawAtRest(dev, cam, pal0, ink, pencil);
     if (depth < 2 && dev.next.type === 'screen') drawPortalChild(dev, cam, 0, pal0, ink, pencil, depth);
@@ -462,6 +841,8 @@
       ui.idx.textContent = String(i + 1).padStart(2, '0');
       ui.kind.textContent = d.kind;
       ui.title.textContent = d.name;
+      // the buttons take on the interface of the machine you are looking at
+      document.body.dataset.era = d.era || 'print';
       ui.line.textContent = d.line;
       ui.verb.textContent = d.verb;
       ui.next.textContent = `${nx.name}, ${nx.year}`;

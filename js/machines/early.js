@@ -10,6 +10,7 @@
   // which used the same processor, assembles around it.
   add({
     name: 'Apple I',
+    era: 'apple2',
     year: '1976',
     kind: 'Circuit board',
     line: 'Hand-built in Los Altos and sold as a bare board. You supplied the case, the keyboard and the television.',
@@ -139,15 +140,16 @@
   const mono = 280, monoH = 232;
   add({
     name: 'Apple II',
+    era: 'apple2',
     year: '1977',
     kind: 'Personal computer',
     line: 'Colour graphics, sound and eight expansion slots in a moulded plastic case. It sold for sixteen years.',
-    verb: 'Zoom into what the screen is drawing',
+    verb: 'Zoom into Big Brother',
     tint: '#d9cfb6',
     tint2: '#55785a',
     view: { yaw: 30, pitch: 16 },
     fit: [700, 720],
-    next: { type: 'screen', bg: 'ink', look: 'phosphor', eggBg: 'ink' },
+    next: { type: 'screen', bg: 'ink', egg: '1984' },
     make(m) {
       // base pan and the inside of the case (seen only while it is being put together)
       m.part('base', { fly: { d: [0, 760], s: 1.25, at: [0.0, 0.45] } });
@@ -283,14 +285,30 @@
               ui: [mono, monoH],
               bg: 'ink',
               r: 1.4,
-              // RUN MACINTOSH draws the Macintosh in phosphor, line by line, below the prompt
-              portal: [90, 66, 172],
-              clip: [24, 104, 232, 112],
+              // 1984: Big Brother fills the tube until the hammer comes through it (drawn by the app);
+              // the Macintosh steps out of the light where his face was
+              portal: [64, 56, 172],
               draw(p, Wd, Ht) {
-                p.text('light', 'APPLE ][', Wd / 2, 16, 11, { lod: 0.5, weight: 600 });
-                const lines = [']CATALOG', ' A 012 MACINTOSH', ']RUN MACINTOSH'];
-                lines.forEach((l, i) => p.text('light', l, 12, 44 + i * 16, 10, { align: 'left', lod: 0.5 }));
-                p.text('light', ']', 12, 44 + 3 * 16, 10, { align: 'left', lod: 0.5 });
+                const g = '#bfe3b0';
+                p.text(g, ']LOAD 1984', 12, 18, 10, { align: 'left', lod: 0.5 });
+                p.text(g, ']RUN', 12, 32, 10, { align: 'left', lod: 0.5 });
+                // the face on the telescreen: head, round spectacles, a set mouth, collar and shoulders
+                const cx = 150, cy = 140;
+                p.fill('#26302a', ell2(cx, cy, 44, 56, 48), 0.5);
+                p.ring(g, ell2(cx, cy, 44, 56, 48), 1.6, 0.5);
+                p.gouge(g, [[cx - 40, cy - 18], [cx - 20, cy - 44], [cx + 14, cy - 50], [cx + 40, cy - 22]], 3, { taper: 0.3, lod: 0.5 });
+                for (const x of [cx - 17, cx + 17]) {
+                  p.ring(g, ell2(x, cy - 4, 12, 10, 28), 1.8, 0.5);
+                  p.fill(g, ell2(x, cy - 4, 3, 3, 12), 0.5);
+                }
+                p.gouge(g, [[cx - 5, cy - 6], [cx + 5, cy - 6]], 1.6, { smooth: false, lod: 0.5 });
+                p.gouge(g, [[cx, cy + 2], [cx - 3, cy + 18], [cx + 4, cy + 20]], 1.2, { lod: 0.5 });
+                p.gouge(g, [[cx - 14, cy + 32], [cx, cy + 34], [cx + 14, cy + 32]], 2, { taper: 0.2, lod: 0.5 });
+                p.gouge(g, [[cx - 30, cy + 24], [cx - 22, cy + 42]], 1, { lod: 1 });
+                p.gouge(g, [[cx + 30, cy + 24], [cx + 22, cy + 42]], 1, { lod: 1 });
+                p.gouge(g, [[cx - 96, Ht], [cx - 64, cy + 62], [cx - 22, cy + 52], [cx, cy + 74], [cx + 22, cy + 52], [cx + 64, cy + 62], [cx + 96, Ht]], 2.4, { taper: 0.1, lod: 0.5 });
+                // scan lines across the tube
+                for (let y = 1.5; y < Ht; y += 3) p.fill('#0b0907', [[0, y], [Wd, y], [Wd, y + 0.8], [0, y + 0.8]], 1);
               },
             });
           },
@@ -303,8 +321,8 @@
       // the cursor blinks after the prompt
       if (Math.floor(s.time * 2) % 2) return;
       ctx.globalAlpha = s.a;
-      ctx.fillStyle = s.pal.light;
-      ctx.fillRect(19, 44 + 3 * 16 - 6, 7, 12);
+      ctx.fillStyle = '#bfe3b0';
+      ctx.fillRect(40, 26, 7, 12);
     },
   });
 })();

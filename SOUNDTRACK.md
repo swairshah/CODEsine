@@ -16,7 +16,7 @@ All of this is copyrighted. The app now selects one song and a short sound bite 
 - [6. iPod, 2001](#6-ipod-2001)
 - [7. iPhone, 2007](#7-iphone-2007)
 - [8. MacBook Air, 2008](#8-macbook-air-2008)
-- [9. MacBook Air (M1), 2020](#9-macbook-air-m1-2020)
+- [9. Apple Watch, 2016](#9-apple-watch-2016)
 - [10. Apple M1, 2020](#10-apple-m1-2020)
 - [11. iMac 24″, 2021](#11-imac-24-2021)
 - [12. MacBook Pro 14″, 2021](#12-macbook-pro-14-2021)
@@ -144,19 +144,22 @@ No song is tied to PowerBook adverts, so these are 1990–91 hits.
 3. [MGMT, "Time to Pretend"](https://www.youtube.com/watch?v=B9dSYgd5Elk). 2008.
 4. [M.I.A., "Paper Planes"](https://www.youtube.com/watch?v=ewRjZoRtu0Y). 2008.
 
-## 9. MacBook Air (M1), 2020
+## 9. Apple Watch, 2016
+
+Apple Watch Series 2 was announced on 7 September 2016 and went on sale on 16 September. (The first Apple Watch shipped in April 2015.)
 
 **Sound bites**
 
-- [Apple Event, 10 November 2020](https://www.youtube.com/watch?v=5AwdkGKmZ0I&t=148s), 2:28–2:36. "But there is just one more thing. It's time to talk about the Mac." Apple's channel.
-- [Same event](https://www.youtube.com/watch?v=5AwdkGKmZ0I&t=1426s), 23:46–24:05. "This is the new MacBook Air with M1. The day the first MacBook Air was pulled out of that manila envelope, it defined the category of thin and light notebooks." Apple's channel. Also [26:51](https://www.youtube.com/watch?v=5AwdkGKmZ0I&t=1611s): "MacBook Air is completely silent."
+- [Apple Event, 7 September 2016](https://www.youtube.com/watch?v=NS0txu_Kzl8&t=1931s), 32:11–32:25. Jeff Williams: "The first Apple Watch was splashproof, and Apple Watch Series 2 is swimproof." Apple's channel. Timed from the auto-captions, ±0.5 s.
+- [Same event](https://www.youtube.com/watch?v=NS0txu_Kzl8&t=1922s), 32:02–32:11. "We call it Apple Watch Series 2, and it has been completely re-engineered."
+- [Apple Event, 9 September 2014](https://www.youtube.com/watch?v=38IqQpwPe7s&t=3338s), 55:38–55:52. Tim Cook: "But we're not quite finished yet. We have one more thing." The first Apple Watch. The word "thing" is missing from the captions, so the end is unconfirmed.
 
 **Songs**
 
-1. ★ [Tones and I, "Fly Away"](https://www.youtube.com/watch?v=R0vu5QfsD5E). Opened and closed the "One More Thing" event, November 2020.
-2. ★ [Kwame, "WOW"](https://www.youtube.com/watch?v=b7WgFJmwVxY). Australia's "Behind the Mac" advert for the M1 MacBook Air.
-3. [The Weeknd, "Blinding Lights"](https://www.youtube.com/watch?v=4NRXx6U8ABQ). 2020.
-4. [Dua Lipa, "Don't Start Now"](https://www.youtube.com/watch?v=oygrmJFKYZY). 2020.
+1. ★ [Nina Simone, "Sinnerman"](https://www.youtube.com/watch?v=4IACZdwwJI4). "Go Time", the Apple Watch Series 2 launch advert, September 2016.
+2. ★ [Beyoncé ft. Kendrick Lamar, "Freedom"](https://www.youtube.com/watch?v=7FWF9375hUA). The "Live Bright" Series 2 advert; from Lemonade, 2016.
+3. [Sia, "The Greatest"](https://www.youtube.com/watch?v=GKSRyLdjsPA). Sia performed it at the 7 September 2016 event.
+4. [The Chainsmokers ft. Halsey, "Closer"](https://www.youtube.com/watch?v=0zGcUoRlhmw). The hit of autumn 2016.
 
 ## 10. Apple M1, 2020
 

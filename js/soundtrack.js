@@ -74,9 +74,9 @@
         music: [yt('dvgZkm1xWPE', 0, null, 'Coldplay, Viva la Vida'), synth('folk08')],
       },
       {
-        name: 'MacBook Air (M1)',
-        bite: [yt('5AwdkGKmZ0I', 1426, 1437.6, 'Apple Event, 10 November 2020', 'This is the new MacBook Air with M1.', 'Apple Event, November 2020'), voice('08', 'One more thing.', 'Apple silicon Mac event, 2020', 'lid')],
-        music: [yt('oygrmJFKYZY', 0, null, 'Dua Lipa, Don’t Start Now'), synth('ambient20')],
+        name: 'Apple Watch',
+        bite: [yt('NS0txu_Kzl8', 1931.8, 1945.4, 'Apple Event, 7 September 2016', 'The first Apple Watch was splashproof, and Apple Watch Series 2 is swimproof.', 'Jeff Williams, Apple Event, September 2016'), voice('08', 'Apple Watch Series 2 is swimproof.', 'Apple Watch introduction, 2016', 'shimmer')],
+        music: [yt('4IACZdwwJI4', 0, null, 'Nina Simone, Sinnerman'), synth('ambient20')],
       },
       {
         name: 'Apple M1',

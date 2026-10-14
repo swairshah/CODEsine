@@ -5,3 +5,4 @@ audio/**/*.m4a
 audio/**/*.wav
 audio/previews/
 .DS_Store
+__pycache__/

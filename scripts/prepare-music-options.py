@@ -28,7 +28,7 @@ STYLES = [
     ['Instrumental breakbeat', 'Guitar rock', 'Hip-hop and dance', 'French house'],
     ['Light indie pop', 'Gentle acoustic pop', 'Electronic hip-hop', 'Pop and R&B'],
     ['Acoustic folk-pop', 'Orchestral pop', 'Psychedelic synth-pop', 'Alternative hip-hop'],
-    ['Uplifting pop', 'Australian hip-hop', 'Retro synth-pop', 'Disco-pop'],
+    ['Soul and jazz', 'R&B and hip-hop', 'Anthemic pop', 'Electronic pop'],
     ['Disco-pop', 'Bright funk-pop', 'Soft disco groove', 'Robotic electronic'],
     ['Soul and funk', 'Electronic dance', 'Pop and hip-hop', 'Warm indie pop'],
     ['Dark electronic', 'Apple-sound collage', 'Brass and hip-hop', 'Fast synth-pop'],

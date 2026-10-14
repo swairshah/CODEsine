@@ -1,4 +1,4 @@
-// late.js: MacBook Air (M1), Apple M1, iMac 24-inch, MacBook Pro 14-inch, Mac mini. Units are centimetres.
+// late.js: Apple Watch, Apple M1, iMac 24-inch, MacBook Pro 14-inch, Mac mini. Units are centimetres.
 'use strict';
 
 (function () {
@@ -30,95 +30,82 @@
     }
   }
 
-  // ---------- MacBook Air (M1), 2020 ----------
-  // The same wedge as 2008, and inside it the first Apple silicon Mac chip, with no fan at all.
-  // Zooming in lifts the lid and the keyboard away and drops you onto the M1.
-  const silver = { base: 0.96, gap: 7, w: 1.3, sheen: 0.16 };
-  const W1 = 30.41, D1 = 21.24, H1 = 1.61, F1 = 0.41;
+  // ---------- Apple Watch Series 2, 2016 ----------
+  // A 42 mm aluminium case lying face up, its sport band laid out above and below, the Activity face
+  // on the display. Inside, under the display, the S2: Apple silicon on the wrist, which is where the
+  // Mac's own chip comes from. Zooming in lifts the display away and drops you onto it.
+  const alum = { base: 0.95, gap: 5, w: 1.0, sheen: 0.2 };
+  const band = { base: 0.9, fill: 'tint', gap: 4, w: 0.9 };
+  const CW = 3.64, CD = 4.25, CH = 1.14;
+  // the Activity face, in the display's own pixels (312 × 390)
+  const RINGS = [['#fa114f', '#3d0816', 120, 0.82], ['#a6ff00', '#2a3d06', 92, 0.64], ['#00d8ff', '#063a42', 64, 0.92]];
+  function activityFace(p, W, H) {
+    const cx = W / 2, cy = 214;
+    for (const [on, off, r, f] of RINGS) {
+      const arc = (a0, a1) => Array.from({ length: 49 }, (_, i) => { const a = a0 + ((a1 - a0) * i) / 48; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
+      p.gouge(off, arc(0, Math.PI * 2), 22, { taper: 0, lod: 0.5 });
+      p.gouge(on, arc(-Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f), 22, { taper: 0, lod: 0.5 });
+    }
+    p.text('#f4f1e8', '10:09', W - 22, 34, 32, { align: 'right', weight: 500, lod: 0.5 });
+    p.text('#a6ff00', 'FRI 16', 22, 34, 20, { align: 'left', weight: 600, lod: 0.5 });
+  }
   add({
-    name: 'MacBook Air (M1)',
-    year: '2020',
-    kind: 'Notebook',
-    line: 'The same tapered wedge, now with no fan. Inside, the first Apple silicon chip in a Mac.',
+    name: 'Apple Watch',
+    era: 'watch',
+    year: '2016',
+    kind: 'Watch',
+    line: 'Series 2: swimproof to 50 metres, built-in GPS, and an Apple-designed S2 chip inside.',
     verb: 'Go inside to the chip',
-    tint: '#9c9c96',
-    tint2: '#33473d',
-    view: { yaw: 26, pitch: 27 },
-    fit: [800, 690],
+    tint: '#d9b3a4',
+    tint2: '#1d1d1f',
+    view: { yaw: -14, pitch: 46 },
+    fit: [560, 760],
     next: { type: 'inside', align: true, bg: 'light' },
+    rings: RINGS,
     make(m) {
-      const x0 = -W1 / 2, z0 = -D1 / 2;
-      const topY = (z) => H1 + ((F1 - H1) * (z - z0)) / D1;
+      const x0 = -CW / 2, z0 = -CD / 2;
+      m.part('bands');
+      shadowOp(m, [[-1.1, 0, z0 - 5.3], [1.1, 0, z0 - 5.3], [1.1, 0, -z0 + 6.0], [-1.1, 0, -z0 + 6.0]], 1.5, 2);
+      shadowOp(m, rr2(x0, z0, CW, CD, 0.95, 4).map(([px, pz]) => [px, 0, pz]), 2.5, 3);
+      tableLine(m, [-7, 0, 6], [7, 0, 6]);
+      // the sport band: the pin half above, the holed half below, each ending in a rounded tip
+      m.part('bandTop', { fly: { d3: [0, 0, -10] } });
+      m.box(-1.1, 0.12, z0 - 5.4, 2.2, 0.36, 5.7, band, { r: 1.0 });
+      m.part('bandBottom', { fly: { d3: [0, 0, 10] } });
+      m.box(-1.1, 0.12, -z0 - 0.3, 2.2, 0.36, 6.4, band, {
+        r: 1.0,
+        faces: { top(F) { F.draw((p) => { for (let i = 0; i < 5; i++) { p.fill('ink', ell2(1.1, 1.6 + i * 0.85, 0.13, 0.13, 10), 1); } }); } },
+      });
+      // the case: aluminium walls and back, the Digital Crown and the side button on the right
       m.part('case');
-      shadowOp(m, [[x0, 0, z0], [-x0, 0, z0], [-x0, 0, -z0], [x0, 0, -z0]], 8, 4);
-      tableLine(m, [-26, 0, 14], [26, 0, 14]);
-      m.box(x0, 0, z0, W1, H1, D1, silver, { hf: F1, r: 1.3, skip: ['top'] });
-      // inside: the board near the hinge, the M1, speakers at the sides, six battery cells
+      m.box(x0, 0, z0, CW, CH - 0.2, CD, alum, { r: 0.95, skip: ['top'] });
+      m.cyl([-x0 + 0.12, CH * 0.55, z0 + 1.15], 0.36, 0.34, 'x', { base: 0.9, gap: 2, w: 0.6, sheen: 0.2 });
+      m.box(-x0 - 0.02, CH * 0.3, z0 + 2.2, 0.14, 0.42, 1.3, { base: 0.88, gap: 2, w: 0.6 }, { r: 0.12 });
+      // inside: the battery, the Taptic Engine and the S2 system in package
       m.part('inside');
-      m.flat([[x0 + 0.3, 0.12, z0 + 0.3], [-x0 - 0.3, 0.12, z0 + 0.3], [-x0 - 0.3, 0.12, -z0 - 0.3], [x0 + 0.3, 0.12, -z0 - 0.3]], { base: 0.4, dark: true, fill: 'ink', gap: 5, w: 1 }, { n: [0, 1, 0] });
-      m.box(x0 + 6, 0.12, z0 + 1.4, 18.4, 0.12, 7.2, { base: 0.92, fill: 'tint2', gap: 5, w: 1.1, shade: false }, {
-        faces: {
-          top(F) {
-            F.draw((p) => {
-              for (let i = 0; i < 9; i++) p.fill('warm', rr2(1 + i * 1.8, 6.2, 0.6, 0.3, 0.05), 1);
-              p.text('light', 'APPLE M1', 3.4, 1.0, 0.36, { lod: 2 });
-            });
-          },
-        },
+      m.flat([[x0 + 0.2, CH - 0.25, z0 + 0.2], [-x0 - 0.2, CH - 0.25, z0 + 0.2], [-x0 - 0.2, CH - 0.25, -z0 - 0.2], [x0 + 0.2, CH - 0.25, -z0 - 0.2]], { base: 0.35, dark: true, fill: 'ink', gap: 2, w: 0.6 }, { n: [0, 1, 0] });
+      m.box(x0 + 0.4, CH - 0.25, z0 + 0.4, 2.8, 0.12, 1.4, { base: 0.97, fill: 'warm', gap: 2, w: 0.6 }, {
+        faces: { top(F) { F.draw((p) => p.text('earth', 'Li-ion 334 mAh', 1.4, 0.7, 0.2, { lod: 2 })); } },
       });
-      for (const [x, z] of [[x0 + 8, z0 + 2.4], [x0 + 19.6, z0 + 2.4], [x0 + 20.2, z0 + 5.6]]) m.box(x, 0.24, z, 1.6, 0.14, 1.2, { base: 0.3, dark: true, fill: 'ink', gap: 3, w: 1 });
-      m.box(-1.7, 0.24, z0 + 2.4, 3.4, 0.16, 2.64, { base: 0.95, gap: 4, w: 1 }, {
-        faces: { top(F) { F.model.mark('chip', F, 0, 0, F.w, F.h); F.draw((p) => p.text('ink', 'M1', 1.7, 1.32, 0.7, { weight: 600, lod: 1 })); } },
+      m.box(x0 + 0.5, CH - 0.25, -z0 - 1.1, 1.0, 0.1, 0.7, { base: 0.5, gap: 2, w: 0.6 });
+      m.box(-0.75, CH - 0.25, -0.2, 1.5, 0.08, 1.7, { base: 0.25, dark: true, fill: 'ink', gap: 2, w: 0.5 }, {
+        faces: { top(F) { F.model.mark('chip', F, 0, 0, F.w, F.h); F.draw((p) => p.text('earth', 'S2', 0.75, 0.85, 0.42, { weight: 600, lod: 1 })); } },
       });
-      for (const x of [x0 + 0.9, -x0 - 4.1]) m.box(x, 0.12, z0 + 1.4, 3.2, 0.5, 7.4, { base: 0.4, dark: true, fill: 'ink', gap: 3, w: 1 }, { faces: { top(F) { F.draw((p) => p.dots('earth', rr2(0.3, 0.3, 2.6, 6.8, 0.2), 0.45, 0.1)); } } });
-      for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
-        m.box(x0 + 2 + c * 9.0, 0.12, z0 + 9.6 + r * 5.2, 8.4, 0.28, 4.8, { base: 0.97, fill: 'warm', gap: 6, w: 1.1 }, {
-          faces: { top(F) { F.draw((p) => p.text('earth', 'Li-ion polymer', 4.2, 2.4, 0.42, { lod: 2 })); } },
-        });
-      }
-      // the keyboard deck, which lifts off
-      m.part('deck', { peel: [0.08, 0.34], lift: [0, -260] });
-      const plan = rr2(x0, z0, W1, D1, 1.3, 5);
-      const L = Math.hypot(D1, F1 - H1);
-      m.flat(plan.map(([px, pz]) => [px, topY(pz), pz]), silver, {
-        n: V3.norm([0, D1, -(F1 - H1)]),
-        frame: { o: [x0, H1, z0], U: [1, 0, 0], V: [0, (F1 - H1) / L, D1 / L], w: W1, h: L },
-        edge: 1.1,
+      // the display, which lifts off: a rounded slab of glass on the case, the Activity face in it
+      m.part('display', { peel: [0.0, 0.3], lift: [0, -320] });
+      const plan = rr2(x0, z0, CW, CD, 0.95, 6);
+      m.watchTop = plan.map(([px, pz]) => [px, CH, pz]);
+      m.flat(m.watchTop, alum, {
+        n: [0, 1, 0],
+        frame: { o: [x0, CH, z0], U: [1, 0, 0], V: [0, 0, 1], w: CW, h: CD },
+        edge: 1,
         deco(F) {
-          F.draw((p) => p.fill('ink', rr2(2.5, 1.2, W1 - 5, 10.6, 0.4)));
-          keyboard(F, 2.8, 1.4, W1 - 5.6, 10.2, [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.5],
-            [1.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1.75, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.75],
-            [2.25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.25],
-            [1, 1, 1.25, 5.5, 1.25, 1, 1, 1, 1],
-          ], { cap: 'ink', hi: 'earth', shadow: false });
-          F.draw((p) => {
-            p.ring('earth', rr2(W1 - 3.85, 1.6, 1.0, 0.7, 0.1), F.px(1), 1);
-            p.fill('light', rr2(8.6, 12.7, 13.2, 8.2, 0.5));
-            p.ring('ink', rr2(8.6, 12.7, 13.2, 8.2, 0.5), F.px(1.2), 0.5);
-          });
+          F.draw((p) => p.fill('ink', rr2(0.12, 0.12, CW - 0.24, CD - 0.24, 0.82)));
+          F.model.mark('display', F, 0.38, 0.4, CW - 0.76, CD - 0.8);
+          screen(F, [0.38, 0.4, CW - 0.76, CD - 0.8], { ui: [312, 390], bg: 'ink', r: 0.5, draw: activityFace });
         },
       });
-      // the lid, which swings away first
-      m.part('lid', { peel: [0.0, 0.24], lift: [0, -420] });
-      m.box(-10, H1 - 0.1, z0 - 0.3, 20, 0.5, 0.6, { base: 0.25, dark: true, fill: 'ink', gap: 3, w: 1 });
-      m.rotX(-24, [0, H1, z0 + 0.2], () => {
-        m.slab(rr2(x0, H1, W1, 20.2, 1.1), z0 - 0.15, z0 + 0.32, silver, {
-          faces: {
-            front(F) {
-              F.draw((p) => {
-                p.fill('ink', rr2(0.4, 0.4, W1 - 0.8, 19.4, 0.8));
-                p.fill('earth', ell2(W1 / 2, 0.75, 0.1, 0.1, 10), 1);
-                p.text('earth', 'MacBook Air', W1 / 2, 19.35, 0.36, { lod: 1 });
-              });
-              screen(F, [1.0, 1.1, W1 - 2.0, 17.6], { ui: [320, 197], bg: 'tint2', draw: (p, W, H) => modernDesktop(p, W, H) });
-            },
-          },
-        });
-      });
-      note(m, [-22, 0, 16], 'no fan: the M1 runs cool enough');
+      note(m, [-6.5, 0, 5], 'swimproof to 50 m');
     },
   });
 
@@ -128,6 +115,7 @@
   // assembles around it.
   add({
     name: 'Apple M1',
+    era: 'bigsur',
     year: '2020',
     kind: 'System on a chip',
     line: '16 billion transistors on a 5 nm die, with the memory sitting beside it on the same package.',
@@ -187,6 +175,7 @@
   const W2 = 54.7, Y0 = 10, H2 = 36.1;
   add({
     name: 'iMac 24″',
+    era: 'bigsur',
     year: '2021',
     kind: 'All-in-one',
     line: 'Eleven and a half millimetres thin, seven colours, and the same M1 inside, tucked into the chin.',
@@ -306,6 +295,7 @@
   const W3 = 31.26, D3 = 22.12;
   add({
     name: 'MacBook Pro 14″',
+    era: 'bigsur',
     year: '2021',
     kind: 'Notebook',
     line: 'MagSafe, HDMI and the SD card slot came back. The camera moved into a notch at the top of the screen.',
@@ -397,6 +387,7 @@
   const W4 = 12.7, H4 = 5.0;
   add({
     name: 'Mac mini',
+    era: 'bigsur',
     year: '2024',
     kind: 'Desktop',
     line: 'Five inches square, with the power button tucked underneath. Inside, the M4.',

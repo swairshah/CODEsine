@@ -168,22 +168,22 @@
       }
     },
     {
-      "name": "MacBook Air (M1)",
+      "name": "Apple Watch",
       "bite": {
         "file": "audio/custom/08-bite.mp3",
-        "url": "https://www.youtube.com/watch?v=5AwdkGKmZ0I",
-        "start": 1426,
-        "end": 1437.6,
-        "title": "Apple Event, 10 November 2020",
-        "line": "This is the new MacBook Air with M1.",
-        "source": "Apple Event, November 2020"
+        "url": "https://www.youtube.com/watch?v=NS0txu_Kzl8",
+        "start": 1931.8,
+        "end": 1945.4,
+        "title": "Apple Event, 7 September 2016",
+        "line": "The first Apple Watch was splashproof, and Apple Watch Series 2 is swimproof.",
+        "source": "Jeff Williams, Apple Event, September 2016"
       },
       "music": {
         "file": "audio/custom/08-music.mp3",
-        "url": "https://www.youtube.com/watch?v=oygrmJFKYZY",
+        "url": "https://www.youtube.com/watch?v=4IACZdwwJI4",
         "start": 0,
         "end": null,
-        "title": "Dua Lipa, Don’t Start Now"
+        "title": "Nina Simone, Sinnerman"
       }
     },
     {

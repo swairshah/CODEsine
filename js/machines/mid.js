@@ -69,6 +69,7 @@
   const macBeige = { base: 0.98, fill: 'tint', gap: 7, w: 1.6 };
   add({
     name: 'Macintosh 128K',
+    era: 'system1',
     year: '1984',
     kind: 'All-in-one',
     line: 'A 9-inch screen, a mouse and 128 KB of memory in one upright box. The team’s signatures are moulded inside the case.',
@@ -179,6 +180,7 @@
   const pbGrey = { base: 0.5, dark: true, fill: 'tint', gap: 6, w: 1.5 };
   add({
     name: 'PowerBook 100',
+    era: 'system7',
     year: '1991',
     kind: 'Notebook',
     line: 'The keyboard moved back and the trackball moved to the centre, which set the shape of laptops for decades.',
@@ -293,6 +295,7 @@
   const bondi = { base: 0.95, fill: 'tint', gap: 7, w: 1.6 };
   add({
     name: 'iMac G3',
+    era: 'platinum',
     year: '1998',
     kind: 'All-in-one',
     line: 'Translucent Bondi Blue plastic, a handle on top, and no floppy drive at all.',
@@ -383,6 +386,7 @@
   const steel = { base: 0.86, fill: 'tint', gap: 3.2, w: 1.1, sheen: 0.22 };
   add({
     name: 'iPod',
+    era: 'ipod',
     year: '2001',
     kind: 'Music player',
     line: 'A 5 GB hard drive and a scroll wheel that really turned. A thousand songs in your pocket.',
@@ -492,6 +496,7 @@
   const apps = ['Text', 'Calendar', 'Photos', 'Camera', 'YouTube', 'Stocks', 'Maps', 'Weather', 'Clock', 'Calculator', 'Notes', 'Settings'];
   add({
     name: 'iPhone',
+    era: 'iphone',
     year: '2007',
     kind: 'Phone',
     line: 'A widescreen iPod, a phone and an internet communicator in one. The clocks in every ad read 9:41.',
@@ -500,7 +505,7 @@
     tint2: '#6f8fb4',
     view: { yaw: 20, pitch: 7 },
     fit: [600, 740],
-    next: { type: 'screen', bg: 'tint2', eggBg: '#5b8ac2' },
+    next: { type: 'screen', bg: 'tint2', eggBg: '#5b8ac2', egg: 'mail' },
     make(m) {
       shadowOp(m, [[-3, 0, -0.6], [3, 0, -0.6], [3, 0, 0.6], [-3, 0, 0.6]], 16, 2);
       tableLine(m, [-7, 0, 2], [9, 0, 2]);
@@ -571,19 +576,23 @@
   const air = { base: 0.95, gap: 7, w: 1.3, sheen: 0.16 };
   add({
     name: 'MacBook Air',
+    era: 'aqua',
     year: '2008',
     kind: 'Notebook',
     line: 'Pulled out of an interoffice envelope on stage. 0.76 inches at its thickest point.',
-    verb: 'Go forward in Time Machine',
+    verb: 'Open Time Machine, and go forward',
     tint: '#c9a86e',
     tint2: '#6f6aa6',
     view: { yaw: -24, pitch: 24 },
     fit: [800, 680],
-    next: { type: 'screen', bg: 'ink', eggBg: 'light' },
+    next: { type: 'screen', bg: 'ink', egg: 'clock' },
     make(m) {
-      // the envelope, on the table under the laptop
+      // the envelope, on the table under the laptop; its own part, so the iPhone's Mail icon can
+      // open it and pull the laptop out (corners back-left, back-right, front-right, front-left)
       const a = (-9 * Math.PI) / 180, ca = Math.cos(a), sa = Math.sin(a);
       const env = [[-21, -15], [19, -15], [19, 15], [-21, 15]].map(([x, z]) => [x * ca - z * sa + 2, 0.02, x * sa + z * ca + 2]);
+      m.envelope = env;
+      m.part('envelope');
       m.flat(env, { base: 0.98, fill: 'tint', gap: 9, w: 1.2 }, {
         edge: 1.4,
         deco(F) {
@@ -607,6 +616,7 @@
           });
         },
       });
+      m.part('laptop');
       shadowOp(m, [[-16, 0, -11], [16, 0, -11], [16, 0, 11], [-16, 0, 11]], -3, 4);
       // the base alone: the 0.76 inches is base and lid together, closed
       m.box(-16.25, 0, -11.35, 32.5, 1.25, 22.7, air, {
@@ -642,44 +652,25 @@
               screen(F, [1.3, 1.3, 29.9, 18.7], {
                 ui: [320, 200],
                 bg: 'ink',
-                // Time Machine, run forwards: its window stack falls away into the stars, and the
-                // front window, a dozen years on, holds the next MacBook Air
-                portal: [80, 36, 160],
-                clip: [72, 60, 176, 114],
+                // Leopard: the aurora, the menu bar and the reflective Dock. Time Machine's clock in
+                // the Dock is drawn by the app: zoom in and it runs forward to 2016 and becomes a watch.
+                portal: [194, 167, 18],
                 draw(p, W, H) {
-                  // the starfield and a band of nebula along the horizon
-                  let r = 7;
-                  const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
-                  for (let i = 0; i < 160; i++) { const x = rnd() * W, y = rnd() * H, k = 0.25 + rnd() * 0.6; p.fill(i % 7 ? 'graphite2' : 'light', ell2(x, y, k, k, 6), 1); }
-                  for (let i = 0; i < 5; i++) {
+                  for (let i = 0; i < 9; i++) {
                     const pts = [];
-                    for (let k = 0; k <= 10; k++) pts.push([-10 + k * 34, 30 + i * 5 + 8 * Math.sin(k * 0.7 + i)]);
-                    p.gouge(i % 2 ? 'umber' : 'tint2', pts, 3 - i * 0.4, { taper: 0.2, lod: 0.5 });
+                    for (let k = 0; k <= 12; k++) pts.push([-10 + k * 30, 70 + i * 9 + 26 * Math.sin(k * 0.55 + i * 0.4) - k * 2]);
+                    p.gouge(i % 2 ? 'tint2' : 'tint', pts, 6 - i * 0.4, { taper: 0.1, lod: 0.5 });
                   }
-                  // the receding windows, each one further back in time
-                  const win = (x, y, w, h, role, bar) => {
-                    p.fill(role, rr2(x, y, w, h, 2), 0.5);
-                    p.ring('ink', rr2(x, y, w, h, 2), 0.5, 0.5);
-                    p.fill(bar, rr2(x, y, w, h * 0.1, 2), 0.5);
-                  };
-                  [[0.36, 'umber', 'earth'], [0.46, 'earth', 'graphite2'], [0.58, 'graphite2', 'warm'], [0.72, 'warm', 'paper'], [0.86, 'paper', 'warm']].forEach(([k, role, bar]) => {
-                    const w = 176 * k, h = 128 * k, y = 46 - (1 - k) * 40;
-                    win(160 - w / 2, y, w, h, role, bar);
+                  p.fill('light', [[0, 0], [W, 0], [W, 8], [0, 8]], 0.5);
+                  p.text('ink', 'Finder   File   Edit   View   Go   Window   Help', 12, 4.2, 4.6, { align: 'left', lod: 1 });
+                  const shelf = [[52, 178], [268, 178], [282, 196], [38, 196]];
+                  p.fill('umber', shelf, 0.5);
+                  p.ring('light', shelf, 0.8, 0.5);
+                  const names = ['Finder', 'Mail', 'Safari', 'iChat', 'iTunes', 'iPhoto', 'TimeMachine', 'Preferences', 'Trash'];
+                  names.forEach((n, i) => {
+                    if (n === 'TimeMachine') return;
+                    p.fill(['tint', 'paper', 'tint2', 'light'][i % 4], rr2(62 + i * 22, 167, 18, 18, 3), 0.5);
                   });
-                  // the front window
-                  p.fill('light', rr2(72, 46, 176, 128, 3), 0.5);
-                  p.ring('ink', rr2(72, 46, 176, 128, 3), 0.8, 0.5);
-                  p.fill('warm', rr2(72, 46, 176, 14, 3), 0.5);
-                  ['#c45a48', '#d9a94a', '#6a9e52'].forEach((c, i) => p.fill(c, ell2(80 + i * 6, 53, 2, 2, 10), 0.5));
-                  p.text('ink', 'MacBook Air  ·  10 November 2020', 160, 53, 4.6, { lod: 1, weight: 600 });
-                  // the timeline down the right edge, and the two buttons
-                  for (let i = 0; i < 26; i++) { const y = 18 + i * 6, w = i % 5 ? 3 : 7; p.fill('light', [[312 - w, y], [312, y], [312, y + 0.6], [312 - w, y + 0.6]], 1); }
-                  p.text('light', '2020', 300, 22, 4.4, { align: 'right', lod: 1 });
-                  p.text('light', 'Today', 300, 172, 4.4, { align: 'right', lod: 1 });
-                  for (const [x, t] of [[112, 'Cancel'], [208, 'Restore']]) {
-                    p.fill('warm', rr2(x - 18, 181, 36, 10, 5), 0.5);
-                    p.text('ink', t, x, 186, 4.6, { lod: 1, weight: 600 });
-                  }
                 },
               });
             },

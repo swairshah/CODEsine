@@ -6,7 +6,7 @@
 <title>Engraved Machines</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IM+Fell+English:ital@0;1&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IM+Fell+English:ital@0;1&family=Pixelify+Sans:wght@500;600&family=VT323&display=swap">
 <style>
   /* A single paper look, on purpose: this is a print. Layout: a full-bleed relief print; caption top-left, tools top-right, a year rail along the foot. */
   :root {
@@ -103,6 +103,45 @@
   .tools button:focus-visible, .rail button:focus-visible { outline: 2px solid var(--earth); outline-offset: 2px; }
   .tools button span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
   .tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  /* The buttons take on the interface of the machine on screen, era by era. */
+  .tools button { transition: background 0.4s, color 0.4s, border-color 0.4s, border-radius 0.4s, box-shadow 0.4s; }
+  /* Apple I and II: the monitor's phosphor */
+  body[data-era="apple2"] .tools button { background: #14110e; color: #bfe3b0; border: 2px solid #3b3127; border-radius: 3px; font-family: "VT323", monospace; font-size: 1.25rem; }
+  body[data-era="apple2"] .tools button span { font-size: 1.05rem; letter-spacing: 0.08em; }
+  body[data-era="apple2"] .tools button:hover, body[data-era="apple2"] .tools button[aria-pressed="true"] { background: #bfe3b0; color: #14110e; }
+  /* Macintosh, 1984: black on white, round-cornered, inverted when pressed */
+  body[data-era="system1"] .tools button, body[data-era="system7"] .tools button { background: #fff; color: #000; border: 1px solid #000; border-radius: 8px; font-family: "Pixelify Sans", monospace; font-weight: 600; }
+  body[data-era="system1"] .tools button span, body[data-era="system7"] .tools button span { text-transform: none; letter-spacing: 0.02em; font-size: 0.85rem; }
+  body[data-era="system1"] .tools button:hover, body[data-era="system1"] .tools button[aria-pressed="true"],
+  body[data-era="system7"] .tools button:hover, body[data-era="system7"] .tools button[aria-pressed="true"] { background: #000; color: #fff; }
+  /* System 7 on the PowerBook: the same, with a hard shadow */
+  body[data-era="system7"] .tools button { border-radius: 5px; box-shadow: 2px 2px 0 #000; }
+  /* Mac OS 8 Platinum: grey bevels */
+  body[data-era="platinum"] .tools button { background: #ddd; color: #000; border: 1px solid #5a5a5a; border-radius: 4px; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #9b9b9b; font: 700 0.8rem/1 Verdana, Geneva, sans-serif; }
+  body[data-era="platinum"] .tools button span { text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
+  body[data-era="platinum"] .tools button:hover, body[data-era="platinum"] .tools button[aria-pressed="true"] { background: #a8a8b8; color: #000; box-shadow: inset 1px 1px 0 #6d6d7a, inset -1px -1px 0 #e6e6ee; }
+  /* iPod: white plastic, and the grey-green LCD with its bitmap type when on */
+  body[data-era="ipod"] .tools button { background: linear-gradient(#fdfdfb, #e4e4e0); color: #2a2a2a; border: 1px solid #b9b9b3; border-radius: 14px; font-family: "Pixelify Sans", monospace; font-weight: 600; }
+  body[data-era="ipod"] .tools button span { text-transform: none; letter-spacing: 0.02em; font-size: 0.85rem; }
+  body[data-era="ipod"] .tools button:hover, body[data-era="ipod"] .tools button[aria-pressed="true"] { background: #b4bba2; color: #1d2219; border-color: #7d846c; }
+  /* iPhone, 2007: glossy blue navigation-bar buttons */
+  body[data-era="iphone"] .tools button { background: linear-gradient(#9bb2d1, #7690bb 50%, #6582b2 51%, #5675aa); color: #fff; border: 1px solid #2f4b7a; border-radius: 6px; text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.45); font: 700 0.85rem/1 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  body[data-era="iphone"] .tools button span { text-transform: none; letter-spacing: 0; font-size: 0.82rem; }
+  body[data-era="iphone"] .tools button:hover, body[data-era="iphone"] .tools button[aria-pressed="true"] { background: linear-gradient(#6d86b0, #4c6aa0 50%, #3e5d95 51%, #34548c); }
+  /* Mac OS X Leopard: Aqua pills, blue when on */
+  body[data-era="aqua"] .tools button { background: linear-gradient(#fefefe, #ececec 50%, #dcdcdc 51%, #f0f0f0); color: #000; border: 1px solid #8a8a8a; border-radius: 999px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.18); font: 400 0.82rem/1 "Lucida Grande", "Lucida Sans Unicode", sans-serif; padding: 0 14px; }
+  body[data-era="aqua"] .tools button span { text-transform: none; letter-spacing: 0; font-size: 0.8rem; }
+  body[data-era="aqua"] .tools button:hover, body[data-era="aqua"] .tools button[aria-pressed="true"] { background: linear-gradient(#d4e9ff, #89bdf5 50%, #5ea4ef 51%, #9fd0ff); border-color: #4a77b4; }
+  /* watchOS: black capsules */
+  body[data-era="watch"] .tools button { background: #1c1c1e; color: #fff; border: 1px solid #1c1c1e; border-radius: 999px; font: 600 0.82rem/1 system-ui, -apple-system, "Helvetica Neue", sans-serif; padding: 0 14px; }
+  body[data-era="watch"] .tools button span { text-transform: none; letter-spacing: 0; font-size: 0.82rem; }
+  body[data-era="watch"] .tools button:hover, body[data-era="watch"] .tools button[aria-pressed="true"] { background: #a6ff00; color: #000; border-color: #a6ff00; }
+  /* macOS Big Sur and after: soft translucent controls, the system blue when on */
+  body[data-era="bigsur"] .tools button { background: rgba(255, 255, 255, 0.72); color: #1d1d1f; border: 0.5px solid rgba(0, 0, 0, 0.16); border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); font: 500 0.82rem/1 system-ui, -apple-system, "Helvetica Neue", sans-serif; }
+  body[data-era="bigsur"] .tools button span { text-transform: none; letter-spacing: 0; font-size: 0.82rem; }
+  body[data-era="bigsur"] .tools button:hover { background: rgba(255, 255, 255, 0.95); }
+  body[data-era="bigsur"] .tools button[aria-pressed="true"] { background: #007aff; color: #fff; border-color: #007aff; }
   body.notes-off .cap { opacity: 0 !important; visibility: hidden; }
   body.notes-off .hint { display: none; }
 
@@ -236,14 +275,14 @@
   <div class="track"><div class="cursor" id="cursor"></div></div>
 </footer>
 
-<script src="js/ink.js?v=9"></script>
-<script src="js/geo.js?v=9"></script>
-<script src="js/kit.js?v=9"></script>
-<script src="js/soundtrack.js?v=9"></script>
-<script src="js/sound.js?v=9"></script>
-<script src="js/machines/early.js?v=9"></script>
-<script src="js/machines/mid.js?v=9"></script>
-<script src="js/machines/late.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/ink.js?v=11"></script>
+<script src="js/geo.js?v=11"></script>
+<script src="js/kit.js?v=11"></script>
+<script src="js/soundtrack.js?v=11"></script>
+<script src="js/sound.js?v=11"></script>
+<script src="js/machines/early.js?v=11"></script>
+<script src="js/machines/mid.js?v=11"></script>
+<script src="js/machines/late.js?v=11"></script>
+<script src="js/app.js?v=11"></script>
 </body>
 </html>
