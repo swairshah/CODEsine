@@ -103,6 +103,14 @@
   .tools button:focus-visible, .rail button:focus-visible { outline: 2px solid var(--earth); outline-offset: 2px; }
   .tools button span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
   .tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  /* the tools are symbols: arrows, play and pause, the notes' lines, a speaker */
+  .tools button { display: grid; place-items: center; min-width: 40px; padding: 0 9px; }
+  .tools button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tools button svg .fill { fill: currentColor; stroke: none; }
+  #b-play .i-pause, #b-play[aria-pressed="true"] .i-play { display: none; }
+  #b-play[aria-pressed="true"] .i-pause { display: block; }
+  #b-sound .i-on, #b-sound[aria-pressed="true"] .i-off { display: none; }
+  #b-sound[aria-pressed="true"] .i-on { display: inline; }
 
   /* The buttons take on the interface of the machine on screen, era by era. */
   .tools button { transition: background 0.4s, color 0.4s, border-color 0.4s, border-radius 0.4s, box-shadow 0.4s; }
@@ -260,11 +268,11 @@
 </header>
 
 <div class="tools">
-  <button type="button" id="b-out" aria-label="Zoom out to the previous machine">−</button>
-  <button type="button" id="b-in" aria-label="Zoom in to the next machine">+</button>
-  <button type="button" id="b-play" aria-pressed="false"><span>Play</span></button>
-  <button type="button" id="b-notes" aria-pressed="true"><span>Notes</span></button>
-  <button type="button" id="b-sound" aria-pressed="false"><span>Sound off</span></button>
+  <button type="button" id="b-out" aria-label="Previous machine" title="Previous machine (←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></button>
+  <button type="button" id="b-in" aria-label="Next machine" title="Next machine (→)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  <button type="button" id="b-play" aria-pressed="false" aria-label="Play" title="Play the whole loop (P)"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5.5v13l10.5-6.5z"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg></button>
+  <button type="button" id="b-notes" aria-pressed="true" aria-label="Notes" title="Show or hide the notes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 10h14M5 14h9M5 18h6"/></svg></button>
+  <button type="button" id="b-sound" aria-pressed="false" aria-label="Sound off" title="Sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="i-off" d="M16 9.5l5 5M21 9.5l-5 5"/><path class="i-on" d="M15.5 9a4.2 4.2 0 0 1 0 6M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/></svg></button>
 </div>
 
 <p class="hint" id="hint">Scroll down to travel into each machine, and up to come back out.</p>
@@ -275,14 +283,14 @@
   <div class="track"><div class="cursor" id="cursor"></div></div>
 </footer>
 
-<script src="js/ink.js?v=20"></script>
-<script src="js/geo.js?v=20"></script>
-<script src="js/kit.js?v=20"></script>
-<script src="js/soundtrack.js?v=20"></script>
-<script src="js/sound.js?v=20"></script>
-<script src="js/machines/early.js?v=20"></script>
-<script src="js/machines/mid.js?v=20"></script>
-<script src="js/machines/late.js?v=20"></script>
-<script src="js/app.js?v=20"></script>
+<script src="js/ink.js?v=23"></script>
+<script src="js/geo.js?v=23"></script>
+<script src="js/kit.js?v=23"></script>
+<script src="js/soundtrack.js?v=23"></script>
+<script src="js/sound.js?v=23"></script>
+<script src="js/machines/early.js?v=23"></script>
+<script src="js/machines/mid.js?v=23"></script>
+<script src="js/machines/late.js?v=23"></script>
+<script src="js/app.js?v=23"></script>
 </body>
 </html>

@@ -240,10 +240,12 @@
                 p.gouge('paper', [[2.6, 3.4], [14.6, 3.4]], 1.4 * k, { smooth: false, taper: 0.3 });
                 p.fill('umber', rr2(7.4, 1.0, 2.2, 3.6, 0.15));
                 p.gouge('earth', [[7.6, 1.2], [9.4, 1.2]], k, { smooth: false });
-                p.text('light', 'disk II', 1.4, 6.9, 1.2, { font: 'serif', weight: 600, align: 'left', lod: 0.5 });
-                p.text('light', 'IN USE ▸', 1.4, 5.3, 0.45, { align: 'left', lod: 1 });
-                p.fill('earth', ell2(4.4, 5.3, 0.22, 0.22, 10), 0.5);
-                p.text('light', 'DRIVE ' + n, 15.6, 6.9, 0.55, { align: 'right', lod: 1 });
+                // the badge every Disk II carried: the rainbow Apple and 'disk II'. (The two drives were
+                // told apart only by which connector on the controller card they were cabled to.)
+                Icons.apple(p, 1.95, 6.75, 1.25, { rainbow: true });
+                p.text('light', 'disk II', 2.85, 6.9, 1.2, { font: 'serif', weight: 600, align: 'left', lod: 0.5 });
+                p.text('light', 'IN USE', 1.4, 5.3, 0.45, { align: 'left', lod: 1 });
+                p.fill('#c4382c', ell2(3.9, 5.3, 0.22, 0.22, 10), 0.5);
               });
             },
             top(F) { F.draw((p) => p.gouge('earth', [[0.6, 1.5], [17, 1.5]], F.px(0.8), { smooth: false, lod: 1 })); },

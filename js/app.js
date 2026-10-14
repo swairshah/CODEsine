@@ -857,7 +857,7 @@
   soundBtn.addEventListener('click', () => {
     const onOff = window.Sound ? Sound.toggle() : false;
     soundBtn.setAttribute('aria-pressed', onOff ? 'true' : 'false');
-    soundBtn.querySelector('span').textContent = onOff ? 'Sound on' : 'Sound off';
+    soundBtn.setAttribute('aria-label', onOff ? 'Sound on' : 'Sound off');
     touched();
   });
 
@@ -869,7 +869,7 @@
   }
   function syncPlay() {
     ui.play.setAttribute('aria-pressed', S.playing ? 'true' : 'false');
-    ui.play.querySelector('span').textContent = S.playing ? 'Pause' : 'Play';
+    ui.play.setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
   }
   function touched() {
     if (S.touched) return;

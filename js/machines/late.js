@@ -301,8 +301,8 @@
               ui: [480, 270],
               bg: 'paper',
               // Safari on apple.com: the MacBook Pro page, and you zoom into its hero image
-              portal: [117, 54, 246],
-              clip: [10, 92, 460, 168],
+              portal: [153, 73, 174],
+              clip: [100, 100, 280, 122],
               draw(p, W, H) {
                 macWallpaper(p, W, H);
                 macMenuBar(p, W, 9, 'Safari', ['File', 'Edit', 'View', 'History', 'Bookmarks', 'Window', 'Help']);
@@ -321,12 +321,37 @@
                 p.fill('#f5f5f7', [[10, 36.6], [470, 36.6], [470, 48], [10, 48]], 0.5);
                 p.text('#1d1d1f', '', 60, 42.3, 6, { font: SYS, lod: 1 });
                 ['Store', 'Mac', 'iPad', 'iPhone', 'Watch', 'AirPods', 'TV & Home', 'Only on Apple', 'Accessories', 'Support'].forEach((t, i) => p.text('#1d1d1f', t, 84 + i * 33, 42.3, 3.8, { font: SYS, align: 'left', lod: 1 }));
-                // the MacBook Pro page: black, with the headline above the hero
-                p.fill('#000000', [[10, 48], [470, 48], [470, 262], [10, 262]], 0.5);
-                p.text('#f5f5f7', 'MacBook Pro', 240, 63, 14, { font: SYS, weight: 600, lod: 0.5 });
-                p.text('#c8a2f5', 'Supercharged for pros.', 240, 76, 6.5, { font: SYS, weight: 600, lod: 0.5 });
-                p.text('#2997ff', 'Learn more ›', 214, 86, 4.4, { font: SYS, lod: 1 });
-                p.text('#2997ff', 'Buy ›', 262, 86, 4.4, { font: SYS, lod: 1 });
+                // the MacBook Pro page, October 2021: its own dark navigation bar, then a black hero
+                p.fill('#1d1d1f', [[10, 48], [470, 48], [470, 57], [10, 57]], 0.5);
+                p.text('#f5f5f7', 'MacBook Pro', 30, 52.6, 5, { font: SYS, weight: 600, align: 'left', lod: 1 });
+                ['Overview', 'Why Mac', 'Tech Specs'].forEach((t, i) => p.text('#c7c7cc', t, 340 + i * 30, 52.6, 3.6, { font: SYS, align: 'left', lod: 1 }));
+                p.fill('#0071e3', rr2(434, 49.8, 18, 5.6, 2.8), 1);
+                p.text('#ffffff', 'Buy', 443, 52.6, 3.4, { font: SYS, weight: 600, lod: 1 });
+                p.fill('#000000', [[10, 57], [470, 57], [470, 262], [10, 262]], 0.5);
+                p.text('#f5f5f7', 'MacBook Pro', 240, 66, 6, { font: SYS, weight: 600, lod: 0.5 });
+                // the headline in its purple-to-blue gradient, done as two halves
+                p.withClip([60, 70, 240, 86], () => p.text('#d7a7ff', 'Supercharged for pros.', 240, 79, 13, { font: SYS, weight: 700, lod: 0.5 }));
+                p.withClip([240, 70, 420, 86], () => p.text('#8fb3ff', 'Supercharged for pros.', 240, 79, 13, { font: SYS, weight: 700, lod: 0.5 }));
+                p.text('#2997ff', 'Learn more ›', 222, 92, 4.4, { font: SYS, lod: 1 });
+                p.text('#2997ff', 'Buy ›', 262, 92, 4.4, { font: SYS, lod: 1 });
+                // the two chips either side of the laptop
+                const chip = (cx, name) => {
+                  p.fill('#2a2a2e', rr2(cx - 22, 138, 44, 44, 5), 0.5);
+                  p.ring('#55555c', rr2(cx - 22, 138, 44, 44, 5), 0.6, 0.5);
+                  Icons.apple(p, cx - 9, 160, 9, { role: '#f5f5f7' });
+                  p.text(name === 'M1 Pro' ? '#d7a7ff' : '#8fb3ff', name.toUpperCase(), cx + 6, 160.5, 5.4, { font: SYS, weight: 700, lod: 1 });
+                };
+                chip(58, 'M1 Pro');
+                chip(422, 'M1 Max');
+                p.text('#86868b', 'Up to 10-core CPU', 58, 190, 3.6, { font: SYS, lod: 1 });
+                p.text('#86868b', 'Up to 32-core GPU', 422, 190, 3.6, { font: SYS, lod: 1 });
+                // the figures across the foot of the hero
+                p.fill('#424245', [[60, 228], [420, 228], [420, 228.4], [60, 228.4]], 1);
+                [['Up to 21 hrs', 'battery life'], ['Up to 3.7x', 'faster CPU performance'], ['120Hz', 'ProMotion refresh rate'], ['1,000 nits', 'sustained brightness']].forEach(([big, small], i) => {
+                  const x = 105 + i * 90;
+                  p.text('#f5f5f7', big, x, 240, 7, { font: SYS, weight: 600, lod: 0.5 });
+                  p.text('#86868b', small, x, 250, 3.6, { font: SYS, lod: 1 });
+                });
               },
             });
           },

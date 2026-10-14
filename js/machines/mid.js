@@ -161,13 +161,43 @@
               [1.8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.2],
               [2.3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.7],
               [1.5, 1, 9, 1.5, 1.5],
-            ], { cap: 'tint2', hi: 'light', shadowRole: 'earth' });
+            ], {
+              cap: 'tint2', hi: 'light', shadowRole: 'earth',
+              // the M0110's legends: no arrow keys, no function keys; Option and the cloverleaf beside the space bar
+              legends: [
+                ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'Backspace'],
+                ['Tab', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\'],
+                ['Caps Lock', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'", 'Return'],
+                ['Shift', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 'Shift'],
+                ['Option', '⌘', '', 'Enter', 'Option'],
+              ],
+              legendRole: 'umber',
+            });
+            // the keyboard's case: a raised lip round the keys and a seam along its front
+            F.draw((p) => {
+              p.ring('earth', rr2(1.2, 1.0, 29.6, 12.0, 0.5), F.px(1.1), 0.5);
+              p.gouge('light', [[1.4, 0.75], [30.6, 0.75]], F.px(1.2), { smooth: false, lod: 1 });
+            });
           },
         },
       });
+      // the M0100 mouse: a beige box, rounded in plan, with one wide button across its back half
       m.box(18.2, 0, 17, 6, 3.0, 10, macBeige, {
         r: 1.4,
-        faces: { top(F) { F.draw((p) => { p.fill('tint2', rr2(0.5, 0.4, 5, 3.6, 0.6)); p.gouge('earth', [[0.4, 4.2], [5.6, 4.2]], F.px(1.2), { smooth: false }); }); } },
+        faces: {
+          top(F) {
+            F.draw((p) => {
+              const k = F.px(1);
+              p.fill('tint2', rr2(0.55, 0.45, 4.9, 3.7, 0.5));
+              p.ring('earth', rr2(0.55, 0.45, 4.9, 3.7, 0.5), 1.4 * k, 0.5);
+              p.gouge('light', [[0.8, 0.75], [5.2, 0.75]], 1.2 * k, { smooth: false, lod: 1 });
+              p.gouge('ink', [[0.7, 4.25], [5.3, 4.25]], 1.6 * k, { smooth: false });
+              // the seam where the top shell meets the base, a little way in from the edge
+              p.ring('earth', rr2(0.2, 0.2, 5.6, 9.6, 1.2), 0.7 * k, 1);
+            });
+          },
+          front(F) { F.draw((p) => p.gouge('earth', [[0.6, 0.9], [5.4, 0.9]], F.px(0.8), { smooth: false, lod: 1 })); },
+        },
       });
       note(m, [-20, 0, 36], 'no fan, no expansion slots');
     },
@@ -357,24 +387,53 @@
               r: 1.8,
               portal: [330, 102, 52],
               draw(p, W, H) {
+                // Mac OS 8.1, as the iMac shipped: Platinum menu bar and window, lavender folders, the
+                // 'Browse the Internet' and 'Mail' icons on the desktop, the Control Strip in the corner
+                const plat = '#dcdcdc', platD = '#9a9a9a', platL = '#f4f4f4', lav = '#a9aeea', lavD = '#4c518c';
                 Icons.menubar(p, W, ['File', 'Edit', 'View', 'Special', 'Help'], 16, { bg: 'light', rainbow: true });
-                // Mac OS 8's clock and the application menu at the right
-                p.text('ink', '9:41 AM', W - 36, 8.3, 9, { weight: 600, lod: 1 });
-                p.fill('ink', rr2(W - 16, 3, 10, 10, 1.5), 1);
-                p.fill('light', rr2(W - 14, 5, 6, 6, 1), 1);
-                Icons.window(p, 24, 40, 220, 150, 'Macintosh HD', { bar: 13, bg: 'light', stripes: true });
-                Pict.folder(p, 74, 78, 38, 'ink', 'light');
-                Icons.label(p, 74, 78, 38, 'System Folder', 'ink', 'light');
-                Pict.folder(p, 134, 78, 38, 'ink', 'light');
-                Icons.label(p, 134, 78, 38, 'Applications', 'ink', 'light');
-                Pict.folder(p, 194, 78, 38, 'ink', 'light');
-                Icons.label(p, 194, 78, 38, 'Documents', 'ink', 'light');
-                Icons.hd(p, 356, 26, 42, 'ink', 'light');
-                Icons.label(p, 356, 26, 42, 'Macintosh HD', 'light', 'tint2');
-                Icons.trash(p, 356, 236, 42, 'ink', 'light');
-                Icons.label(p, 356, 236, 42, 'Trash', 'light', 'tint2');
+                p.text('ink', '9:41 AM', W - 44, 8.3, 8.5, { weight: 600, lod: 1 });
+                // the application menu: the Finder's face
+                p.fill('#6f8fd8', rr2(W - 21, 3, 11, 10, 1.2), 1); p.fill('#dfe7fb', [[W - 15.5, 3], [W - 10, 3], [W - 10, 13], [W - 15.5, 13]], 1);
+                p.fill('ink', rr2(W - 18, 6, 1, 2.2, 0.3), 1); p.fill('ink', rr2(W - 13.3, 6, 1, 2.2, 0.3), 1);
+                const folder = (x, y, s, name, badge) => {
+                  p.fill(lav, [[x - s * 0.45, y + s * 0.2], [x - s * 0.1, y + s * 0.2], [x - s * 0.02, y + s * 0.12], [x + s * 0.45, y + s * 0.12], [x + s * 0.45, y + s * 0.78], [x - s * 0.45, y + s * 0.78]], 0.5);
+                  p.ring(lavD, [[x - s * 0.45, y + s * 0.2], [x - s * 0.1, y + s * 0.2], [x - s * 0.02, y + s * 0.12], [x + s * 0.45, y + s * 0.12], [x + s * 0.45, y + s * 0.78], [x - s * 0.45, y + s * 0.78]], 0.7, 0.5);
+                  p.fill('#c5c9f4', [[x - s * 0.45, y + s * 0.3], [x + s * 0.45, y + s * 0.3], [x + s * 0.45, y + s * 0.36], [x - s * 0.45, y + s * 0.36]], 1);
+                  if (badge) { p.fill('#6f8fd8', rr2(x - s * 0.13, y + s * 0.42, s * 0.26, s * 0.24, 1), 1); p.fill('#dfe7fb', [[x, y + s * 0.42], [x + s * 0.13, y + s * 0.42], [x + s * 0.13, y + s * 0.66], [x, y + s * 0.66]], 1); }
+                  p.text('ink', name, x, y + s * 0.98, s * 0.24, { lod: 1 });
+                };
+                // the Finder window
+                const wx = 22, wy = 34, ww = 228, wh = 168;
+                p.fill(plat, rr2(wx, wy, ww, wh, 1), 0.5);
+                p.ring('ink', rr2(wx, wy, ww, wh, 1), 0.8, 0.5);
+                for (let y = wy + 3; y < wy + 12; y += 1.8) for (const [a, b] of [[wx + 16, wx + 80], [wx + 148, wx + ww - 30]]) p.fill(platD, [[a, y], [b, y], [b, y + 0.7], [a, y + 0.7]], 1);
+                p.text('ink', 'Macintosh HD', wx + ww / 2, wy + 7.5, 7.5, { weight: 600, lod: 0.5 });
+                for (const bx of [wx + 4, wx + ww - 24, wx + ww - 12]) { p.fill(platL, rr2(bx, wy + 3, 8, 8, 0.5), 1); p.ring('ink', rr2(bx, wy + 3, 8, 8, 0.5), 0.5, 1); }
+                p.fill('ink', [[wx + ww - 22, wy + 9], [wx + ww - 18, wy + 9], [wx + ww - 18, wy + 5], [wx + ww - 22, wy + 5]], 1);
+                p.fill('ink', [[wx + ww - 10, wy + 7], [wx + ww - 6, wy + 7], [wx + ww - 6, wy + 7.6], [wx + ww - 10, wy + 7.6]], 1);
+                p.fill(platL, [[wx + 2, wy + 15], [wx + ww - 2, wy + 15], [wx + ww - 2, wy + 25], [wx + 2, wy + 25]], 0.5);
+                p.text('ink', '6 items, 3.1 GB available', wx + ww / 2, wy + 20, 5.6, { lod: 1 });
+                p.fill('#ffffff', [[wx + 2, wy + 26], [wx + ww - 13, wy + 26], [wx + ww - 13, wy + wh - 13], [wx + 2, wy + wh - 13]], 0.5);
+                // scroll bars, their arrows and the grow box
+                p.fill('#c8c8c8', [[wx + ww - 12, wy + 26], [wx + ww - 2, wy + 26], [wx + ww - 2, wy + wh - 13], [wx + ww - 12, wy + wh - 13]], 1);
+                p.fill('#c8c8c8', [[wx + 2, wy + wh - 12], [wx + ww - 13, wy + wh - 12], [wx + ww - 13, wy + wh - 2], [wx + 2, wy + wh - 2]], 1);
+                for (const [ax, ay, d] of [[wx + ww - 7, wy + 30, -1], [wx + ww - 7, wy + wh - 18, 1]]) p.fill('ink', [[ax - 2.4, ay - 1.2 * d], [ax + 2.4, ay - 1.2 * d], [ax, ay + 1.6 * d]], 1);
+                for (const [ax, ay, d] of [[wx + 7, wy + wh - 7, -1], [wx + ww - 18, wy + wh - 7, 1]]) p.fill('ink', [[ax - 1.2 * d, ay - 2.4], [ax - 1.2 * d, ay + 2.4], [ax + 1.6 * d, ay]], 1);
+                p.fill(platD, [[wx + ww - 11, wy + wh - 11], [wx + ww - 3, wy + wh - 11], [wx + ww - 3, wy + wh - 3], [wx + ww - 11, wy + wh - 3]], 1);
+                [['System Folder', true], ['Applications'], ['Documents'], ['Internet'], ['Utilities'], ['Assistants']].forEach(([n, b], k) => folder(wx + 40 + (k % 3) * 66, wy + 36 + Math.floor(k / 3) * 56, 34, n, b));
+                // the desktop: the hard disk, the iMac's own Internet and Mail icons, iTunes and the Trash
+                p.fill(plat, rr2(342, 30, 30, 15, 2), 0.5); p.ring('ink', rr2(342, 30, 30, 15, 2), 0.6, 0.5); p.fill('#4bbf4b', ell2(366, 40, 1.4, 1.4, 8), 1);
+                Icons.label(p, 357, 26, 30, 'Macintosh HD', 'light', 'tint2');
+                p.fill('#3d7fd6', ell2(296, 42, 13, 13, 30), 0.5); p.fill('#5fb35a', [[288, 34], [298, 32], [302, 40], [294, 48], [286, 44]], 0.5); p.fill('#5fb35a', [[300, 46], [308, 42], [306, 52]], 0.5); p.ring('ink', ell2(296, 42, 13, 13, 30), 0.6, 0.5);
+                Icons.label(p, 296, 31, 30, 'Browse the Internet', 'light', 'tint2');
+                p.fill('#f4f1e8', rr2(282, 104, 28, 19, 1), 0.5); p.ring('ink', rr2(282, 104, 28, 19, 1), 0.6, 0.5); p.gouge('ink', [[282.5, 104.5], [296, 115], [309.5, 104.5]], 0.7, { smooth: false, lod: 1 });
+                Icons.label(p, 296, 100, 30, 'Mail', 'light', 'tint2');
                 // the easter egg: the iPod, synced from iTunes (drawn into the portal by the app)
                 Icons.label(p, 356, 110, 46, 'iTunes', 'light', 'tint2');
+                // the Control Strip, tucked into the bottom-left corner
+                p.fill(plat, [[0, 290], [104, 290], [110, 296], [110, 305], [0, 305]], 0.5);
+                p.ring('ink', [[0, 290], [104, 290], [110, 296], [110, 305], [0, 305]], 0.5, 0.5);
+                ['#d9a441', '#6f8fd8', '#4bbf4b', '#c45a48', '#8e8e8e', '#6f72a8'].forEach((c, k) => p.fill(c, rr2(4 + k * 16, 293, 10, 9, 1), 1));
               },
             });
           },
@@ -382,7 +441,7 @@
       });
       note(m, [-30, 0, 30], 'no floppy drive, two USB ports');
     },
-    extras(ctx, s) { pointer(ctx, s, 372, 150); },
+    extras(ctx, s) { pointer(ctx, s, 372, 152); },
   });
 
   // ---------- iPod, 2001 ----------

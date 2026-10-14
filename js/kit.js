@@ -81,6 +81,8 @@
       if (o.well) p.fill(o.well, rr2(x - 0.3, y - 0.3, w + 0.6, h + 0.6, 0.3));
       const rh = h / rows.length;
       rows.forEach((row, r) => {
+        const names = o.legends ? o.legends[r] || [] : [];
+        let ki = 0;
         const keys = Array.isArray(row) ? row : Array(row).fill(1);
         const tot = keys.reduce((a, b) => a + Math.abs(b), 0);
         const unit = w / tot;
@@ -89,8 +91,14 @@
           if (kw < 0) { cx += unit * -kw; continue; }
           const kx = cx + unit * 0.08, ky = y + r * rh + rh * 0.08;
           const kww = unit * kw - unit * 0.16, khh = rh * 0.78;
+          const name = names[ki++];
           if (kx + kww <= x + w + 0.01) {
             p.fill(o.cap || 'umber', rr2(kx, ky, kww, khh, Math.min(kww, khh) * 0.18), 0.5);
+            // the legend printed on the key: centred if one character, top left if a word
+            if (name) {
+              const one = name.length <= 1;
+              p.text(o.legendRole || 'ink', name, one ? kx + kww / 2 : kx + kww * 0.12, ky + khh * (one ? 0.48 : 0.36), khh * (one ? 0.42 : 0.24), { align: one ? 'center' : 'left', lod: 1.2, weight: 500 });
+            }
             if (o.shadow !== false) p.gouge(o.shadowRole || 'ink', [[kx + 0.05, ky + khh], [kx + kww / 2, ky + khh + 0.04], [kx + kww - 0.05, ky + khh]], 1.6 * k, { lod: 1, taper: 0.2 });
             if (o.hi) {
               // light catches the top and left of each cap
@@ -189,7 +197,8 @@
       if (!o.rainbow) { p.fill(o.role || 'ink', B, o.lod ?? 0.5); p.fill(o.role || 'ink', Lf, o.lod ?? 0.5); return; }
       const bands = ['#61bb46', '#fdb827', '#f5821f', '#e03a3e', '#963d97', '#009ddc'];
       const top = y - size * 0.5, hgt = size;
-      bands.forEach((c, i) => p.withClip([x - size, top + (hgt * i) / 6, size * 2, hgt / 6 + 0.02], () => { p.fill(c, B, 0.5); p.fill(c, Lf, 0.5); }));
+      // withClip takes corners: [x0, y0, x1, y1]
+      bands.forEach((c, i) => p.withClip([x - size, top + (hgt * i) / 6, x + size, top + (hgt * (i + 1)) / 6 + 0.02], () => { p.fill(c, B, 0.5); p.fill(c, Lf, 0.5); }));
     },
     menubar(p, W, items, h, o = {}) {
       p.fill(o.bg || 'paper', [[0, 0], [W, 0], [W, h], [0, h]], 0.5);

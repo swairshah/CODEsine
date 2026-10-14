@@ -15,9 +15,9 @@ Open `index.html` in a browser. No build step or server is needed.
 ## Controls
 
 - Scroll down to travel into each machine and up to come back out. On a phone, swipe up and down. Pinch and drag gestures are turned off on purpose.
-- Use the arrow keys or the `−` and `+` buttons to step one machine. `p` or Play runs the whole loop.
-- Notes shows or hides the descriptions. Your choice is remembered in this browser.
-- Sound turns the soundtrack on or off. It starts off.
+- Use the ← and → keys or buttons to step one machine. `p` or ▶ runs the whole loop.
+- The Notes button (four lines) shows or hides the descriptions and the notes drawn beside each machine. Your choice is remembered in this browser.
+- The speaker turns the soundtrack on or off. It starts off.
 - Click a year on the rail to jump to it. `#iphone`, `#apple-m1` and similar names in the URL open on that machine.
 
 ## Sound

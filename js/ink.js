@@ -437,17 +437,19 @@
         else if (!dark) this.hatch(o.line ?? 'ink', poly, { angle: ang, gap: g * 1.35, swell: true, lod, step: Math.max(3, g * 0.8), wave: 0, unbroken: true, w: g * 0.5, tone: (x, y) => Math.pow(clamp((0.82 - T(x, y)) / 0.36, 0, 1.1), 1.2) });
         else this.wash('ink', poly, 0.3);
       } else if (o.hatch !== false && style === 'linocut') {
-        // Linocut: paper where the light is full, solid black in shadow, and carving only where the
-        // light changes: lines that swell out of the shadow and taper to nothing as the light grows,
-        // so each face shows its falloff rather than a texture.
-        const cut = { angle: ang, gap: g * 1.7, swell: true, unbroken: true, wave: 0, lod, step: Math.max(3, g * 0.8), taper: 0.5 };
-        if (dark || t0 < 0.5) {
+        // Linocut, sparing with lines: mid-tones are a flat wash, narrow faces (edges, rims) are never
+        // carved, and lines appear only where a surface really turns into shadow, swelling out of the
+        // dark and tapering to points as the light grows.
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        for (const q of poly) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
+        const span = Math.sqrt(Math.max(1, Math.abs(area(poly)))) * 1.2, narrow = Math.min(x1 - x0, y1 - y0, span) < g * 6;
+        const cut = { angle: ang, gap: g * 2.3, swell: true, unbroken: true, wave: 0, lod, step: Math.max(3, g * 0.9), taper: 0.6 };
+        if (dark || t0 < 0.42) {
           if (!dark) this.wash('ink', poly, 0.96);
-          // white cuts: widest where light reaches into the shadow, gone where it is darkest
-          this.hatch(o.cut ?? 'paper', poly, { ...cut, w: g * 0.75, tone: (x, y) => Math.pow(clamp((T(x, y) - 0.3) / 0.32, 0, 1), 1.3) });
+          if (!narrow) this.hatch(o.cut ?? 'paper', poly, { ...cut, w: g * 0.7, tone: (x, y) => Math.pow(clamp((T(x, y) - 0.36) / 0.3, 0, 1), 1.4) });
         } else {
-          // black lines: heavy where the face turns from the light, thinning to points in it
-          this.hatch(o.line ?? 'ink', poly, { ...cut, w: g * 1.0, tone: (x, y) => Math.pow(clamp((0.8 - T(x, y)) / 0.32, 0, 1.05), 1.4) });
+          this.wash('ink', poly, clamp((0.84 - t0) / 0.42, 0, 1) * 0.55);
+          if (!narrow) this.hatch(o.line ?? 'ink', poly, { ...cut, w: g * 0.95, tone: (x, y) => Math.pow(clamp((0.6 - T(x, y)) / 0.2, 0, 1.05), 1.5) });
         }
       } else if (o.hatch !== false) {
         // engraving: one set of close, continuous lines whose weight alone carries the tone
