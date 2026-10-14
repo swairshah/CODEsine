@@ -1,6 +1,6 @@
 # Engraved Machines
 
-An endless zoom through thirteen machines, drawn as a relief print with pencil over the ink. Each machine leads to the next in one of three ways:
+An endless zoom through thirteen machines, engraved in clean ink, like a banknote. Each machine leads to the next in one of three ways:
 
 | How | Where |
 | --- | --- |
@@ -53,11 +53,11 @@ Choose a track for each machine, then use "Download my picks" to export `soundtr
 
 ## How it works
 
-- `js/ink.js` is the mark-making engine. Ink marks are tapered gouge polygons; pencil marks are thin, unsteady graphite lines found in two passes, with light graphite shading, dimensions and notes. Marks are recorded once per machine into ordered layers, and each layer becomes one merged `Path2D`. A plate can draw through an affine map, which is how keys, labels and screens sit on the faces of a 3D model.
+- `js/ink.js` is the mark-making engine. Every mark is a tapered gouge polygon. Each face is engraved with one set of continuous parallel lines whose width follows the tone along their length, from hairlines in the light to lines that merge in shadow; dark materials get white cuts instead. Marks are recorded once per machine into ordered layers, and each layer becomes one merged `Path2D`. A plate can draw through an affine map, which is how keys, labels and screens sit on the faces of a 3D model. Dimensions and notes are their own layer and follow the Notes toggle.
 - `js/geo.js` holds affine maps and a small 3D modeller: boxes (with rounded or sloped tops), extrusions, slabs, lofts and cylinders in centimetres, seen in a fixed orthographic three-quarter view and shaded from one light. Orthographic projection maps every flat face to the page by an exact affine transform.
 - `js/kit.js` holds the machine registry and shared pieces: screens with a hidden portal, keyboards, vents, and period desktop furniture.
 - `js/machines/*.js` are the machines. Each one names its parts. Parts can fly in during an assembly or peel away when you go inside, and each machine marks the rectangles that transitions use: `portal`, `focus`, `anchor`, `chip` and `self`.
 - `js/soundtrack.js` says what plays at each machine. `js/sound.js` decides when: the crossfades, ducking and fades, the YouTube, file and synth sources, and a small synth rack for the placeholders.
-- `js/app.js` holds the camera. A camera is an affine map from a machine's 1000 × 1000 frame to the screen. Every transition interpolates along the one-parameter path `pow(M, t)` from the identity to the map that frames the target, which reads as a camera moving in and turning square to a screen or chip. On screens, the next machine arrives in pencil first and is then inked.
+- `js/app.js` holds the camera. A camera is an affine map from a machine's 1000 × 1000 frame to the screen. Every transition interpolates along the one-parameter path `pow(M, t)` from the identity to the map that frames the target, which reads as a camera moving in and turning square to a screen or chip. Some screens hold an event rather than a picture (the 1984 hammer, the Mail envelope, Time Machine's clock); these are drawn by `EGGS` in `app.js`, driven by scroll so they scrub both ways.
 
 To add a machine, call `Kit.add` in a machine file with a `make(model)` and a `next` that says how it leads on.

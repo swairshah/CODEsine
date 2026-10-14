@@ -131,6 +131,72 @@
     },
   });
 
+  // ---------- Big Brother, for the 1984 telescreen ----------
+  // A head modelled as a height field over an ellipsoid (brow, eye sockets, nose, cheekbones, mouth,
+  // chin), lit from the upper left, with dark hair, round spectacles and a dark suit. It is sampled
+  // along the tube's scan lines; each line's width follows the brightness, as on a CRT.
+  function bigBrother() {
+    const G = (x, y, s) => Math.exp(-(x * x + y * y) / (2 * s * s));
+    const height = (u, v) =>
+      -0.13 * (G(u - 0.33, v + 0.08, 0.15) + G(u + 0.33, v + 0.08, 0.15)) +
+      0.09 * (G(u - 0.3, v + 0.3, 0.17) + G(u + 0.3, v + 0.3, 0.17)) +
+      0.16 * Math.exp(-((u / 0.085) ** 2)) * Math.min(1, Math.max(0, (v + 0.18) / 0.12)) * Math.min(1, Math.max(0, (0.3 - v) / 0.06)) +
+      0.09 * G(u, v - 0.27, 0.09) +
+      0.07 * (G(u - 0.43, v - 0.16, 0.2) + G(u + 0.43, v - 0.16, 0.2)) -
+      0.07 * Math.exp(-(((v - 0.53) / 0.035) ** 2)) * Math.exp(-((u / 0.27) ** 2)) +
+      0.05 * G(u, v - 0.82, 0.18);
+    const L = [-0.48, -0.55, 0.68];
+    const ll = Math.hypot(...L);
+    const shade = (n) => Math.max(0, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / ll / (Math.hypot(...n) || 1));
+    const cx = 150, cy = 134, rx = 50, ry = 64;
+    function bright(X, Y) {
+      const u = (X - cx) / rx, v = (Y - cy) / ry;
+      const glow = 0.1 * G((X - cx) / 120, (Y - cy) / 120, 0.6);
+      const r2 = u * u + v * v;
+      if (r2 < 1) {
+        const z = Math.sqrt(1 - r2), e = 0.01;
+        const hu = (height(u + e, v) - height(u - e, v)) / (2 * e), hv = (height(u, v + e) - height(u, v - e)) / (2 * e);
+        let b = 0.08 + 0.95 * shade([u - hu * 1.6, v - hv * 1.6, z]);
+        // what is dark whatever the light: hair, eyebrows, eyes, the line of the mouth, the spectacles
+        if (v < -0.52 + 0.08 * Math.cos(u * 5)) b *= 0.22 + 0.1 * Math.sin(u * 40 + v * 9);
+        b *= 1 - 0.75 * (G(u - 0.3, v + 0.29, 0.06) + G(u + 0.3, v + 0.29, 0.06)) * 0.9;
+        b *= 1 - 0.85 * (G(u - 0.33, v + 0.07, 0.045) + G(u + 0.33, v + 0.07, 0.045));
+        b *= 1 - 0.7 * Math.exp(-(((v - 0.53) / 0.022) ** 2)) * Math.exp(-((u / 0.22) ** 2));
+        for (const ex of [-0.33, 0.33]) { const d = Math.hypot(u - ex, (v + 0.07) * 1.1); if (Math.abs(d - 0.2) < 0.022) b *= 0.15; }
+        if (Math.abs(v + 0.07) < 0.018 && Math.abs(u) < 0.13) b *= 0.2;
+        if (Math.abs(u) > 0.92) b *= 0.5;
+        return Math.min(1, b);
+      }
+      // the neck, the shirt collar and tie, and a dark suit across the shoulders
+      if (v > 0.8 && v < 1.35 && Math.abs(u) < 0.42) return 0.12 + 0.6 * Math.max(0, 0.5 - u) * (1 - (v - 0.8));
+      if (v >= 1.2) {
+        const half = 0.5 + (v - 1.2) * 2.6;
+        if (Math.abs(u) < half) {
+          if (Math.abs(u) < 0.32 - (v - 1.2) * 0.9 && v < 1.6) return Math.abs(u) < 0.06 ? 0.12 : 0.75 - 0.3 * u;
+          return 0.06 + 0.22 * Math.max(0, -u / half) + 0.05 * Math.sin(v * 30);
+        }
+      }
+      return glow;
+    }
+    const runs = [];
+    for (let Y = 46; Y < 232; Y += 2.6) {
+      let pts = [], ws = [];
+      const flush = () => {
+        if (pts.length >= 2) {
+          const P = pts, W = ws;
+          runs.push({ pts: P, w: (x) => { let k = 0; for (let i = 1; i < P.length; i++) if (P[i][0] <= x) k = i; return W[k]; } });
+        }
+        pts = []; ws = [];
+      };
+      for (let X = 34; X < 270; X += 2) {
+        const w = 2.2 * Math.pow(bright(X, Y), 0.85);
+        if (w > 0.18) { pts.push([X, Y + 0.5 * Math.sin(X * 0.07 + Y)]); ws.push(w); } else flush();
+      }
+      flush();
+    }
+    return runs;
+  }
+
   // ---------- Apple II, 1977 ----------
   // As photographed: the moulded case with its sloped keyboard, two Disk II drives and a Monitor III.
   // In pieces for assembly: the motherboard (with its 6502) stays put; the case, top, drives and
@@ -292,23 +358,10 @@
                 const g = '#bfe3b0';
                 p.text(g, ']LOAD 1984', 12, 18, 10, { align: 'left', lod: 0.5 });
                 p.text(g, ']RUN', 12, 32, 10, { align: 'left', lod: 0.5 });
-                // the face on the telescreen: head, round spectacles, a set mouth, collar and shoulders
-                const cx = 150, cy = 140;
-                p.fill('#26302a', ell2(cx, cy, 44, 56, 48), 0.5);
-                p.ring(g, ell2(cx, cy, 44, 56, 48), 1.6, 0.5);
-                p.gouge(g, [[cx - 40, cy - 18], [cx - 20, cy - 44], [cx + 14, cy - 50], [cx + 40, cy - 22]], 3, { taper: 0.3, lod: 0.5 });
-                for (const x of [cx - 17, cx + 17]) {
-                  p.ring(g, ell2(x, cy - 4, 12, 10, 28), 1.8, 0.5);
-                  p.fill(g, ell2(x, cy - 4, 3, 3, 12), 0.5);
-                }
-                p.gouge(g, [[cx - 5, cy - 6], [cx + 5, cy - 6]], 1.6, { smooth: false, lod: 0.5 });
-                p.gouge(g, [[cx, cy + 2], [cx - 3, cy + 18], [cx + 4, cy + 20]], 1.2, { lod: 0.5 });
-                p.gouge(g, [[cx - 14, cy + 32], [cx, cy + 34], [cx + 14, cy + 32]], 2, { taper: 0.2, lod: 0.5 });
-                p.gouge(g, [[cx - 30, cy + 24], [cx - 22, cy + 42]], 1, { lod: 1 });
-                p.gouge(g, [[cx + 30, cy + 24], [cx + 22, cy + 42]], 1, { lod: 1 });
-                p.gouge(g, [[cx - 96, Ht], [cx - 64, cy + 62], [cx - 22, cy + 52], [cx, cy + 74], [cx + 22, cy + 52], [cx + 64, cy + 62], [cx + 96, Ht]], 2.4, { taper: 0.1, lod: 0.5 });
-                // scan lines across the tube
-                for (let y = 1.5; y < Ht; y += 3) p.fill('#0b0907', [[0, y], [Wd, y], [Wd, y + 0.8], [0, y + 0.8]], 1);
+                // Big Brother on the telescreen: a lit, modelled head drawn the way a tube draws it,
+                // in scan lines whose thickness is the brightness
+                const lines = bigBrother();
+                for (const run of lines) p.gouge(g, run.pts, run.w, { smooth: false, n: 1, taper: 0.15, pow: 0.3, lod: 0.5 });
               },
             });
           },

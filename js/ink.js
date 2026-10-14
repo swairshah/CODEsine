@@ -268,14 +268,14 @@
           for (let i = 0; i + 1 < us.length; i += 2) {
             const u0 = us[i] + inset, u1 = us[i + 1] - inset;
             if (u1 - u0 < 3) continue;
-            let run = [], nextBreak = u0 + this.rand(90, 260);
+            let run = [], nextBreak = u0 + this.rand(400, 900);
             const flush = () => {
               if (run.length >= 2) this.gouge(role, run, wAt, { lod, taper: o.taper ?? 0.22, smooth: false, n: 1, pow: 0.4 });
               run = [];
             };
             for (let u = u0; u <= u1 + 0.01; u += step) {
               const uu = Math.min(u, u1), q = at(uu);
-              if (uu > nextBreak) { flush(); nextBreak = uu + this.rand(90, 260); continue; }
+              if (uu > nextBreak) { flush(); nextBreak = uu + this.rand(400, 900); continue; }
               if (wAt(q[0], q[1]) > minW) run.push(q);
               else flush();
             }
@@ -346,7 +346,7 @@
         P.push(ext(P[P.length - 1], P[P.length - 2], ov * this.rand(0.3, 1.3)));
       }
       const Q = resampleOpen(P, o.step ?? 9);
-      const amp = o.wob ?? 0.6, p1 = this.rand(0, 6), p2 = this.rand(0, 6), f1 = this.rand(0.05, 0.09), f2 = this.rand(0.18, 0.3);
+      const amp = o.wob ?? 0.12, p1 = this.rand(0, 6), p2 = this.rand(0, 6), f1 = this.rand(0.05, 0.09), f2 = this.rand(0.18, 0.3);
       let s = 0;
       const W = Q.map((q, i) => {
         if (i) s += Math.hypot(q[0] - Q[i - 1][0], q[1] - Q[i - 1][1]);
@@ -359,6 +359,8 @@
     }
     // Outline a shape the way a draughtsman finds it: broken runs, two passes, overshooting corners.
     sketch(poly, o = {}) {
+      // No pencil construction lines: the print is clean ink only.
+      if (!Plate.sketchy) return;
       const n = poly.length;
       if (n < 2) return;
       const closed = o.closed ?? true;
@@ -398,8 +400,8 @@
       const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
       const nx = -dy / d, ny = dx / d, t = o.tick ?? 6;
       const lod = o.lod ?? 1;
-      this.pencil([[x1, y1], [x2, y2]], { role: 'graphiteNote', w: 0.7, over: 3, lod });
-      for (const [x, y] of [[x1, y1], [x2, y2]]) this.pencil([[x - nx * t, y - ny * t], [x + nx * t, y + ny * t]], { role: 'graphiteNote', w: 0.7, over: 1, lod });
+      this.pencil([[x1, y1], [x2, y2]], { role: 'graphiteNote', w: 0.7, over: 0, lod, wob: 0 });
+      for (const [x, y] of [[x1, y1], [x2, y2]]) this.pencil([[x - nx * t, y - ny * t], [x + nx * t, y + ny * t]], { role: 'graphiteNote', w: 0.7, over: 0, lod, wob: 0 });
       let a = Math.atan2(dy, dx);
       if (a > Math.PI / 2) a -= Math.PI;
       if (a < -Math.PI / 2) a += Math.PI;
@@ -417,23 +419,18 @@
       const t0 = T(c[0], c[1]);
       const base = o.dark ? o.fill || 'ink' : o.fill ?? (t0 < 0.45 ? 'ink' : t0 > 0.9 ? 'light' : 'paper');
       this.fill(base, poly, o.lod ?? 0);
-      // Engraved like a print: close lines whose weight carries the tone, so light areas are fine
-      // hairlines and shadows thicken until the lines merge, with a second set crossing them in shadow.
+      // Engraved like a banknote: one set of close, continuous lines running with the face, whose
+      // weight alone carries the tone, from hairlines in the light to lines that merge in deep shadow.
       const g = (o.gap ?? 8) * 0.62, ang = o.angle ?? 0, lod = o.hlod ?? 1;
-      const line = { angle: ang, gap: g, swell: true, lod, step: Math.max(3, g * 0.7) };
-      if (o.dark || base === 'ink') {
-        // white-line work on a dark surface: cuts that open up toward the light, crossed into a
-        // grid where it is brightest
-        if (o.hatch !== false) {
-          const lim = o.dark ? 0.5 : 0.45, cut = o.cut ?? 'paper';
-          this.hatch(cut, poly, { ...line, w: g * 0.62, tone: (x, y) => Math.pow(clamp((T(x, y) - lim * 0.3) / (lim * 0.95), 0, 1.1), 1.4) });
-          this.hatch(cut, poly, { ...line, angle: ang + 1.15, gap: g * 1.25, w: g * 0.4, tone: (x, y) => clamp((T(x, y) - lim * 0.7) / (lim * 0.6), 0, 1) });
+      const line = { angle: ang, gap: g, swell: true, lod, step: Math.max(3, g * 0.7), wave: 0.25 };
+      if (o.hatch !== false) {
+        if (o.dark || base === 'ink') {
+          // white-line work on a dark surface: the cuts open up toward the light
+          const lim = o.dark ? 0.5 : 0.45;
+          this.hatch(o.cut ?? 'paper', poly, { ...line, w: g * 0.6, tone: (x, y) => Math.pow(clamp((T(x, y) - lim * 0.3) / (lim * 0.95), 0, 1.1), 1.4) });
+        } else {
+          this.hatch(o.line ?? 'ink', poly, { ...line, w: g * 1.02, tone: (x, y) => Math.pow(clamp((0.97 - T(x, y)) / 0.7, 0, 1.15), 1.35) });
         }
-      } else if (o.hatch !== false) {
-        const ln = o.line ?? 'ink';
-        this.hatch(ln, poly, { ...line, w: g * 0.92, tone: (x, y) => Math.pow(clamp((0.97 - T(x, y)) / 0.66, 0, 1.15), 1.5) });
-        this.hatch(ln, poly, { ...line, angle: ang + 0.9, gap: g * 1.1, w: g * 0.7, tone: (x, y) => clamp((0.62 - T(x, y)) / 0.24, 0, 1) });
-        this.hatch(ln, poly, { ...line, angle: ang - 0.7, gap: g * 1.2, w: g * 0.6, tone: (x, y) => clamp((0.42 - T(x, y)) / 0.18, 0, 1) });
       }
       if (o.edge) this.ring(o.edgeRole ?? 'ink', poly, o.edge, o.edgeLod ?? 0);
       if (o.pencil !== false) this.sketch(poly, { lod: 0.5 });
@@ -461,6 +458,7 @@
   }
 
   Plate.notes = true;
+  Plate.sketchy = false;
 
   const FONTS = {
     mono: '"IBM Plex Mono", ui-monospace, Menlo, monospace',

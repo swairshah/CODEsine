@@ -262,6 +262,48 @@
     return out;
   }
 
+  // A sledgehammer in the print's own manner: a chamfered steel head shaded with engraved lines and a
+  // bright bevel, a tapered ash handle with its grain. ghost draws only the silhouette, for the blur.
+  function sledgehammer(ghost) {
+    const head = [[-18, -6], [-15, -9], [15, -9], [18, -6], [18, 6], [15, 9], [-15, 9], [-18, 6]];
+    const handle = [[-3.2, 8], [3.2, 8], [2.4, 78], [-2.4, 78]];
+    ctx.fillStyle = ghost ? BASE.ink : '#b38d5c';
+    pathOf(handle);
+    ctx.fill();
+    pathOf(head);
+    ctx.fillStyle = ghost ? BASE.ink : '#6f6c66';
+    ctx.fill();
+    if (ghost) return;
+    ctx.save();
+    pathOf(handle);
+    ctx.clip();
+    ctx.strokeStyle = '#6b4c2c';
+    ctx.lineWidth = 0.5;
+    for (const x of [-1.8, -0.7, 0.5, 1.6]) { ctx.beginPath(); ctx.moveTo(x, 8); ctx.bezierCurveTo(x + 0.6, 30, x - 0.6, 52, x * 0.75, 78); ctx.stroke(); }
+    ctx.fillStyle = '#2b1f16';
+    for (let y = 60; y < 78; y += 2.2) ctx.fillRect(-3, y, 6, 0.9);
+    ctx.restore();
+    ctx.save();
+    pathOf(head);
+    ctx.clip();
+    ctx.fillStyle = '#d9d5cc';
+    ctx.fillRect(-18, -9, 36, 4.2);
+    ctx.fillStyle = '#34322f';
+    ctx.fillRect(-18, 4.4, 36, 4.6);
+    ctx.strokeStyle = '#2a2826';
+    for (let x = -16; x <= 16; x += 1.8) { ctx.lineWidth = 0.35 + 0.5 * Math.abs(x) / 16; ctx.beginPath(); ctx.moveTo(x, -4.5); ctx.lineTo(x, 4.5); ctx.stroke(); }
+    ctx.fillStyle = '#e8e4da';
+    ctx.fillRect(-18, -1.5, 2.2, 3);
+    ctx.fillRect(15.8, -1.5, 2.2, 3);
+    ctx.restore();
+    ctx.strokeStyle = BASE.ink;
+    ctx.lineWidth = 0.8;
+    pathOf(head);
+    ctx.stroke();
+    pathOf(handle);
+    ctx.stroke();
+  }
+
   const EGGS = {
     // Apple II → Macintosh: the 1984 advert. A sledgehammer spins in and shatters Big Brother's
     // telescreen; the glass flies out in a flash of light, and the Macintosh is drawn in the light.
@@ -323,13 +365,29 @@
           ctx.rotate(sh.spin * e);
           ctx.scale(sc, sc);
           ctx.translate(-sh.c[0], -sh.c[1]);
-          ctx.globalAlpha = a * 0.78;
+          // clear glass: a faint tint of the tube, bright broken edges, and a glint across each piece
+          ctx.globalAlpha = a * 0.28;
           pathOf(sh.poly);
-          ctx.fillStyle = '#1d2520';
+          ctx.fillStyle = '#26302a';
           ctx.fill();
+          ctx.globalAlpha = a;
+          ctx.lineWidth = 0.7;
+          ctx.strokeStyle = '#fbf8f0';
+          ctx.stroke();
+          ctx.globalAlpha = a * 0.5;
+          ctx.lineWidth = 0.45;
+          ctx.strokeStyle = BASE.ink;
+          ctx.beginPath();
+          ctx.moveTo(sh.poly[0][0], sh.poly[0][1]);
+          ctx.lineTo(sh.poly[1][0], sh.poly[1][1]);
+          ctx.stroke();
           ctx.globalAlpha = a * 0.9;
-          ctx.lineWidth = 1.1;
-          ctx.strokeStyle = '#bfe3b0';
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 0.6;
+          const q = sh.poly, m1 = lerp2(q[0], q[1 % q.length], 0.3), m2 = lerp2(q[2 % q.length], q[0], 0.6);
+          ctx.beginPath();
+          ctx.moveTo(m1[0], m1[1]);
+          ctx.lineTo(lerp2(m1, m2, 0.5)[0], lerp2(m1, m2, 0.5)[1]);
           ctx.stroke();
           ctx.restore();
         }
@@ -344,31 +402,20 @@
           ctx.restore();
         }
       } else if (t > 0.02) {
-        // the hammer, thrown from below and spinning toward the face
+        // the hammer, thrown from below and turning end over end toward the face, with a blur behind it
+        const at = (h) => ({ pos: lerp2([-90, H + 140], I, h), rot: -3.4 * Math.PI * (1 - h) - 0.5, sc: lerp(2.6, 0.9, h) });
         const h = smooth(0.02, hit, t);
-        const pos = lerp2([-90, H + 140], I, h);
-        const sc = lerp(2.6, 0.9, h);
         setM(ui);
-        ctx.save();
-        ctx.translate(pos[0], pos[1]);
-        ctx.rotate(-3.4 * Math.PI * (1 - h) - 0.5);
-        ctx.scale(sc, sc);
-        ctx.globalAlpha = ink * smooth(0.02, 0.06, t);
-        ctx.lineWidth = 1.2;
-        ctx.strokeStyle = BASE.ink;
-        // handle
-        ctx.fillStyle = '#8a6a44';
-        rrPath(-2.6, 6, 5.2, 64, 2);
-        ctx.fill();
-        ctx.stroke();
-        // head
-        ctx.fillStyle = '#6d6a64';
-        rrPath(-16, -8, 32, 16, 2.5);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#b9b5ac';
-        ctx.fillRect(-14, -6, 28, 3);
-        ctx.restore();
+        for (let g = 5; g >= 0; g--) {
+          const s = at(Math.max(0, h - g * 0.018));
+          ctx.save();
+          ctx.translate(s.pos[0], s.pos[1]);
+          ctx.rotate(s.rot);
+          ctx.scale(s.sc, s.sc);
+          ctx.globalAlpha = ink * smooth(0.02, 0.06, t) * (g ? 0.1 * (1 - g / 6) : 1);
+          sledgehammer(g > 0);
+          ctx.restore();
+        }        ctx.restore();
       }
       ctx.globalAlpha = 1;
     },
