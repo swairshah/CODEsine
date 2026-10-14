@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Choose the music | Engraved Machines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="music.css">
+<script src="js/music-picker.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#options">Skip to music options</a>
+<header class="masthead">
+  <a href="index.html">Engraved Machines</a>
+  <span>Soundtrack / listening room</span>
+</header>
+<main>
+  <div class="intro">
+    <div>
+      <p class="eyebrow">13 machines. A few different directions.</p>
+      <h1>Find the right music.</h1>
+      <p class="deck">Four tracks for each machine. Play a 40-second sample, compare it with the current song, and keep the one you like.</p>
+      <p class="fine">Your picks stay in this browser. The app's music won't change until we apply them.</p>
+    </div>
+    <aside class="new-bite" aria-labelledby="new-bite-title">
+      <p class="eyebrow">Already changed in the app</p>
+      <h2 id="new-bite-title">A different introduction to M1.</h2>
+      <blockquote>"Our first chip designed specifically for the Mac. And we call it M1."</blockquote>
+      <button id="play-bite" type="button" class="play" aria-pressed="false">Play new M1 clip</button>
+    </aside>
+  </div>
+  <div class="workspace">
+    <aside class="sidebar">
+      <div class="sidebar-head"><span class="eyebrow">Jump to a machine</span><span id="count">0 / 13 picked</span></div>
+      <nav id="machine-nav" aria-label="Machines"></nav>
+      <button id="export" type="button" disabled>Download my picks <span aria-hidden="true">↓</span></button>
+      <p class="fine">Send me the downloaded JSON file when you're ready. Choosing a track here does not edit the app.</p>
+      <p id="save-status" class="fine" role="status"></p>
+    </aside>
+    <div id="options" tabindex="-1" aria-label="Music options"><p id="loading" role="status">Loading the listening list…</p></div>
+  </div>
+  <footer class="footnote">Selections from <a href="SOUNDTRACK.md">SOUNDTRACK.md</a>. "Apple used" means the song appeared in an Apple advert or event; the note explains which one. Some tracks are from nearby years. Recordings remain copyrighted.</footer>
+</main>
+<section class="player" aria-label="Audio preview player">
+  <div class="now-playing"><span class="eyebrow">Now playing</span><p id="playing-title">Choose a sample above</p><p id="playing-detail">One track at a time. Nothing plays automatically.</p></div>
+  <audio id="audio" controls preload="none" aria-label="Preview audio"></audio>
+  <a id="playing-source" class="source-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Full track on YouTube ↗</a>
+  <p id="play-status" role="status"></p>
+</section>
+<noscript>This page needs JavaScript to play samples and save your choices.</noscript>
+</body>
+</html>

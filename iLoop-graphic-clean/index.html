@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clean Poster Machines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500;600&family=Oswald:wght@400;500;600&display=swap">
+<style>
+  /* A series of screenprinted posters. The canvas is the sheet; the type and controls around it are
+     set in the same inks: black, signal red, and the machine's two spot colours, which app.js updates. */
+  :root {
+    --paper: #eee5cf;
+    --ink: #201c1b;
+    --red: #d23a22;
+    --spot: #2e6b4c;
+    --accent: #2a53a0;
+    --muted: #201c1bb3;
+    --rule: #201c1b;
+    --f-display: "Anton", "Oswald", Impact, sans-serif;
+    --f-cond: "Oswald", "Arial Narrow", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-cond);
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: fixed; inset: 0; display: block; cursor: ns-resize; }
+
+  .cap {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 30px);
+    left: 34px;
+    max-width: min(26rem, calc(100vw - 260px));
+    pointer-events: none;
+    display: grid;
+    gap: 8px;
+    will-change: opacity, transform;
+  }
+  .meta {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    font: 500 0.78rem/1 var(--f-cond);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta > span { padding: 5px 8px 4px; }
+  .meta #m-year { background: var(--ink); color: var(--paper); }
+  .meta .idx { background: var(--red); color: var(--paper); }
+  .meta #m-kind { border: 1.5px solid var(--ink); padding: 3.5px 8px 2.5px; margin-left: 6px; }
+  .meta .sep { display: none; }
+  h1 {
+    margin: 0;
+    font-family: var(--f-display);
+    font-weight: 400;
+    font-size: clamp(2.4rem, 5.2vw, 4.1rem);
+    line-height: 0.92;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+    text-wrap: balance;
+  }
+  .line {
+    margin: 0;
+    font: 400 1rem/1.38 var(--f-cond);
+    color: var(--ink);
+    max-width: 24rem;
+    border-left: 6px solid var(--red);
+    padding-left: 10px;
+  }
+  .next {
+    margin: 2px 0 0;
+    font: 500 0.78rem/1.3 var(--f-cond);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .next b { font-weight: 600; background: var(--ink); color: var(--paper); padding: 2px 6px 1px; }
+  .next b::before { content: "→ "; color: var(--red); }
+
+  .tools {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 30px);
+    right: 32px;
+    display: flex;
+    gap: 0;
+  }
+  .tools button {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 10px;
+    border: 0;
+    border-right: 2px solid var(--paper);
+    border-radius: 0;
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tools button:last-child { border-right: 0; }
+  .tools button:hover { background: var(--red); }
+  .tools button[aria-pressed="true"] { background: var(--spot); color: var(--paper); }
+  .tools button:focus-visible, .rail button:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  .tools button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: square; stroke-linejoin: miter; }
+  .tools button svg .fill { fill: currentColor; stroke: none; }
+  #b-play .i-pause, #b-play[aria-pressed="true"] .i-play { display: none; }
+  #b-play[aria-pressed="true"] .i-pause { display: block; }
+  .tools button[aria-pressed="true"] .i-off { display: none; }
+  body.notes-off .cap { opacity: 0 !important; visibility: hidden; }
+  body.notes-off .hint { display: none; }
+
+
+  .yt-dock {
+    position: fixed;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    z-index: 5;
+  }
+  .yt-dock.off { display: none; }
+  .yt-card { display: none; margin: 0; padding: 6px; background: var(--paper); border: 2px solid var(--ink); }
+  .yt-card.on { display: block; }
+  .yt-card iframe { display: block; width: 200px; height: 200px; }
+  .yt-card figcaption { width: 200px; margin-top: 4px; font: 400 0.6rem/1.3 var(--f-mono); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .hint {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 78px);
+    margin: 0;
+    text-align: center;
+    font: 500 0.74rem/1 var(--f-cond);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+  .hint.gone { opacity: 0; }
+
+  .rail {
+    position: fixed;
+    left: 22px; right: 22px;
+    bottom: 0;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    border-top: 3px solid var(--rule);
+    background: var(--paper);
+  }
+  .rail ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(13, minmax(0, 1fr));
+  }
+  .rail button {
+    width: 100%;
+    padding: 10px 2px 6px;
+    background: none;
+    border: 0;
+    color: var(--muted);
+    font: 500 0.78rem/1.15 var(--f-cond);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .rail button .y { padding: 2px 5px 1px; }
+  .rail button .n {
+    font-size: 0.6rem;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .rail button:hover { color: var(--ink); }
+  .rail button.on { color: var(--ink); }
+  .rail button.on .y { background: var(--red); color: var(--paper); font-weight: 600; }
+  .track { position: absolute; top: -7px; left: calc(50% / 13); right: calc(50% / 13); height: 11px; pointer-events: none; }
+  .cursor { position: absolute; top: 0; width: 11px; height: 11px; margin-left: -5.5px; background: var(--ink); }
+
+  @media (max-width: 900px) { .rail button .n { display: none; } }
+  @media (max-width: 640px) {
+    .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 70px); }
+    .tools { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 32px); }
+    .tools button { min-width: 38px; height: 38px; padding: 0 8px; }
+    .line { font-size: 0.92rem; }
+    .rail { left: 8px; right: 8px; }
+    .rail button { font-size: 0.6rem; padding-inline: 0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="A screenprinted poster of a computer. Zoom in to travel into its screen and find the next machine."></canvas>
+
+<header class="cap" id="cap" aria-live="polite">
+  <p class="meta"><span id="m-year">1976</span><span class="sep">·</span><span class="idx"><span id="m-idx">01</span>/<span id="m-total">13</span></span><span class="sep">·</span><span id="m-kind">Circuit board</span></p>
+  <h1 id="title">Apple I</h1>
+  <p class="line" id="line"></p>
+  <p class="next"><span id="verb">Zoom into the silkscreen</span> to reach <b id="next">Apple II</b></p>
+</header>
+
+<div class="tools">
+  <button type="button" id="b-out" aria-label="Previous machine" title="Previous machine (←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></button>
+  <button type="button" id="b-in" aria-label="Next machine" title="Next machine (→)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  <button type="button" id="b-play" aria-pressed="false" aria-label="Play" title="Play the whole loop (P)"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5.5v13l10.5-6.5z"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg></button>
+  <button type="button" id="b-notes" aria-pressed="true" aria-label="Notes" title="Show or hide the notes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 10h14M5 14h9M5 18h6"/></svg></button>
+  <button type="button" id="b-music" aria-pressed="false" aria-label="Music off" title="Music"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M9 17.6a2.6 2.6 0 1 1-1.6-2.4V6.2l10-2v11.4a2.6 2.6 0 1 1-1.6-2.4V7.9l-6.8 1.4z"/><path class="i-off" d="M4 4l16 16"/></svg></button>
+  <button type="button" id="b-bites" aria-pressed="false" aria-label="Voice clips off" title="Voice clips"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14v9.5h-8.5L7 18.5V15H5z"/><path d="M8.5 9h7M8.5 11.8h4.5"/><path class="i-off" d="M4 4l16 16"/></svg></button>
+</div>
+
+<p class="hint" id="hint">Scroll down to travel into each machine, and up to come back out.</p>
+
+<footer class="rail">
+  <ol id="ticks"></ol>
+  <div class="track"><div class="cursor" id="cursor"></div></div>
+</footer>
+
+<script src="js/ink.js?v=20261014"></script>
+<script src="js/geo.js?v=20261014"></script>
+<script src="js/kit.js?v=20261014"></script>
+<script src="js/soundtrack.js?v=20261014"></script>
+<script src="js/sound.js?v=20261014"></script>
+<script src="js/machines/early.js?v=20261014"></script>
+<script src="js/machines/mid.js?v=20261014"></script>
+<script src="js/machines/late.js?v=20261014"></script>
+<script src="js/app.js?v=20261014"></script>
+</body>
+</html>
