@@ -421,7 +421,7 @@
               bg: 'tint2',
               portal: [8, 22, 62],
               draw(p, W, H) {
-                // Now Playing: the song from the first iPod advert, with an album cover you can fall into
+                // Now Playing: the song from the 2003 iPod silhouette advert, with an album cover you can fall into
                 p.text('ink', 'Now Playing', W / 2, 7, 8, { weight: 600, lod: 0.5 });
                 p.fill('ink', [[4, 13], [W - 4, 13], [W - 4, 14], [4, 14]], 0.5);
                 p.fill('ink', rr2(W - 20, 4, 12, 6, 1), 0.5);
@@ -433,9 +433,10 @@
                 p.fill('earth', rr2(31.5, 35, 15, 25, 0.6), 0.5);
                 p.ring('paper', ell2(39, 63.5, 2.2, 2.2, 12), 0.7, 0.5);
                 p.fill('paper', rr2(36.5, 31.5, 5, 0.9, 0.4), 0.5);
-                p.text('ink', 'Take California', 76, 34, 8.5, { weight: 600, align: 'left', lod: 0.5 });
-                p.text('ink', 'Propellerheads', 76, 47, 7.5, { align: 'left', lod: 0.5 });
-                p.text('ink', 'Decksandrumsand…', 76, 59, 6.5, { align: 'left', lod: 1 });
+                p.text('ink', 'Are You Gonna', 76, 30, 8.5, { weight: 600, align: 'left', lod: 0.5 });
+                p.text('ink', 'Be My Girl', 76, 40, 8.5, { weight: 600, align: 'left', lod: 0.5 });
+                p.text('ink', 'Jet', 76, 53, 7.5, { align: 'left', lod: 0.5 });
+                p.text('ink', 'Get Born', 76, 64, 6.5, { align: 'left', lod: 1 });
                 p.ring('ink', [[8, 96], [152, 96], [152, 102], [8, 102]], 0.9, 0.5);
               },
             });

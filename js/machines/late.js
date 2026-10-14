@@ -363,7 +363,7 @@
                 ui: [462, 299],
                 bg: 'tint2',
                 // the Mac mini, in its AirDrop circle
-                portal: [262, 140, 68],
+                portal: [252, 116, 92],
                 round: true,
                 draw(p, W, H) {
                   modernDesktop(p, W, H, { notch: true });
@@ -378,8 +378,8 @@
                   p.fill('tint', ell2(205, 177, 22, 22, 30), 0.5);
                   p.text('ink', 'iPhone', 205, 210, 7, { lod: 1 });
                   // the easter egg: a ring round the Mac mini's circle, which the app draws into
-                  p.ring('tint', ell2(296, 174, 36.5, 36.5, 48), 2.2, 0.5);
-                  p.text('ink', 'Mac mini', 296, 218, 7, { weight: 600, lod: 0.5 });
+                  p.ring('tint', ell2(298, 162, 48.5, 48.5, 64), 2.4, 0.5);
+                  p.text('ink', 'Mac mini', 298, 222, 7, { weight: 600, lod: 0.5 });
                   p.text('ink', 'AirDrop lets you share instantly with people nearby.', 265, 236, 5.5, { lod: 1 });
                 },
               });

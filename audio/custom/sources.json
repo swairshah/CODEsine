@@ -28,10 +28,10 @@
       },
       "music": {
         "file": "audio/custom/00-music.mp3",
-        "url": "https://www.youtube.com/watch?v=kSIMVnPA994",
+        "url": "https://www.youtube.com/watch?v=xFrGuyw1V8s",
         "start": 0,
         "end": null,
-        "title": "Jean-Michel Jarre, Oxygène, Pt. 4"
+        "title": "ABBA, Dancing Queen"
       }
     },
     {
@@ -47,10 +47,10 @@
       },
       "music": {
         "file": "audio/custom/01-music.mp3",
-        "url": "https://www.youtube.com/watch?v=yEbaeLv-aOo",
+        "url": "https://www.youtube.com/watch?v=fNFzfwLM72c",
         "start": 0,
         "end": null,
-        "title": "Donna Summer, I Feel Love"
+        "title": "Bee Gees, Stayin’ Alive"
       }
     },
     {
@@ -85,10 +85,10 @@
       },
       "music": {
         "file": "audio/custom/03-music.mp3",
-        "url": "https://www.youtube.com/watch?v=hTWKbfoikeg",
+        "url": "https://www.youtube.com/watch?v=Mr_uHJPUlO8",
         "start": 0,
         "end": null,
-        "title": "Nirvana, Smells Like Teen Spirit"
+        "title": "Red Hot Chili Peppers, Give It Away"
       }
     },
     {
@@ -123,10 +123,10 @@
       },
       "music": {
         "file": "audio/custom/05-music.mp3",
-        "url": "https://www.youtube.com/watch?v=81bG15gsl70",
+        "url": "https://www.youtube.com/watch?v=tuK6n2Lkza0",
         "start": 0,
         "end": null,
-        "title": "Propellerheads, Take California"
+        "title": "Jet, Are You Gonna Be My Girl"
       }
     },
     {
@@ -142,10 +142,10 @@
       },
       "music": {
         "file": "audio/custom/06-music.mp3",
-        "url": "https://www.youtube.com/watch?v=FgNaNLY_Xt0",
+        "url": "https://www.youtube.com/watch?v=CvBfHwUxHIk",
         "start": 0,
         "end": null,
-        "title": "Orba Squara, Perfect Timing (This Morning)"
+        "title": "Rihanna, Umbrella"
       }
     },
     {
@@ -161,10 +161,10 @@
       },
       "music": {
         "file": "audio/custom/07-music.mp3",
-        "url": "https://www.youtube.com/watch?v=hhE7QMXRE1g",
+        "url": "https://www.youtube.com/watch?v=dvgZkm1xWPE",
         "start": 0,
         "end": null,
-        "title": "Yael Naim, New Soul"
+        "title": "Coldplay, Viva la Vida"
       }
     },
     {
@@ -180,10 +180,10 @@
       },
       "music": {
         "file": "audio/custom/08-music.mp3",
-        "url": "https://www.youtube.com/watch?v=R0vu5QfsD5E",
+        "url": "https://www.youtube.com/watch?v=oygrmJFKYZY",
         "start": 0,
         "end": null,
-        "title": "Tones and I, Fly Away"
+        "title": "Dua Lipa, Don’t Start Now"
       }
     },
     {
@@ -218,10 +218,10 @@
       },
       "music": {
         "file": "audio/custom/10-music.mp3",
-        "url": "https://www.youtube.com/watch?v=hjcXNK-zUFg",
+        "url": "https://www.youtube.com/watch?v=b-mGA4V2LK0",
         "start": 0,
         "end": null,
-        "title": "Lizzo, Better in Color"
+        "title": "The Chemical Brothers, The Darkness That You Fear"
       }
     },
     {
@@ -256,10 +256,10 @@
       },
       "music": {
         "file": "audio/custom/12-music.mp3",
-        "url": "https://www.youtube.com/watch?v=ekr2nIex040",
+        "url": "https://www.youtube.com/watch?v=V9PVRfjEBTI",
         "start": 0,
         "end": null,
-        "title": "ROSÉ and Bruno Mars, APT."
+        "title": "Billie Eilish, Birds of a Feather"
       }
     }
   ]

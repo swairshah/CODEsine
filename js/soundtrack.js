@@ -36,12 +36,12 @@
       {
         name: 'Apple I',
         bite: [yt('dz4aiU4FiIM', 11.1, 24.5, 'Steve Wozniak remembers building the first Apple', 'Why don’t I make this little microprocessor chip my own local computer?', 'Steve Wozniak on the Apple I · FORA.tv'), voice('00', 'Byte into an Apple.', 'Apple Computer advert, 1976', 'terminal')],
-        music: [yt('kSIMVnPA994', 0, null, 'Jean-Michel Jarre, Oxygène, Pt. 4'), synth('kit')],
+        music: [yt('xFrGuyw1V8s', 0, null, 'ABBA, Dancing Queen'), synth('kit')],
       },
       {
         name: 'Apple II',
         bite: [yt('UL7urMIB0G0', 4, 11.3, 'Introducing Apple II, 1977 TV spot', 'Introducing Apple II, the easy to operate home computer.', 'High Technology store advert, 1977'), voice('01', 'Introducing Apple II. The home computer that’s ready to work, play and grow with you.', 'Apple II advert, 1977', 'apple2')],
-        music: [yt('yEbaeLv-aOo', 0, null, 'Donna Summer, I Feel Love'), synth('chip')],
+        music: [yt('fNFzfwLM72c', 0, null, 'Bee Gees, Stayin’ Alive'), synth('chip')],
       },
       {
         name: 'Macintosh 128K',
@@ -51,7 +51,7 @@
       {
         name: 'PowerBook 100',
         bite: [yt('PVFTxP5Nne0', 1.65, 7.5, 'What’s on your PowerBook? Teacher, 1992', 'I don’t want to be a critic. I want to be a builder.', 'PowerBook advert, 1992'), voice('03', 'What’s on your PowerBook?', 'PowerBook advertising, 1992', 'chime')],
-        music: [yt('hTWKbfoikeg', 0, null, 'Nirvana, Smells Like Teen Spirit'), synth('fm91')],
+        music: [yt('Mr_uHJPUlO8', 0, null, 'Red Hot Chili Peppers, Give It Away'), synth('fm91')],
       },
       {
         name: 'iMac G3',
@@ -61,22 +61,22 @@
       {
         name: 'iPod',
         bite: [yt('kN0SVBCJqLs', 545.05, 551.85, 'The first iPod introduction', 'This amazing little device holds a thousand songs, and it goes right in my pocket.', 'iPod launch, 2001'), voice('05', '1,000 songs in your pocket.', 'iPod launch, 2001', 'wheel')],
-        music: [yt('81bG15gsl70', 0, null, 'Propellerheads, Take California'), synth('bigbeat01')],
+        music: [yt('tuK6n2Lkza0', 0, null, 'Jet, Are You Gonna Be My Girl'), synth('bigbeat01')],
       },
       {
         name: 'iPhone',
         bite: [yt('MnrJzXM7a6o', 162.95, 178, 'Steve Jobs introduces iPhone', 'These are not three separate devices. This is one device, and we are calling it iPhone.', 'iPhone launch, 2007'), voice('06', 'An iPod, a phone and an internet communicator.', 'iPhone launch, 2007', 'unlock')],
-        music: [yt('FgNaNLY_Xt0', 0, null, 'Orba Squara, Perfect Timing (This Morning)'), synth('indie07')],
+        music: [yt('CvBfHwUxHIk', 0, null, 'Rihanna, Umbrella'), synth('indie07')],
       },
       {
         name: 'MacBook Air',
         bite: [yt('OIV6peKMj9M', 224.65, 234.3, 'Macworld 2008, the MacBook Air introduction', 'This is the new MacBook Air. Yeah, there it is.', 'MacBook Air launch, 2008'), voice('07', 'The world’s thinnest notebook.', 'MacBook Air launch, 2008', 'envelope')],
-        music: [yt('hhE7QMXRE1g', 0, null, 'Yael Naim, New Soul'), synth('folk08')],
+        music: [yt('dvgZkm1xWPE', 0, null, 'Coldplay, Viva la Vida'), synth('folk08')],
       },
       {
         name: 'MacBook Air (M1)',
         bite: [yt('5AwdkGKmZ0I', 1426, 1437.6, 'Apple Event, 10 November 2020', 'This is the new MacBook Air with M1.', 'Apple Event, November 2020'), voice('08', 'One more thing.', 'Apple silicon Mac event, 2020', 'lid')],
-        music: [yt('R0vu5QfsD5E', 0, null, 'Tones and I, Fly Away'), synth('ambient20')],
+        music: [yt('oygrmJFKYZY', 0, null, 'Dua Lipa, Don’t Start Now'), synth('ambient20')],
       },
       {
         name: 'Apple M1',
@@ -86,7 +86,7 @@
       {
         name: 'iMac 24″',
         bite: [yt('JdBYVNuky1M', 1307.6, 1315.4, 'Apple Event, 20 April 2021', 'The all-new, completely redesigned iMac.', 'Apple Event, April 2021'), voice('10', 'Hello. In seven vibrant colours.', 'iMac introduction, 2021', 'hello')],
-        music: [yt('hjcXNK-zUFg', 0, null, 'Lizzo, Better in Color'), synth('pop21')],
+        music: [yt('b-mGA4V2LK0', 0, null, 'The Chemical Brothers, The Darkness That You Fear'), synth('pop21')],
       },
       {
         name: 'MacBook Pro 14″',
@@ -96,7 +96,7 @@
       {
         name: 'Mac mini',
         bite: [yt('Q9Npd8h6CWM', 21.7, 29.4, 'M4 Mac mini revealed', 'The new mini is just five by five inches.', 'Mac mini introduction, 2024'), voice('12', 'Five by five inches.', 'Mac mini introduction, 2024', 'mini')],
-        music: [yt('ekr2nIex040', 0, null, 'ROSÉ and Bruno Mars, APT.'), synth('minimal24')],
+        music: [yt('V9PVRfjEBTI', 0, null, 'Billie Eilish, Birds of a Feather'), synth('minimal24')],
       },
     ],
   };

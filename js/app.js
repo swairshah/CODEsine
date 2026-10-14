@@ -83,8 +83,8 @@
   // into the print as you zoom in. Each look maps a colour to a colour.
   const lum = (c) => (0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]) / 255;
   const LOOKS = {
-    // the Apple II's monitor: light phosphor lines on black
-    phosphor: (c) => mix(BASE.rgb.ink, BASE.rgb.light, clamp((0.9 - lum(c)) / 0.72, 0, 1)),
+    // the Apple II's monitor: the picture glows out of the black tube in one phosphor colour
+    phosphor: (c) => mix(BASE.rgb.ink, [214, 236, 196], Math.pow(clamp((lum(c) - 0.06) / 0.86, 0, 1), 0.8)),
     // MacPaint: black, white and one grey pattern
     mono: (c) => { const l = lum(c); return l > 0.62 ? BASE.rgb.light : l > 0.32 ? [140, 136, 128] : [24, 21, 18]; },
     // the PowerBook's passive-matrix LCD
