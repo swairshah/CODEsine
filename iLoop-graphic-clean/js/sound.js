@@ -17,6 +17,7 @@
   const bus = {};
   let enabled = false; // the audio engine is running: music or bites (or both) are on
   let musicOn = false, bitesOn = false;
+  let wakeBound = false;
 
   // ---------- music beds: chords per bar, and what plays on each sixteenth ----------
   const SONGS = {
@@ -245,7 +246,10 @@
     length() { return Infinity; }
   }
 
-  // an audio file; plain <audio> so it also works when the page is opened from disk
+  // an audio file in a plain <audio>. Served over http its level is set by a Web Audio gain, since
+  // phones (iOS above all) ignore an element's volume, which would cut every fade to a hard switch.
+  // Opened from disk the element's own volume is used, as Web Audio would hear only silence there.
+  const viaGain = () => ac && /^https?:$/.test(location.protocol);
   class FileSource {
     constructor(spec, loop) {
       this.spec = spec;
@@ -255,6 +259,14 @@
       this.failed = false;
       this.el.preload = 'auto';
       this.el.volume = 0;
+      if (viaGain()) {
+        try {
+          this.g = ac.createGain();
+          this.g.gain.value = 0;
+          ac.createMediaElementSource(this.el).connect(this.g).connect(ac.destination);
+          this.el.volume = 1;
+        } catch (e) { this.g = null; }
+      }
       this.el.addEventListener('canplay', () => (this.ready = true));
       this.el.addEventListener('error', () => { this.ready = false; this.failed = true; });
       this.el.src = spec.src;
@@ -277,7 +289,11 @@
       if (this.spec.sfx && SFX[this.spec.sfx]) SFX[this.spec.sfx](ac.currentTime + 0.02);
     }
     stop() { this.el.pause(); }
-    gain(v) { this.el.volume = clamp(v, 0, 1); }
+    gain(v) {
+      v = clamp(v, 0, 1);
+      if (this.g) this.g.gain.setTargetAtTime(v, ac.currentTime, 0.015);
+      else this.el.volume = v;
+    }
     elapsed() { return this.el.currentTime - (this.spec.start || 0); }
     length() {
       const end = this.spec.end != null ? this.spec.end : this.el.duration;
@@ -484,7 +500,14 @@
     set(music, bites) {
       if ((music || bites) && !enabled) {
         if (!init()) return false;
-        if (ac.state === 'suspended') ac.resume();
+        if (ac.state !== 'running') ac.resume();
+        // iOS: play through the ringer switch, like a music app
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        // a phone suspends audio when locked or switching apps; the next touch brings it back
+        if (!wakeBound && global.addEventListener) {
+          wakeBound = true;
+          for (const e of ['pointerdown', 'touchend', 'keydown']) global.addEventListener(e, () => { if (enabled && ac.state !== 'running') ac.resume(); }, true);
+        }
         enabled = true;
         if (canYouTube()) loadYouTube().catch(() => {});
       }
