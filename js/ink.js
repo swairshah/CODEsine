@@ -437,12 +437,17 @@
         else if (!dark) this.hatch(o.line ?? 'ink', poly, { angle: ang, gap: g * 1.35, swell: true, lod, step: Math.max(3, g * 0.8), wave: 0, unbroken: true, w: g * 0.5, tone: (x, y) => Math.pow(clamp((0.82 - T(x, y)) / 0.36, 0, 1.1), 1.2) });
         else this.wash('ink', poly, 0.3);
       } else if (o.hatch !== false && style === 'linocut') {
-        // linocut: light faces are bare paper; shadow is cut from solid black with a few white gouges
+        // Linocut: paper where the light is full, solid black in shadow, and carving only where the
+        // light changes: lines that swell out of the shadow and taper to nothing as the light grows,
+        // so each face shows its falloff rather than a texture.
+        const cut = { angle: ang, gap: g * 1.7, swell: true, unbroken: true, wave: 0, lod, step: Math.max(3, g * 0.8), taper: 0.5 };
         if (dark || t0 < 0.5) {
-          if (!dark) this.wash('ink', poly, 0.95);
-          this.hatch(o.cut ?? 'paper', poly, { angle: ang, gap: g * 2.6, w: g * 0.55, scoop: [40, 130], taper: 0.5, lod, tone: (x, y) => clamp((T(x, y) - 0.15) / 0.5, 0.25, 1) });
-        } else if (t0 < 0.72) {
-          this.hatch(o.line ?? 'ink', poly, { angle: ang, gap: g * 2.2, w: g * 0.4, scoop: [50, 150], taper: 0.5, lod, tone: (x, y) => clamp((0.75 - T(x, y)) / 0.25, 0.2, 1) });
+          if (!dark) this.wash('ink', poly, 0.96);
+          // white cuts: widest where light reaches into the shadow, gone where it is darkest
+          this.hatch(o.cut ?? 'paper', poly, { ...cut, w: g * 0.75, tone: (x, y) => Math.pow(clamp((T(x, y) - 0.3) / 0.32, 0, 1), 1.3) });
+        } else {
+          // black lines: heavy where the face turns from the light, thinning to points in it
+          this.hatch(o.line ?? 'ink', poly, { ...cut, w: g * 1.0, tone: (x, y) => Math.pow(clamp((0.8 - T(x, y)) / 0.32, 0, 1.05), 1.4) });
         }
       } else if (o.hatch !== false) {
         // engraving: one set of close, continuous lines whose weight alone carries the tone
@@ -482,7 +487,7 @@
   Plate.notes = true;
   Plate.sketchy = false;
   // how surfaces are rendered: 'engrave', 'restrained', 'linocut' or 'flat' (?style= in the URL)
-  Plate.style = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('style')) || 'engrave';
+  Plate.style = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('style')) || 'linocut';
 
   const FONTS = {
     mono: '"IBM Plex Mono", ui-monospace, Menlo, monospace',

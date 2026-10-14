@@ -413,8 +413,8 @@
       // what it stands on), and polished metal carries a soft band of reflection.
       const tone = (x, y) => {
         const dx = (x - cx) / ext, dy = (y - cy) / ext;
-        let t = t0 + 0.12 * (dx * Lx + dy * Ly);
-        if (vertical) t -= 0.1 * Math.pow(clamp((1 - (dx * Ux + dy * Uy)) / 2, 0, 1), 1.6);
+        let t = t0 + 0.2 * (dx * Lx + dy * Ly);
+        if (vertical) t -= 0.16 * Math.pow(clamp((1 - (dx * Ux + dy * Uy)) / 2, 0, 1), 1.6);
         if (mat.sheen) {
           const s = dx * -Ly + dy * Lx;
           t += mat.sheen * Math.exp(-Math.pow((s + 0.2) / 0.28, 2));
