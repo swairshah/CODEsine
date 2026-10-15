@@ -85,7 +85,7 @@
     iPhone: { tint: '#b7b6b1', back: { col: M.fuchsia, shape: 'swoosh', ang: -62, c: [0.52, 0.5], len: 1.0, thick: 0.4, bow: 0.1 } },
     'MacBook Air': { tint: '#d6b273', back: { col: M.mint, shape: 'band', ang: -16, c: [0.5, 0.42], len: 1.1, thick: 0.34 } },
     'Apple Watch': { tint: '#e5a593', back: { col: M.lemon, shape: 'block', ang: -8, c: [0.5, 0.45], len: 0.6, thick: 0.72 } },
-    'Apple M1': { tint: '#2e7350', back: { col: M.cobalt, shape: 'swoosh', ang: 26, c: [0.48, 0.4], len: 1.1, thick: 0.5, bow: -0.14 } },
+    'Apple M1': { tint: '#2e7350', back: { col: M.cobalt, shape: 'block', ang: -10, c: [0.28, 0.24], len: 0.66, thick: 0.5 } },
     'iMac 24″': { tint: '#4c84d6', tint2: '#d98a6e', colors: ['#6db487', '#f2c74a', '#f08a4b', '#ea7f8e', '#a38bd8', '#c3c5c8', '#4c84d6'], back: { col: M.coral, shape: 'band', ang: -26, c: [0.52, 0.38], len: 1.05, thick: 0.34 } },
     'MacBook Pro 14″': { tint: '#5d5e62', back: { col: M.cyan, shape: 'block', ang: -5, c: [0.4, 0.36], len: 0.74, thick: 0.56 } },
     'Mac mini': { tint: '#bfc0c2', back: { col: M.chartreuse, shape: 'swoosh', ang: -16, c: [0.5, 0.36], len: 1.15, thick: 0.46, bow: 0.16 } },
@@ -216,30 +216,54 @@
       if (spec.shape === 'block') return [u, 0, hw];
       return [u, -hw * 0.18 * (f - 0.5), hw];
     };
-    const nib = clamp(hw * 0.3, 16, 44);
-    const main = [], again = [];
-    const n = Math.max(3, Math.round((2 * hw) / (nib * 0.84)));
-    // each stroke starts and stops a little differently from its neighbour, and the ends of the block
-    // lean the way the hand moved
-    const lean = (spec.shape === 'block' ? 0.03 : 0.07) * len * (r() < 0.5 ? 1 : -1);
-    let w0 = r(), w1 = r();
-    for (let j = 0; j < n; j++) {
-      const f = (j + 0.5) / n, v = -1 + 2 * f + (r() - 0.5) * 0.06;
-      w0 = 0.5 * w0 + 0.5 * r();
-      w1 = 0.5 * w1 + 0.5 * r();
-      const u0 = len * 0.015 + lean * f + len * 0.05 * w0, u1 = len * 0.985 + lean * f - len * 0.05 * w1;
-      const pts = [];
-      for (let k = 0; k <= 12; k++) {
-        const u = u0 + ((u1 - u0) * k) / 12, [x, y, t] = mid(u);
-        pts.push([x, y + v * t]);
+    const nib = clamp(hw * 0.34, 18, 50);
+    // One stroke of a broad marker: set down with a slightly bulging start, dragged along a line that
+    // bows a little and is never quite parallel to its neighbour, and lifted off in a tail that thins
+    // out over a different length each time.
+    const stroke = (u0, u1, v, slope, bw, w, tail) => {
+      const N = 18, L = [], R = [];
+      const C = [];
+      for (let k = 0; k <= N; k++) {
+        const f = k / N, u = u0 + (u1 - u0) * f, [x, y, t] = mid(u);
+        C.push([x, y + (v + slope * (f - 0.5) + bw * Math.sin(Math.PI * f)) * t]);
       }
-      const poly = Ink.gougePoly(pts, nib * (1.05 + r() * 0.2), { smooth: false, taper: 0.62, pow: 0.2 });
-      if (!poly) continue;
-      main.push(poly);
-      if (r() < 0.3) again.push(poly);
+      for (let k = 0; k <= N; k++) {
+        const f = k / N, A = C[Math.max(0, k - 1)], B = C[Math.min(N, k + 1)];
+        const dx = B[0] - A[0], dy = B[1] - A[1], d = Math.hypot(dx, dy) || 1;
+        const start = 0.78 + 0.22 * Math.sin(Math.min(1, f / 0.06) * Math.PI / 2);
+        const end = f > 1 - tail ? 0.12 + 0.88 * Math.pow(Math.cos(((f - (1 - tail)) / tail) * Math.PI / 2), 0.8) : 1;
+        const h = (w / 2) * start * end;
+        L.push([C[k][0] - (dy / d) * h, C[k][1] + (dx / d) * h]);
+        R.push([C[k][0] + (dy / d) * h, C[k][1] - (dx / d) * h]);
+      }
+      return L.concat(R.reverse());
+    };
+    // the hand sweeps each stroke from a little further along than the last, so the ends of the
+    // block lean; each starts and stops differently, the strokes overlap by different amounts, and
+    // every other one is laid while its neighbour is still wet, which leaves a darker seam
+    const lean = (spec.shape === 'block' ? 0.03 : 0.07) * len * (r() < 0.5 ? 1 : -1);
+    const dir = r() < 0.5;
+    const base = [], wet = [[], []], again = [];
+    let w0 = r(), w1 = r(), v = -1 + (nib * 0.45) / hw, j = 0;
+    while (v < 1 - (nib * 0.3) / hw) {
+      const f = (v + 1) / 2;
+      w0 = 0.55 * w0 + 0.45 * r();
+      w1 = 0.55 * w1 + 0.45 * r();
+      let u0 = len * 0.01 + lean * f + len * 0.07 * w0, u1 = len * 0.99 + lean * f - len * 0.07 * w1;
+      const tail = 0.05 + r() * 0.14;
+      if (dir) [u0, u1] = [u1, u0];
+      const poly = stroke(u0, u1, v, ((r() - 0.5) * nib * 0.12) / hw, ((r() - 0.5) * nib * 0.1) / hw, nib * (1.0 + r() * 0.3), tail);
+      base.push(poly);
+      wet[j++ % 2].push(poly);
+      if (r() < 0.28) {
+        // gone over again for part of its length
+        const s0 = r() * 0.5, s1 = s0 + 0.25 + r() * 0.3;
+        again.push(stroke(u0 + (u1 - u0) * s0, u0 + (u1 - u0) * s1, v + (r() - 0.5) * 0.05, 0, 0, nib * (0.7 + r() * 0.3), 0.3));
+      }
+      v += (nib * (0.45 + r() * 0.3)) / hw;
     }
     const aq = Math.round(((((a % Math.PI) + Math.PI) % Math.PI) / Math.PI) * 32) % 32;
-    for (const [G, al] of [[main, 0.84], [again, 0.3]]) for (const poly of G) p.put('m1', 'back', poly, 0, al, 1, aq);
+    for (const [G, al] of [[base, 0.6], [wet[0], 0.25], [wet[1], 0.275], [again, 0.2]]) for (const poly of G) p.put('m1', 'back', poly, 0, al, 1, aq);
     return (dev.back = { plate: p, frame, len });
   }
   // amt 0 → 1 swipes the block in along its strokes, and back out again

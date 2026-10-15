@@ -5,9 +5,12 @@
 (function () {
   const { add, screen, keyboard, slots, text, Icons, rr2, ell2 } = Kit;
 
-  const shadowOp = (m, pts, dx = 6, dy = 8) =>
+  // The machine's shadow on the table, a dark marker swipe: its footprint, nudged by (dx, dy) on the
+  // page and, for a machine h cm tall, stretched away from the light as a real shadow is.
+  const shadowOp = (m, pts, dx = 6, dy = 8, h = 0) =>
     m.op((p, P) => {
-      const c = pts.map(P);
+      const far = pts.map(([x, y, z]) => [x + h * 0.62, y, z - h * 0.69]);
+      const c = Ink.hull([...pts, ...far].map(P));
       p.fill('shadow', c.map(([x, y]) => [x + dx * 0.5, y + dy * 0.5]));
     }, pts, false);
   const tableLine = (m, a, b) => m.op((p, P) => p.pencil([P(a), P(b)], { role: 'graphite2', w: 0.7, over: 0, lod: 1 }), [a, b], false);
@@ -80,7 +83,7 @@
     fit: [700, 720],
     next: { type: 'screen', bg: 'paper', look: 'mono' },
     make(m) {
-      shadowOp(m, [[-12.3, 0, -14], [12.3, 0, -14], [12.3, 0, 13], [-12.3, 0, 13]], 10, 4);
+      shadowOp(m, [[-12.3, 0, -14], [12.3, 0, -14], [12.3, 0, 13], [-12.3, 0, 13]], 10, 4, 12);
       tableLine(m, [-26, 0, 32], [30, 0, 32]);
       const prof = [[-14, 0], [-14, 23], [-7, 34.4], [13.7, 34.4], [13.7, 3.6], [12.9, 3.6], [12.9, 0]];
       m.extrude(prof, -12.3, 12.3, macBeige, {
@@ -221,7 +224,7 @@
     fit: [780, 700],
     next: { type: 'screen', bg: 'tint2', look: 'lcd' },
     make(m) {
-      shadowOp(m, [[-14, 0, -10.8], [14, 0, -10.8], [14, 0, 10.8], [-14, 0, 10.8]], -4, 8);
+      shadowOp(m, [[-14, 0, -10.8], [14, 0, -10.8], [14, 0, 10.8], [-14, 0, 10.8]], -4, 8, 5);
       tableLine(m, [-30, 0, 14], [24, 0, 14]);
       m.box(-14, 0, -10.8, 28, 3.0, 21.6, pbGrey, {
         r: 0.8,
@@ -336,7 +339,7 @@
     fit: [760, 700],
     next: { type: 'screen', bg: 'tint2' },
     make(m) {
-      shadowOp(m, [[-18, 0, -22], [18, 0, -22], [19, 0, 20], [-19, 0, 20]], 8, 4);
+      shadowOp(m, [[-18, 0, -22], [18, 0, -22], [19, 0, 20], [-19, 0, 20]], 8, 4, 10);
       tableLine(m, [-30, 0, 26], [30, 0, 26]);
       // the shell, front to back
       const rings = [
@@ -460,7 +463,7 @@
     fit: [620, 720],
     next: { type: 'screen', bg: 'paper', look: 'silhouette', eggBg: '#c9518b' },
     make(m) {
-      shadowOp(m, [[-3, 0, -1], [3, 0, -1], [3, 0, 1], [-3, 0, 1]], 14, 2);
+      shadowOp(m, [[-3, 0, -1], [3, 0, -1], [3, 0, 1], [-3, 0, 1]], 14, 2, 8);
       tableLine(m, [-7, 0, 3], [9, 0, 3]);
       const outline = rr2(-3.07, 0, 6.14, 10.24, 0.85);
       m.slab(outline, -1.0, 0.1, steel, { mats: { side: steel } });
@@ -570,7 +573,7 @@
     fit: [600, 740],
     next: { type: 'screen', bg: 'tint2', eggBg: '#5b8ac2', egg: 'mail' },
     make(m) {
-      shadowOp(m, [[-3, 0, -0.6], [3, 0, -0.6], [3, 0, 0.6], [-3, 0, 0.6]], 16, 2);
+      shadowOp(m, [[-3, 0, -0.6], [3, 0, -0.6], [3, 0, 0.6], [-3, 0, 0.6]], 16, 2, 9);
       tableLine(m, [-7, 0, 2], [9, 0, 2]);
       m.box(1.6, 11.42, -0.25, 1.0, 0.14, 0.5, alu);
       m.slab(rr2(-3.05, 0, 6.1, 11.5, 0.95), -0.58, 0.58, glass, {
@@ -725,7 +728,7 @@
         },
       });
       m.part('laptop');
-      shadowOp(m, [[-16, 0, -11], [16, 0, -11], [16, 0, 11], [-16, 0, 11]], -3, 4);
+      shadowOp(m, [[-16, 0, -11], [16, 0, -11], [16, 0, 11], [-16, 0, 11]], -3, 4, 5);
       // the base alone: the 0.76 inches is base and lid together, closed
       m.box(-16.25, 0, -11.35, 32.5, 1.25, 22.7, air, {
         hf: 0.3,

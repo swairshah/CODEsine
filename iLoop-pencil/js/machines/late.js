@@ -4,9 +4,12 @@
 (function () {
   const { add, screen, keyboard, slots, Icons, rr2, ell2 } = Kit;
 
-  const shadowOp = (m, pts, dx = 6, dy = 8) =>
+  // The machine's shadow on the table, a dark marker swipe: its footprint, nudged by (dx, dy) on the
+  // page and, for a machine h cm tall, stretched away from the light as a real shadow is.
+  const shadowOp = (m, pts, dx = 6, dy = 8, h = 0) =>
     m.op((p, P) => {
-      const c = pts.map(P);
+      const far = pts.map(([x, y, z]) => [x + h * 0.62, y, z - h * 0.69]);
+      const c = Ink.hull([...pts, ...far].map(P));
       p.fill('shadow', c.map(([x, y]) => [x + dx * 0.5, y + dy * 0.5]));
     }, pts, false);
   const tableLine = (m, a, b) => m.op((p, P) => p.pencil([P(a), P(b)], { role: 'graphite2', w: 0.7, over: 0, lod: 1 }), [a, b], false);
@@ -136,8 +139,8 @@
     make(m) {
       const x0 = -CW / 2, z0 = -CD / 2;
       m.part('bands');
-      shadowOp(m, [[-1.1, 0, z0 - 5.3], [1.1, 0, z0 - 5.3], [1.1, 0, -z0 + 6.0], [-1.1, 0, -z0 + 6.0]], 1.5, 2);
-      shadowOp(m, rr2(x0, z0, CW, CD, 0.95, 4).map(([px, pz]) => [px, 0, pz]), 2.5, 3);
+      shadowOp(m, [[-1.1, 0, z0 - 5.3], [1.1, 0, z0 - 5.3], [1.1, 0, -z0 + 6.0], [-1.1, 0, -z0 + 6.0]], 1.5, 2, 0.5);
+      shadowOp(m, rr2(x0, z0, CW, CD, 0.95, 4).map(([px, pz]) => [px, 0, pz]), 2.5, 3, 0.8);
       tableLine(m, [-7, 0, 6], [7, 0, 6]);
       // the sport band: the pin half above, the holed half below, each ending in a rounded tip
       m.part('bandTop', { fly: { d3: [0, 0, -10] } });
@@ -197,8 +200,9 @@
     fit: [780, 640],
     next: { type: 'assemble' },
     make(m) {
-      shadowOp(m, [[-2.2, 0, -1.7], [2.2, 0, -1.7], [2.2, 0, 1.7], [-2.2, 0, 1.7]], 8, 10);
-      m.box(-2.2, 0, -1.7, 4.4, 0.12, 3.4, { base: 0.9, fill: 'tint', gap: 6, w: 1.1, shade: false }, {
+      shadowOp(m, [[-2.2, 0, -1.7], [2.2, 0, -1.7], [2.2, 0, 1.7], [-2.2, 0, 1.7]], 5, 6, 0.2);
+      // the substrate: a dark green board with gold pads round its edge, thick enough to show its edge
+      m.box(-2.2, 0, -1.7, 4.4, 0.2, 3.4, { base: 0.9, fill: 'tint', gap: 6, w: 1.1, shade: false, edge: 1.2 }, {
         faces: {
           top(F) {
             F.model.mark('self', F, 0, 0, F.w, F.h);
@@ -208,28 +212,46 @@
                 p.fill('warm', rr2(0.25 + i * 0.18, 3.22, 0.08, 0.12, 0.02), 0.5);
               }
               for (let i = 0; i < 16; i++) p.fill('warm', rr2(0.06, 0.25 + i * 0.18, 0.12, 0.08, 0.02), 0.5);
+              // a few capacitors between the lid and the memory
+              for (let i = 0; i < 6; i++) p.fill('umber', rr2(2.66, 0.45 + i * 0.44, 0.08, 0.16, 0.02), 1);
               p.ring('warm', ell2(4.25, 0.16, 0.06, 0.06, 10), F.px(0.8), 1);
             });
           },
         },
       });
+      // two memory packages, black, each with its part number
       for (const z of [-1.5, 0.08]) {
-        m.box(0.78, 0.12, z, 1.24, 0.15, 1.42, { base: 0.32, dark: true, fill: 'tint2', gap: 3, w: 1 }, {
-          faces: { top(F) { F.draw((p) => p.dots('earth', rr2(0.05, 0.05, 1.14, 1.32, 0.05), 0.06, 0.012)); } },
+        m.box(0.86, 0.2, z, 1.2, 0.22, 1.4, { base: 0.36, dark: true, fill: 'tint2', gap: 3, w: 1, edge: 1.1 }, {
+          faces: {
+            top(F) {
+              F.draw((p) => {
+                p.fill('earth', ell2(0.16, 0.16, 0.05, 0.05, 10), 0.5);
+                p.text('earth', 'LPDDR4X', 0.6, 0.6, 0.14, { lod: 1, weight: 600 });
+                p.text('earth', '8 GB', 0.6, 0.8, 0.12, { lod: 1 });
+              });
+            },
+          },
         });
       }
+      // the heat spreader: a polished lid with the Apple logo and M1 on it
       m.part('focus');
-      m.box(-2.0, 0.12, -1.5, 2.55, 0.16, 3.0, { base: 0.97, gap: 3, w: 0.9, edge: 1.3 }, {
+      m.box(-2.0, 0.2, -1.5, 2.6, 0.26, 3.0, { base: 0.97, gap: 3, w: 0.9, edge: 1.4, sheen: 0.22 }, {
+        r: 0.14,
         faces: {
           top(F) {
             F.model.mark('focus', F, 0, 0, F.w, F.h);
             F.draw((p) => {
               const k = F.px(1);
-              p.ring('earth', rr2(0.12, 0.12, 2.31, 2.76, 0.12), 0.8 * k, 1);
-              p.fill('earth', ell2(2.1, 0.4, 0.08, 0.08, 10), 0.5);
-              p.text('earth', 'M1', 1.27, 1.2, 0.62, { weight: 600, lod: 0.5 });
-              p.text('earth', 'APL1102  339S00818', 1.27, 2.2, 0.15, { lod: 1 });
-              p.text('earth', 'U016B8Z11L  2043', 1.27, 2.0, 0.15, { lod: 1 });
+              // polished metal: a darker reflection across it, and two bands of light
+              p.put('m1', 'cg', [[0, 1.55], [2.6, 0.75], [2.6, 1.35], [0, 2.15]], 0, 0.3, 1);
+              p.sheen([[0, 0.55], [2.6, -0.25], [2.6, 0.2], [0, 1.0]], 0.22);
+              p.sheen([[0, 2.45], [2.6, 1.65], [2.6, 1.8], [0, 2.6]], 0.18);
+              p.pencil([[0.25, 0.85], [2.3, 0.22]], { role: 'chalk', w: 1.3 * k, over: 0, wob: 0.2 });
+              p.ring('umber', rr2(0.12, 0.12, 2.36, 2.76, 0.14), 0.6 * k, 1);
+              Icons.apple(p, 0.82, 1.24, 0.52, { role: 'umber' });
+              p.text('umber', 'M1', 1.5, 1.27, 0.6, { weight: 600, lod: 0.5 });
+              p.text('umber', 'APL1102  339S00818', 1.3, 2.2, 0.15, { lod: 1 });
+              p.text('umber', 'U016B8Z11L  2043', 1.3, 2.0, 0.15, { lod: 1 });
             });
           },
         },
@@ -263,7 +285,7 @@
       // In an exploded view along the depth axis: the coloured back and the stand behind, the board,
       // then the glass front, keyboard and mouse. They collapse together as you arrive.
       m.part('back', { fly: { d3: [0, 2, -52], at: [0.46, 0.76] } });
-      shadowOp(m, [[-7.4, 0, -10], [7.4, 0, -10], [7.4, 0, 4.7], [-7.4, 0, 4.7]], 6, 3);
+      shadowOp(m, [[-7.4, 0, -10], [7.4, 0, -10], [7.4, 0, 4.7], [-7.4, 0, 4.7]], 6, 3, 14);
       tableLine(m, [-36, 0, 6], [36, 0, 6]);
       m.slab(rr2(x0, Y0, W2, H2, 1.3), -0.62, -0.05, { base: 0.92, fill: 'tint', gap: 6, w: 1.3 }, { skip: ['front'] });
       m.part('stand', { fly: { d3: [0, -2, -92], at: [0.5, 0.82] } });
@@ -416,7 +438,7 @@
     next: { type: 'screen', bg: 'light' },
     make(m) {
       const x0 = -W3 / 2, z0 = -D3 / 2;
-      shadowOp(m, [[x0, 0, z0], [-x0, 0, z0], [-x0, 0, -z0], [x0, 0, -z0]], -6, 5);
+      shadowOp(m, [[x0, 0, z0], [-x0, 0, z0], [-x0, 0, -z0], [x0, 0, -z0]], -6, 5, 6);
       tableLine(m, [-30, 0, 15], [26, 0, 15]);
       for (const [x, z] of [[x0 + 2.2, z0 + 2.2], [-x0 - 2.2, z0 + 2.2], [x0 + 2.2, -z0 - 2.2], [-x0 - 2.2, -z0 - 2.2]]) m.cyl([x, 0, z], 0.7, 0.32, 'y', { base: 0.25, dark: true, fill: 'ink', gap: 3, w: 1 });
       m.box(x0, 0.32, z0, W3, 1.23, D3, spaceGrey, {
@@ -517,7 +539,7 @@
       }, [[-4.6, 0, -4.6], [4.6, 0, 4.6]]);
       tableLine(m, [-13, 0, 9], [13, 0, 9]);
       // its shadow on the table, a dark marker swipe
-      shadowOp(m, rr2(x0, x0, W4, W4, 2.6, 4).map(([px, pz]) => [px, 0, pz]), 26, 12);
+      shadowOp(m, rr2(x0, x0, W4, W4, 2.6, 4).map(([px, pz]) => [px, 0, pz]), 10, 6, 2.6);
       // inside, from the back: the ports, the blower and its heatsink fins, the storage, the M4
       const B = x0 + 0.4; // board corner in world units; u runs right, v runs toward you
       const at = (u, v, y = 0.9) => [B + u, y, B + v];

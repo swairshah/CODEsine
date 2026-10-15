@@ -153,6 +153,7 @@
         n = this.xv(n);
         if (frame) frame = { ...frame, o: this.xp(frame.o), U: this.xv(frame.U), V: this.xv(frame.V) };
         if (o.axis) o = { ...o, axis: this.xv(o.axis) };
+        if (o.nA) o = { ...o, nA: this.xv(o.nA), nB: this.xv(o.nB), gA: this.xp(o.gA), gB: this.xp(o.gB) };
       }
       this.cur.ops.push({ kind: 'face', pts, n, frame, mat, ...o });
       return this;
@@ -195,7 +196,13 @@
         const nn = [ez / L, 0, -ex / L];
         band.push({ a, b, nn, L });
       }
-      // sides first: back-facing ones are culled when drawn
+      // sides first: back-facing ones are culled when drawn. Each corner strip knows the normals at its
+      // two edges (between it and its neighbours), so its marker can run smoothly into theirs.
+      band.forEach((s, i) => {
+        const pv = band[(i - 1 + band.length) % band.length], nx = band[(i + 1) % band.length];
+        s.nA = v3.norm(v3.add(pv.nn, s.nn));
+        s.nB = v3.norm(v3.add(s.nn, nx.nn));
+      });
       for (const s of band) {
         const key = Math.abs(s.nn[2]) > 0.99 ? (s.nn[2] > 0 ? 'front' : 'back') : Math.abs(s.nn[0]) > 0.99 ? (s.nn[0] > 0 ? 'right' : 'left') : 'corner';
         if (skip.has(key)) continue;
@@ -206,7 +213,8 @@
         if (key === 'right') { fo = [X1, Y1, Z1]; fw = d; FU = [0, 0, -1]; }
         if (key === 'left') { fo = [X0, Y1, Z0]; fw = d; FU = [0, 0, 1]; }
         if (key === 'back') { fo = [X1, Y1, Z0]; fw = w; FU = [-1, 0, 0]; }
-        this.face(pts, s.nn, { o: fo, U: FU, V: [0, -1, 0], w: fw, h }, o.mats?.[key] || mat, { deco: key === 'corner' ? null : F[key], key, edge: key === 'corner' ? 0 : o.edge, seam: key === 'corner', hatch: 'v' });
+        const curve = key === 'corner' ? { nA: s.nA, nB: s.nB, gA: [s.a[0], (Y0 + Y1) / 2, s.a[1]], gB: [s.b[0], (Y0 + Y1) / 2, s.b[1]] } : {};
+        this.face(pts, s.nn, { o: fo, U: FU, V: [0, -1, 0], w: fw, h }, o.mats?.[key] || mat, { deco: key === 'corner' ? null : F[key], key, edge: key === 'corner' ? 0 : o.edge, seam: key === 'corner', hatch: 'v', ...curve });
       }
       if (!skip.has('top')) this.face(plan.map(([px, pz]) => [px, Y1, pz]), [0, 1, 0], { o: [X0, Y1, Z0], U: [1, 0, 0], V: [0, 0, 1], w, h: d }, o.mats?.top || mat, { deco: F.top, key: 'top', edge: o.edge });
       if (!skip.has('bottom')) this.face(plan.map(([px, pz]) => [px, Y0, pz]).reverse(), [0, -1, 0], { o: [X0, Y0, Z1], U: [1, 0, 0], V: [0, 0, -1], w, h: d }, o.mats?.bottom || mat, { deco: F.bottom, key: 'bottom', edge: o.edge });
@@ -310,7 +318,9 @@
         const j = (i + 1) % n;
         const mid = v3.mul(v3.add(v3.sub(A[i], c), v3.sub(A[j], c)), 0.5);
         const nn = v3.norm(v3.sub(mid, v3.mul(ax, v3.dot(mid, ax))));
-        this.face([A[i], A[j], B[j], B[i]], nn, null, mat, { edge: 0, seam: true, hatch: 'axis', axis: ax });
+        const radial = (q) => { const d = v3.sub(q, c); return v3.norm(v3.sub(d, v3.mul(ax, v3.dot(d, ax)))); };
+        const half = v3.mul(ax, len / 2);
+        this.face([A[i], A[j], B[j], B[i]], nn, null, mat, { edge: 0, seam: true, hatch: 'axis', axis: ax, nA: radial(A[i]), nB: radial(A[j]), gA: v3.add(A[i], half), gB: v3.add(A[j], half) });
       }
       // the end cap's own axes are centred, so decorations are drawn about (0, 0)
       const capU = axis === 'x' ? [0, 0, -1] : [1, 0, 0], capV = axis === 'y' ? [0, 0, 1] : [0, -1, 0];
@@ -426,8 +436,11 @@
       };
       // marker strokes run up and down a vertical face, and along the surface on any other
       const mang = vertical && !f.seam ? atan2(Uy, Ux) : angle;
+      // a strip of a curved surface shades smoothly from the tone at one edge to the tone at the other
+      const grad = f.nA && this.cam(f.n)[2] > 0.02 ? { p0: this.P(f.gA), p1: this.P(f.gB), t0: this.tone(f.nA, mat), t1: this.tone(f.nB, mat) } : null;
       if (!mat.none) {
         p.face(pts, tone, {
+          grad,
           fill: mat.fill,
           dark: mat.dark,
           angle,
@@ -499,6 +512,17 @@
       }
       const m0 = this.P(R[0][0]), m1 = this.P(R[R.length - 1][0]);
       const loftAngle = atan2(m1[1] - m0[1], m1[0] - m0[0]);
+      // the normal at each corner of the grid, the average of the quads that meet there, so the marker
+      // turns smoothly round the shell instead of in facets
+      const at = new Map(quads.map((Q) => [Q.k * n + Q.i, Q]));
+      const vn = (k, i) => {
+        let sum = [0, 0, 0];
+        for (const [dk, di] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) {
+          const Q = at.get((k + dk) * n + ((i + di + n) % n));
+          if (Q) sum = v3.add(sum, Q.nn);
+        }
+        return v3.norm(sum);
+      };
       // far quads first
       const vis = quads.filter((Q) => this.cam(Q.nn)[2] > -0.05);
       vis.sort((A, B) => this.depthOf(A.q[0]) - this.depthOf(B.q[0]));
@@ -509,17 +533,44 @@
         const t = this.tone(Q.nn, qm);
         Q.t = t;
         Q.m = qm;
-        // each quad is crayoned with the strokes running down the loft, so they carry on from quad to quad
-        p.face(pts, t, { fill: qm.fill, dark: qm.dark, angle: loftAngle, mang: loftAngle, edge: 0, pencil: false });
+        // the tone at the quad's corners, and the straight line of tone that best fits them: the quad
+        // is shaded along it, from its darkest corner to its lightest
+        const ts = [vn(Q.k, Q.i), vn(Q.k, Q.i + 1), vn(Q.k + 1, Q.i + 1), vn(Q.k + 1, Q.i)].map((nn) => this.tone(nn, qm));
+        const cx = pts.reduce((s2, q) => s2 + q[0], 0) / 4, cy = pts.reduce((s2, q) => s2 + q[1], 0) / 4;
+        let sxx = 0, sxy = 0, syy = 0, sxt = 0, syt = 0;
+        const tm = ts.reduce((s2, v) => s2 + v, 0) / 4;
+        pts.forEach((q, j) => {
+          const dx = q[0] - cx, dy = q[1] - cy, dt = ts[j] - tm;
+          sxx += dx * dx; sxy += dx * dy; syy += dy * dy; sxt += dx * dt; syt += dy * dt;
+        });
+        const det = sxx * syy - sxy * sxy || 1;
+        const gx = (syy * sxt - sxy * syt) / det, gy = (sxx * syt - sxy * sxt) / det, gl = Math.hypot(gx, gy);
+        let grad = null;
+        if (gl > 1e-6) {
+          const ux = gx / gl, uy = gy / gl;
+          let lo = Infinity, hi = -Infinity;
+          for (const q of pts) { const d = (q[0] - cx) * ux + (q[1] - cy) * uy; lo = Math.min(lo, d); hi = Math.max(hi, d); }
+          grad = { p0: [cx + ux * lo, cy + uy * lo], p1: [cx + ux * hi, cy + uy * hi], t0: clamp(tm + gl * lo, 0, 1), t1: clamp(tm + gl * hi, 0, 1) };
+        }
+        p.face(pts, t, { fill: qm.fill, dark: qm.dark, angle: loftAngle, mang: loftAngle, edge: 0, pencil: false, grad: grad || { p0: pts[0], p1: pts[2], t0: t, t1: t } });
       }
-      // contour lines: along each section and each meridian, weighted by darkness
-      for (const Q of vis) {
-        const qm = Q.m;
-        const lineRole = qm.dark ? 'paper' : 'ink';
-        const a = this.P(Q.q[0]), b = this.P(Q.q[1]), d = this.P(Q.q[3]);
-        const w = (qm.w ?? 2) * (qm.dark ? clamp(Q.t / 0.45, 0, 1) : Math.pow(clamp((1 - Q.t) / 0.6, 0, 1), 1.2));
-        if (w > 0.3 && Q.k % (o.every || 1) === 0) p.gouge(lineRole, [a, b], w, { smooth: false, taper: 0.25, lod: 1 });
-        if (o.meridians && w > 0.3 && Q.i % o.meridians === 0) p.gouge(lineRole, [a, d], w * 0.7, { smooth: false, taper: 0.25, lod: 1 });
+      // A few deliberate lines, not one for every section: the outline of the first and last sections
+      // and two sections across the swell. The light on its crown is white chalk in the marker above.
+      const runs = (K) => {
+        const sec = vis.filter((Q) => Q.k === K && this.cam(Q.nn)[2] > 0.08).map((Q) => Q.i).sort((x, y) => x - y);
+        const out = [];
+        let cur = [];
+        for (const i of sec) {
+          if (cur.length && i !== cur[cur.length - 1] + 1) { out.push(cur); cur = []; }
+          cur.push(i);
+        }
+        if (cur.length) out.push(cur);
+        // a run that wraps round the end of the ring joins its start
+        if (out.length > 1 && out[0][0] === 0 && out[out.length - 1][out[out.length - 1].length - 1] === n - 1) out[0] = out.pop().concat(out[0]);
+        return out.map((r) => r.map((i) => this.P(R[K][i])).concat([this.P(R[K][(r[r.length - 1] + 1) % n])]));
+      };
+      for (const K of [Math.round((R.length - 1) / 3), Math.round((2 * (R.length - 1)) / 3)]) {
+        for (const run of runs(K)) if (run.length > 2) p.pencil(run, { role: 'graphite', w: 0.8, over: 4, wob: 0.3, lod: 0.5, alpha: 0.75 });
       }
       if (o.pencil !== false) {
         // silhouette in pencil: the outline of the visible sections

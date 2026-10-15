@@ -167,6 +167,17 @@
     return out;
   }
 
+  // the convex hull of a set of points (monotone chain), counter-clockwise
+  function hull(pts) {
+    const P = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    if (P.length < 3) return P;
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], hi = [];
+    for (const p of P) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+    for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (hi.length >= 2 && cross(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+    return lo.slice(0, -1).concat(hi.slice(0, -1));
+  }
+
   function addPoly(path, pts, sign) {
     const rev = (area(pts) < 0) !== (sign < 0);
     const n = pts.length;
@@ -270,15 +281,32 @@
     }
     // A layer is one merged path of marks that share a stage, a colour, a level of detail, an opacity
     // and a density (marker) or pressure (pencil). aq is the direction of marker strokes.
-    layer(st, role, lod, alpha = 1, pt = 0, aq = 0) {
+    // sp marks a layer of pencil lines that also keeps each line's spine, so seen close up it can be
+    // drawn as a fine line instead of a broad one.
+    layer(st, role, lod, alpha = 1, pt = 0, aq = 0, sp = false) {
       alpha = Math.round(alpha * 40) / 40;
       pt = Math.round(pt * 20) / 20;
       let L = this.layers[this.layers.length - 1];
-      if (!L || L.kind !== 'path' || L.st !== st || L.role !== role || L.lod !== lod || L.alpha !== alpha || L.pt !== pt || L.aq !== aq) {
+      if (!L || L.kind !== 'path' || L.grad || L.st !== st || L.role !== role || L.lod !== lod || L.alpha !== alpha || L.pt !== pt || L.aq !== aq || !!L.spine !== sp) {
         L = { kind: 'path', st, role, lod, alpha, pt, aq, path: new Path2D() };
+        if (sp) L.spine = new Path2D();
         this.layers.push(L);
       }
       return L;
+    }
+    // A patch of marker whose depth runs smoothly from one side to the other: g.p0 and g.p1 are two
+    // points (local), and f(t) the opacity for a tone t, from g.t0 at p0 to g.t1 at p1. The narrow
+    // faces of a rounded corner, a cylinder or a curved shell each take the tone of their neighbours
+    // at their edges, so together they read as one smooth turn instead of steps.
+    gput(st, role, pts, lod, g, f, pt = 1, aq = 0) {
+      const a0 = clamp(f(g.t0), 0, 1), a1 = clamp(f(g.t1), 0, 1), am = clamp(f((g.t0 + g.t1) / 2), 0, 1);
+      if (Math.max(a0, a1, am) < 0.004 || !pts || pts.length < 3) return;
+      const q = this.tx(pts);
+      if (q.length < 3) return;
+      const ends = this.M ? [g.p0, g.p1].map(([x, y]) => [this.M[0] * x + this.M[2] * y + this.M[4], this.M[1] * x + this.M[3] * y + this.M[5]]) : [g.p0, g.p1];
+      const L = { kind: 'path', st, role, lod, alpha: 1, pt, aq, path: new Path2D(), grad: { x0: ends[0][0], y0: ends[0][1], x1: ends[1][0], y1: ends[1][1], a0, am, a1 } };
+      addPoly(L.path, q, 1);
+      this.layers.push(L);
     }
     put(st, role, pts, lod, alpha, pt, aq = 0) {
       if (!pts || pts.length < 3) return;
@@ -422,8 +450,11 @@
       const poly = gougePoly(W, wf, { smooth: false, taper: o.taper ?? 0.18, pow: 0.3 });
       if (!poly) return;
       const q = this.tx(poly);
-      const L = role === 'chalk' ? this.layer('white', 'chalk', o.lod ?? 0.5, o.alpha ?? 1, 0.9) : this.layer(penStage(role), 'pen', o.lod ?? 0.5, o.alpha ?? 1, PRESS[role] ?? 0.8);
-      if (q.length >= 3) addPoly(L.path, q, 1);
+      const L = role === 'chalk' ? this.layer('white', 'chalk', o.lod ?? 0.5, o.alpha ?? 1, 0.9, 0, true) : this.layer(penStage(role), 'pen', o.lod ?? 0.5, o.alpha ?? 1, PRESS[role] ?? 0.8, 0, true);
+      if (q.length < 3) return;
+      addPoly(L.path, q, 1);
+      const sw = this.tx(W);
+      sw.forEach(([x, y], i) => (i ? L.spine.lineTo(x, y) : L.spine.moveTo(x, y)));
     }
     // Find a shape the way a designer does: light construction lines first, long and running well
     // past the corners, then the contour pressed in over them, broken where the hand lifted.
@@ -586,7 +617,7 @@
         const a = g[i], b = g[(i + 1) % g.length], d = Math.hypot(b[0] - a[0], b[1] - a[1]);
         if (d > best) { best = d; ang = Math.atan2(b[1] - a[1], b[0] - a[0]); }
       }
-      this.marker('shadow', g, () => 0, { angle: ang, nib: 30, alpha: 0.7, stage: 'm2', lod, over: 4, again: 0.3, short: 0.04 });
+      this.marker('shadow', g, () => 0, { angle: ang, nib: 30, alpha: 0.8, stage: 'm2', lod, over: 4, again: 0.3, short: 0.04 });
     }
 
     // A shaded surface. tone: 0 = black, 1 = white (number or fn(x, y)). o.mang is the direction of
@@ -619,15 +650,21 @@
       for (const q of poly) { const t = T(q[0], q[1]); tmin = Math.min(tmin, t); tmax = Math.max(tmax, t); }
       const streak = (q) => T(q[0], q[1]) > tmax - 0.22 * (tmax - tmin) && this.r() < 0.35;
       const chalk = (from, alpha) => this.marker('chalk', poly, (x, y) => 1 - T(x, y), { angle: ang, nib: nib * 1.2, theta: 1 - from, alpha, stage: 'white', lod, pt: 0, again: 0 });
-      if (!strokes) {
-        // a narrow face (a rounded corner, a rim, a slice of a cylinder): one swipe, as deep as its tone
-        const d = clamp((0.86 - t0) / 0.55, 0, 1);
-        if (dark) this.put('m1', role, poly, lod, 0.92 - 0.25 * clamp((t0 - 0.3) / 0.5, 0, 1), 1);
+      if (!strokes || o.grad) {
+        // a narrow face (a rounded corner, a rim, a slice of a cylinder or a shell): one swipe, as deep
+        // as its tone, running smoothly into its neighbours when it knows their tones
+        const g = o.grad;
+        const G = (st, r, f, pt = 1) => (g ? this.gput(st, r, poly, lod, g, f, pt) : this.put(st, r, poly, lod, clamp(f(t0), 0, 1), pt));
+        const d = (t) => clamp((0.86 - t) / 0.55, 0, 1);
+        if (dark) G('m1', role, (t) => 0.92 - 0.25 * clamp((t - 0.3) / 0.5, 0, 1));
         else if (role) {
-          this.put('m1', role, poly, lod, 0.6 + 0.25 * d, 1);
-          if (d > 0.5) this.put('m2', 'cg', poly, lod, 0.4 * (d - 0.5) * 2, 1);
-        } else if (d > 0.04) this.put('m1', 'cg', poly, lod, 0.6 * d, 1);
-        else if (t0 > 0.86) this.put('white', 'chalk', poly, lod, 0.25, 0);
+          G('m1', role, (t) => 0.58 + 0.25 * d(t));
+          G('m2', 'cg', (t) => 0.42 * clamp((d(t) - 0.45) * 2, 0, 1));
+          G('white', 'chalk', (t) => 0.28 * smooth(0.8, 0.92, t), 0);
+        } else {
+          G('m1', 'cg', (t) => 0.62 * d(t));
+          G('white', 'chalk', (t) => 0.3 * smooth(0.82, 0.92, t), 0);
+        }
       } else if (dark) {
         M(role, 9, t0 > 0.5 ? 0.78 : 0.9, 'm1', { skip: t0 > 0.42 ? streak : null });
         M(role, t0 + 0.02, 0.45, 'm2');
@@ -782,7 +819,7 @@
       occ: Math.min(1, pencil * 1.6),
       con: smooth(0, 0.35, pencil) * (1 - 0.85 * smooth(1.8, 3.6, detail)),
       // contours drawn for the whole machine would turn into bars seen close up: they lighten as you zoom
-      line: smooth(0.12, 0.6, pencil) * (1 - 0.5 * smooth(2.5, 7, detail)),
+      line: smooth(0.12, 0.6, pencil),
       note: pencil,
       m1: smooth(0.02, 0.55, ink),
       flat: smooth(0.02, 0.55, ink),
@@ -814,6 +851,9 @@
       a *= lodAlpha(pen ? L.lod * 0.4 : L.lod, detail) * L.alpha;
       if (a < 0.004) continue;
       if (pen) {
+        // close up, a pencil line drawn for the whole machine would be a bar: it gives way to a fine
+        // line of the same weight on the screen as at rest
+        const near = L.spine ? smooth(1.9, 3.4, detail) : 0.4 * smooth(2.5, 7, detail);
         if (st === 'note' && L.kind === 'text') {
           // a note is written where the paper was rubbed clean for it first
           C.globalAlpha = P.globalAlpha = a * 0.8;
@@ -822,13 +862,29 @@
           drawText(C, L, L.size * 0.45);
           drawText(P, L, L.size * 0.45);
         }
-        C.globalAlpha = a * (L.role === 'chalk' ? 0.92 : Math.min(1, L.pt * 1.05));
+        const ca = L.role === 'chalk' ? 0.92 : Math.min(1, L.pt * 1.05);
         C.fillStyle = colourOf(L.role, pal);
         P.globalCompositeOperation = 'lighter';
-        P.globalAlpha = a;
         P.fillStyle = grStyle(L.pt);
-        if (L.kind === 'path') { C.fill(L.path); P.fill(L.path); }
-        else { drawText(C, L); drawText(P, L); }
+        if (near < 0.999) {
+          C.globalAlpha = a * ca * (1 - near);
+          P.globalAlpha = a * (1 - near);
+          if (L.kind === 'path') { C.fill(L.path); P.fill(L.path); }
+          else { drawText(C, L); drawText(P, L); }
+        }
+        if (L.spine && near > 0.001) {
+          // about a pixel and a half on the screen, a little more for white pencil, less for construction
+          const lw = (st === 'white' ? 1.7 : st === 'con' ? 0.9 : 1.3) / (0.7 * detail);
+          C.globalAlpha = a * ca * near;
+          P.globalAlpha = a * near;
+          C.strokeStyle = C.fillStyle;
+          P.strokeStyle = P.fillStyle;
+          C.lineWidth = P.lineWidth = lw;
+          C.lineCap = P.lineCap = 'round';
+          C.lineJoin = P.lineJoin = 'round';
+          C.stroke(L.spine);
+          P.stroke(L.spine);
+        }
         P.globalCompositeOperation = 'source-over';
         continue;
       }
@@ -838,6 +894,16 @@
       if (st === 'occ') {
         C.fillStyle = pal.paper;
         P.fillStyle = '#000';
+      } else if (L.grad) {
+        const g = L.grad, rgb = parseColour(colourOf(L.role, pal));
+        const gc = C.createLinearGradient(g.x0, g.y0, g.x1, g.y1), gp = P.createLinearGradient(g.x0, g.y0, g.x1, g.y1);
+        const den = `${Math.round(clamp(L.pt, 0, 1) * 255)},0,${(L.aq || 0) * 8}`, col = `${rgb[0] | 0},${rgb[1] | 0},${rgb[2] | 0}`;
+        for (const [t, al] of [[0, g.a0], [0.5, g.am], [1, g.a1]]) {
+          gc.addColorStop(t, `rgba(${col},${al})`);
+          gp.addColorStop(t, `rgba(${den},${al})`);
+        }
+        C.fillStyle = gc;
+        P.fillStyle = gp;
       } else {
         C.fillStyle = colourOf(L.role, pal);
         P.fillStyle = denStyle(L.pt, L.aq || 0);
@@ -859,5 +925,5 @@
     ctx.fill();
   }
 
-  global.Ink = { rng, clamp, smooth, area, centroid, inside, catmull, resampleOpen, gougePoly, Plate, drawPlate, fillPoly, lodAlpha, hex, mix, css, makePal, mixPal, parseColour, grStyle, denStyle, sweepPath, FONTS };
+  global.Ink = { rng, clamp, smooth, area, centroid, inside, hull, catmull, resampleOpen, gougePoly, Plate, drawPlate, fillPoly, lodAlpha, hex, mix, css, makePal, mixPal, parseColour, grStyle, denStyle, sweepPath, FONTS };
 })(window);
