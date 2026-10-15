@@ -199,15 +199,20 @@
   .track { position: absolute; top: -7px; left: calc(50% / 13); right: calc(50% / 13); height: 11px; pointer-events: none; }
   .cursor { position: absolute; top: 0; width: 11px; height: 11px; margin-left: -5.5px; background: var(--ink); }
 
+  /* the timeline runs along the top, and the buttons along the bottom, under the hand */
+  .rail { top: 0; bottom: auto; padding-top: calc(env(safe-area-inset-top, 0px) + 4px); padding-bottom: 0; border-top: 0; border-bottom: 3px solid var(--rule); }
+  .track { top: auto; bottom: -7px; }
+  .tools { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); left: 50%; right: auto; transform: translateX(-50%); }
+  .cap { top: calc(env(safe-area-inset-top, 0px) + 84px); }
+  .hint, .yt-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); }
+
   @media (max-width: 900px) { .rail button .n { display: none; } }
   @media (max-width: 640px) {
     .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 60px); }
-    .tools { top: auto; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); justify-content: space-between; }
+    .tools { top: auto; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); justify-content: space-between; transform: none; }
     .tools button { min-width: 44px; height: 44px; padding: 0 8px; }
     .line { font-size: 0.92rem; }
-    /* on a phone the timeline runs along the top, and the buttons along the bottom, under the thumb */
-    .rail { left: 8px; right: 8px; top: 0; bottom: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; border-top: 0; border-bottom: 3px solid var(--rule); }
-    .track { top: auto; bottom: -7px; }
+    .rail { left: 8px; right: 8px; }
     .hint, .yt-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
     .rail button { font-size: 0.6rem; padding-inline: 0; }
   }

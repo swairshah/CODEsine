@@ -177,15 +177,20 @@
   .cursor { position: absolute; top: 0; width: 2px; height: 9px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
   .perf { position: fixed; left: 8px; bottom: 64px; font: 500 11px/1 ui-monospace, Menlo, monospace; color: #fff; background: rgba(0, 0, 0, 0.55); padding: 4px 6px; border-radius: 4px; z-index: 9; }
 
+  /* the timeline runs along the top, and the buttons along the bottom, under the hand */
+  .rail { top: 0; bottom: auto; padding-top: calc(env(safe-area-inset-top, 0px) + 4px); padding-bottom: 0; border-top: 0; border-bottom: 1px solid var(--rule); }
+  .track { top: auto; bottom: -5px; }
+  .tools { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); left: 50%; right: auto; transform: translateX(-50%); }
+  .cap { top: calc(env(safe-area-inset-top, 0px) + 76px); }
+  .hint, .yt-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); }
+
   @media (max-width: 900px) { .rail button .n { display: none; } }
   @media (max-width: 640px) {
     .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 60px); }
-    .tools { top: auto; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); justify-content: space-between; }
+    .tools { top: auto; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); justify-content: space-between; transform: none; }
     .tools button { min-width: 44px; height: 44px; padding: 0 8px; }
     .line { font-size: 0.92rem; }
-    /* on a phone the timeline runs along the top, and the buttons along the bottom, under the thumb */
-    .rail { left: 8px; right: 8px; top: 0; bottom: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; border-top: 0; border-bottom: 1px solid var(--rule); }
-    .track { top: auto; bottom: -5px; }
+    .rail { left: 8px; right: 8px; }
     .hint, .yt-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
     .rail button { font-size: 0.56rem; padding-inline: 0; }
   }
