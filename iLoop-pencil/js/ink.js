@@ -1,9 +1,10 @@
-// ink.js, pencil edition: graphite and wax crayon for Canvas2D.
-// Every mark is still a filled polygon recorded once into "plates" and replayed at any zoom, but a
-// mark is now either graphite (lines, construction strokes, hatching, smudges) or crayon (colour laid
-// in hand scribbles). Each frame is drawn twice in lockstep (see paper.js): once for colour, and once
-// for how hard each mark was pressed. A paper shader then decides, pixel by pixel, whether the wax or
-// the graphite caught on the tooth of the sheet.
+// ink.js, marker edition: an industrial designer's presentation sketch for Canvas2D.
+// Every mark is still a filled polygon recorded once into "plates" and replayed at any zoom. A mark
+// now belongs to one stage of the drawing, in the order a designer works on grey marker paper: loose
+// pencil construction lines, confident contours over them, translucent marker laid in one or two
+// layers, solid colour for screens and labels, and white pencil for the highlights. Each frame is
+// drawn twice in lockstep (see paper.js): once for colour, and once for how each mark was made, so a
+// paper shader can streak the marker along its strokes and break the pencil up on the paper's tooth.
 'use strict';
 
 (function (global) {
@@ -200,16 +201,23 @@
     return [lo, hi];
   }
 
-  // How hard each graphite role presses, 0..1. Construction lines are barely there; the contour is
-  // drawn with confidence; hatching and smudges carry the shade.
-  const GRAPHITE = { graphite: 0.9, graphite2: 0.34, graphiteNote: 0.86, graphiteH: 0.5, graphiteH2: 0.74, graphiteS: 0.26, graphiteE: 0.6 };
-  // graphite that shades (laid in with the colour) rather than draws
-  const SHADING = { graphiteH: 1, graphiteH2: 1, graphiteS: 1 };
+  // ---------- the stages of a drawing ----------
+  //   occ    the paper inside a surface: it hides what is behind it as soon as the outline is drawn
+  //   con    construction lines, light and long, running past the corners
+  //   line   contours and dark accents, pressed in over the construction
+  //   m1     the first layer of marker
+  //   m2     the second layer, on the shadow side, and the cast shadow on the table
+  //   flat   solid colour: screens, labels, keys and other small parts
+  //   white  white pencil: highlights on the edges that catch the light, glints, chalk on lit faces
+  //   note   handwritten notes and dimensions
+  const PEN = { con: 1, line: 1, white: 1, note: 1 };
+  // how hard each pencil presses, 0..1
+  const PRESS = { graphite: 0.92, ink: 0.9, graphite2: 0.5, graphiteNote: 0.78, graphiteE: 0.8, chalk: 0.9 };
   const isGraphite = (role) => role.charCodeAt(0) === 103 && role.startsWith('graphite');
-  // the right-handed hatching diagonal, on the page: up and to the right
-  const HATCH = -1.02;
-  // a line in 'ink' is a pencil line; a fill in 'ink' is black wax
-  const lineRole = (role) => (role === 'ink' ? 'graphite' : role);
+  const penStage = (role) => (role === 'graphite2' ? 'con' : role === 'graphiteNote' ? 'note' : role === 'chalk' ? 'white' : 'line');
+  const isWhite = (role) => role === 'light' || role === 'paper' || role === 'chalk';
+  // marker density written for solid colour: low, so screens and labels stay clean
+  const FLAT = 0.1;
   // a stroke direction, folded to [0, π) and kept to 32 steps, as stored in the pressure canvas's blue
   const angQ = (a) => Math.round(((((a % Math.PI) + Math.PI) % Math.PI) / Math.PI) * 32) % 32;
 
@@ -250,11 +258,6 @@
       const dx = Math.cos(a), dy = Math.sin(a);
       return Math.atan2((-M[1] * dx + M[0] * dy) / det, (M[3] * dx - M[2] * dy) / det);
     }
-    rand(a = 0, b = 1) {
-      return a + (b - a) * this.r();
-    }
-    // A layer is one merged path of marks that share a role, a level of detail, an opacity and a
-    // pressure. occ marks a fill that hides what is behind it (a surface), as opposed to a stroke on it.
     // the page direction of a local angle
     pageAngle(a) {
       const M = this.M;
@@ -262,61 +265,53 @@
       const dx = Math.cos(a), dy = Math.sin(a);
       return Math.atan2(M[1] * dx + M[3] * dy, M[0] * dx + M[2] * dy);
     }
-    // run fn with crayon strokes going in local direction a (the grain of the wax follows them)
-    withDir(a, fn) {
-      const prev = this.sa;
-      this.sa = this.pageAngle(a);
-      try { fn(); } finally { this.sa = prev; }
+    rand(a = 0, b = 1) {
+      return a + (b - a) * this.r();
     }
-    layer(role, lod, alpha = 1, pr, occ = false) {
-      const g = isGraphite(role);
-      if (pr == null) pr = g ? GRAPHITE[role] ?? 0.7 : 0.84;
-      pr = Math.round(pr * 20) / 20;
-      alpha = Math.round(alpha * 20) / 20;
-      const aq = g ? 0 : angQ(this.sa ?? HATCH);
+    // A layer is one merged path of marks that share a stage, a colour, a level of detail, an opacity
+    // and a density (marker) or pressure (pencil). aq is the direction of marker strokes.
+    layer(st, role, lod, alpha = 1, pt = 0, aq = 0) {
+      alpha = Math.round(alpha * 40) / 40;
+      pt = Math.round(pt * 20) / 20;
       let L = this.layers[this.layers.length - 1];
-      if (!L || L.kind !== 'path' || L.role !== role || L.lod !== lod || L.alpha !== alpha || L.pr !== pr || L.occ !== occ || L.aq !== aq) {
-        L = { kind: 'path', role, lod, alpha, pr, occ, g, aq, path: new Path2D() };
+      if (!L || L.kind !== 'path' || L.st !== st || L.role !== role || L.lod !== lod || L.alpha !== alpha || L.pt !== pt || L.aq !== aq) {
+        L = { kind: 'path', st, role, lod, alpha, pt, aq, path: new Path2D() };
         this.layers.push(L);
       }
       return L;
     }
-    add(role, pts, lod, alpha, pr, occ) {
+    put(st, role, pts, lod, alpha, pt, aq = 0) {
       if (!pts || pts.length < 3) return;
       const q = this.tx(pts);
-      if (q.length >= 3) addPoly(this.layer(role, lod, alpha, pr, occ).path, q, 1);
+      if (q.length >= 3) addPoly(this.layer(st, role, lod, alpha, pt, aq).path, q, 1);
     }
-    // a patch of colour pressed in evenly: a surface (occluding) unless told otherwise
-    crayon(role, pts, pr, lod = this.lod, alpha = 1, occ = true) {
-      this.add(role, pts, lod, alpha, role === 'paper' ? 0 : pr, occ);
-    }
-    wash(role, pts, alpha, lod = 0) {
-      if (alpha < 0.02) return;
-      this.crayon(role, pts, 0.55, lod, alpha, false);
-    }
+
+    // ---------- solid colour and lines, for everything a machine draws itself ----------
     fill(role, pts, lod = this.lod) {
       if (!pts || pts.length < 3) return;
       if (role === 'shadow') return this.shadow(pts, lod);
-      if (isGraphite(role)) return this.add(role, pts, lod, 1);
-      this.crayon(role, pts, role === 'ink' ? 0.95 : 0.86, lod);
+      if (isGraphite(role)) return this.put(penStage(role), 'pen', pts, lod, 1, PRESS[role] ?? 0.8);
+      if (role === 'paper') role = 'blank';
+      this.put('flat', role, pts, lod, 1, role === 'ink' ? 0.5 : FLAT);
     }
-    // a cast shadow on the table: rubbed graphite with a few hatched strokes through it
-    shadow(pts, lod = 0) {
-      this.add('graphiteS', pts, lod, 1);
-      this.hatchG(pts, () => 0.5, { lod: Math.max(lod, 0.5), lim: 0.72, span: 0.6, gap: 3.6, cross: false });
+    // a line in 'ink' is pencil; in 'light' or 'paper' it is white pencil; in a colour it is solid
+    lineLayer(role, lod, alpha = 1) {
+      if (role === 'ink' || isGraphite(role)) return this.layer(penStage(role), 'pen', lod, alpha, PRESS[role] ?? 0.8);
+      if (isWhite(role)) return this.layer('white', 'chalk', lod, alpha * (role === 'paper' ? 0.7 : 1), 0.9);
+      return this.layer('flat', role, lod, alpha, FLAT);
     }
     ring(role, pts, w, lod = this.lod) {
-      role = lineRole(role);
       const [A, B] = offsetRing(area(pts) < 0 ? pts.slice().reverse() : pts, w);
-      const L = this.layer(role, lod, 1, isGraphite(role) ? undefined : 0.86);
+      const L = this.lineLayer(role, lod);
       const a = this.tx(A), b = this.tx(B);
       if (a.length >= 3) addPoly(L.path, a, 1);
       if (b.length >= 3) addPoly(L.path, b, -1);
     }
     gouge(role, pts, w, o = {}) {
-      role = lineRole(role);
       const poly = gougePoly(pts, w, o);
-      if (poly) this.add(role, poly, o.lod ?? this.lod, o.alpha ?? 1, o.pr ?? (isGraphite(role) ? undefined : 0.86), false);
+      if (!poly) return;
+      const q = this.tx(poly);
+      if (q.length >= 3) addPoly(this.lineLayer(role, o.lod ?? this.lod, o.alpha ?? 1).path, q, 1);
     }
     line(role, x1, y1, x2, y2, w, o = {}) {
       const bow = o.bow ?? 0;
@@ -324,8 +319,7 @@
       const mx = (x1 + x2) / 2 - (dy / d) * bow, my = (y1 + y2) / 2 + (dx / d) * bow;
       this.gouge(role, [[x1, y1], [mx, my], [x2, y2]], w, { seg: 3, ...o });
     }
-    // Parallel strokes clipped to a polygon whose width follows o.tone(x, y): kept for the few places
-    // machines hatch directly (vents, grilles). Drawn in pencil.
+    // Parallel strokes clipped to a polygon whose width follows o.tone(x, y): vents and grilles.
     hatch(role, poly, o = {}) {
       const ang = o.angle ?? 0, gap = o.gap ?? 8, w = o.w ?? 2.2;
       const ca = Math.cos(ang), sa = Math.sin(ang);
@@ -365,24 +359,53 @@
         }
       }
     }
+    dots(role, poly, gap, r, lod = 1) {
+      let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+      for (const p of poly) {
+        xmin = Math.min(xmin, p[0]); xmax = Math.max(xmax, p[0]);
+        ymin = Math.min(ymin, p[1]); ymax = Math.max(ymax, p[1]);
+      }
+      let row = 0;
+      for (let y = ymin + gap / 2; y < ymax; y += gap, row++) {
+        for (let x = xmin + gap / 2 + (row % 2) * gap * 0.5; x < xmax; x += gap) {
+          if (!inside(poly, x, y)) continue;
+          const d = [];
+          for (let kk = 0; kk < 8; kk++) d.push([x + r * Math.cos((kk * Math.PI) / 4), y + r * Math.sin((kk * Math.PI) / 4)]);
+          this.fill(role, d, lod);
+        }
+      }
+    }
+    text(role, str, x, y, size, o = {}) {
+      const hand = role === 'graphiteNote' || o.font === 'hand';
+      if (role === 'paper') role = 'blank';
+      this.layers.push({ kind: 'text', st: hand ? 'note' : 'flat', role: hand ? 'pen' : role, pt: hand ? PRESS.graphiteNote : FLAT, aq: 0, alpha: 1, lod: o.lod ?? 0.5, str, x, y, size, font: o.font || 'mono', align: o.align || 'center', rot: o.rot || 0, weight: o.weight || 500, italic: !!o.italic, track: o.track || 0, M: this.M, base: o.base || 'middle' });
+    }
 
-    // ---------- graphite ----------
-    // A graphite line: a little unsteady, its weight rising and falling with the pressure of the hand,
-    // and running past its ends the way a draughtsman's stroke does.
+    // ---------- pencil ----------
+    // A pencil line: a little unsteady, its weight rising and falling with the pressure of the hand,
+    // and running past its ends the way a designer's stroke does. o.role: 'graphite' a contour,
+    // 'graphite2' a construction line, 'graphiteNote' a note, 'chalk' white pencil.
     pencil(pts, o = {}) {
       const k = this.unit();
       let P = pts.length > 2 && o.curve ? catmull(pts, 4) : pts.slice();
       if (P.length < 2) return;
       const ov = (o.over ?? 5) / k;
+      const ext = (a, b, e) => {
+        const d = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
+        return [a[0] + ((a[0] - b[0]) / d) * e, a[1] + ((a[1] - b[1]) / d) * e];
+      };
       if (ov > 0) {
-        const ext = (a, b, e) => {
-          const d = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
-          return [a[0] + ((a[0] - b[0]) / d) * e, a[1] + ((a[1] - b[1]) / d) * e];
-        };
-        P.unshift(ext(P[0], P[1], ov * this.rand(0.3, 1.3)));
-        P.push(ext(P[P.length - 1], P[P.length - 2], ov * this.rand(0.3, 1.3)));
+        P.unshift(ext(P[0], P[1], ov * this.rand(0.4, 1.3)));
+        P.push(ext(P[P.length - 1], P[P.length - 2], ov * this.rand(0.4, 1.3)));
+      } else if (ov < 0) {
+        // stopping short of both ends: a highlight is laid inside the edge, not to its corners
+        const L = P.reduce((s, q, i) => (i ? s + Math.hypot(q[0] - P[i - 1][0], q[1] - P[i - 1][1]) : 0), 0);
+        if (L < -ov * 3) return;
+        P[0] = ext(P[0], P[1], ov * this.rand(0.5, 1.5));
+        P[P.length - 1] = ext(P[P.length - 1], P[P.length - 2], ov * this.rand(0.5, 1.5));
       }
       const Q = resampleOpen(P, (o.step ?? 7) / k);
+      if (Q.length < 2) return;
       const amp = (o.wob ?? 0.35) / k, p1 = this.rand(0, 6), p2 = this.rand(0, 6), f1 = this.rand(0.04, 0.08) * k, f2 = this.rand(0.15, 0.3) * k;
       let s = 0;
       const W = Q.map((q, i) => {
@@ -394,11 +417,16 @@
       });
       // pressure: the line swells and thins along its length
       const w0 = o.w ?? 0.85, ph = this.rand(0, 6), fq = this.rand(0.02, 0.05) * k;
-      const wf = (x, y) => w0 * (0.72 + 0.5 * (0.5 + 0.5 * Math.sin((x + y * 0.7) * fq + ph)));
-      this.gouge(o.role || 'graphite', W, wf, { smooth: false, taper: o.taper ?? 0.18, pow: 0.3, lod: o.lod ?? 0.5 });
+      const wf = (x, y) => w0 * (0.62 + 0.62 * (0.5 + 0.5 * Math.sin((x + y * 0.7) * fq + ph)));
+      const role = o.role || 'graphite';
+      const poly = gougePoly(W, wf, { smooth: false, taper: o.taper ?? 0.18, pow: 0.3 });
+      if (!poly) return;
+      const q = this.tx(poly);
+      const L = role === 'chalk' ? this.layer('white', 'chalk', o.lod ?? 0.5, o.alpha ?? 1, 0.9) : this.layer(penStage(role), 'pen', o.lod ?? 0.5, o.alpha ?? 1, PRESS[role] ?? 0.8);
+      if (q.length >= 3) addPoly(L.path, q, 1);
     }
-    // Find a shape the way a draughtsman does: light construction strokes first, long and overshooting
-    // the corners, then the contour pressed in over them, broken where the hand lifted.
+    // Find a shape the way a designer does: light construction lines first, long and running well
+    // past the corners, then the contour pressed in over them, broken where the hand lifted.
     sketch(poly, o = {}) {
       if (!Plate.sketchy) return;
       const n = poly.length;
@@ -414,9 +442,11 @@
       if (closed) for (let i = 0; i < n; i++) if (turn(i) > 0.6) { start = i; break; }
       const seq = [];
       for (let kk = 0; kk <= (closed ? n : n - 1); kk++) seq.push(kk === n ? start : (start + kk) % n);
+      const size = Math.sqrt(Math.abs(area(poly))) * k;
       const passes = [];
-      if (o.construct !== false) passes.push({ role: 'graphite2', w: 0.7, over: 13, jit: 1.6, wob: 0.55, run: [60, 160] });
-      if (o.contour) passes.push({ role: 'graphite', w: o.contour, over: 2.5, jit: 0.35, wob: 0.3, run: [140, 320] });
+      // construction lines run further past the corners the bigger the shape
+      if (o.construct !== false) passes.push({ role: 'graphite2', w: 0.85, over: o.over ?? clamp(size * 0.38, 12, 120), jit: 1.6, wob: 0.5, run: [70, 220] });
+      if (o.contour) passes.push({ role: 'graphite', w: o.contour, over: 3.5, jit: 0.35, wob: 0.3, run: [150, 340] });
       for (const ps of passes) {
         // the contour goes over everything else in the part, as the last thing the hand does
         const late = ps.role === 'graphite';
@@ -447,112 +477,6 @@
     finish() {
       if (this.late) { this.layers.push(...this.late); this.late = null; }
     }
-    // Hand hatching for shade: short parallel strokes in patches, all on the same right-handed diagonal
-    // across the page, each flicked off at its end. Darker tone means closer, heavier strokes, and in the
-    // deepest shade a second, crossing set.
-    hatchG(poly, T, o = {}) {
-      const k = this.unit();
-      const lim = o.lim ?? 0.7, span = o.span ?? 0.45, lod = o.lod ?? 1;
-      const sets = [[this.localAngle(HATCH), 1]];
-      if (o.cross !== false) sets.push([this.localAngle(HATCH + 0.82), 0.62]);
-      sets.forEach(([ang, strength], si) => {
-        const gap = ((o.gap ?? 2.9) * (si ? 1.25 : 1)) / k;
-        const ca = Math.cos(ang), sa = Math.sin(ang);
-        const [vmin, vmax] = vRange(poly, ca, sa);
-        for (let v = Math.ceil(vmin / gap) * gap; v < vmax; v += gap) {
-          const us = crossings(poly, ca, sa, v);
-          for (let i = 0; i + 1 < us.length; i += 2) {
-            const u1 = us[i + 1] + this.rand(-1, 1.5) / k;
-            let u = us[i] + this.rand(-1, 2) / k;
-            while (u < u1 - 1 / k) {
-              const ue = Math.min(u1, u + this.rand(16, 42) / k);
-              const um = (u + ue) / 2;
-              const vv = v + this.rand(-0.3, 0.3) * gap;
-              const at = (uu) => [uu * ca - vv * sa, uu * sa + vv * ca];
-              const m = at(um);
-              const d = clamp((lim - T(m[0], m[1])) / span, 0, 1.2) * strength - (si ? 0.55 : 0);
-              if (d > 0.04 + this.r() * 0.22) {
-                const bow = this.rand(-0.6, 0.6) / k;
-                const a = at(u), b = at(ue);
-                this.gouge(d > 0.62 ? 'graphiteH2' : 'graphiteH', [a, [m[0] - sa * bow, m[1] + ca * bow], b], (0.42 + 0.5 * Math.min(1, d)) / k, { lod, taper: 0.1, skew: 0.32, seg: 3, pow: 0.4 });
-              }
-              u = ue + this.rand(-2, 3) / k;
-            }
-          }
-        }
-      });
-    }
-    // Rubbed graphite: a soft, even film of tone, rubbed in with a finger in the deepest shade.
-    smudge(poly, amount, lod = 0.5) {
-      this.add('graphiteS', poly, lod, clamp(amount, 0, 1));
-    }
-
-    // ---------- crayon ----------
-    // Colour laid in the way a hand lays it: back-and-forth strokes that follow the surface, turning
-    // in little hooks at the ends, running over the outline here and stopping short there, in runs of a
-    // few passes before the crayon is lifted. Two pressures alternate from run to run.
-    scribble(role, poly, o = {}) {
-      const k = this.unit();
-      const ang = o.angle ?? 0, ca = Math.cos(ang), sa = Math.sin(ang);
-      const gap = (o.gap ?? 4.2) / k, w = (o.w ?? (o.gap ?? 4.2) * 0.66) / k;
-      const [vmin, vmax] = vRange(poly, ca, sa);
-      const groups = [[], []];
-      const at = (u, v) => [u * ca - v * sa, u * sa + v * ca];
-      let run = [], dir = this.r() < 0.5 ? 1 : -1, n = 0, maxN = 3 + Math.floor(this.r() * 9), g = 0;
-      const flush = () => {
-        if (run.length >= 2) {
-          const pp = gougePoly(run, w, { smooth: false, taper: 0.3, pow: 0.12 });
-          if (pp) groups[g].push(pp);
-        }
-        run = [];
-        n = 0;
-        maxN = 3 + Math.floor(this.r() * 9);
-        g = this.r() < 0.45 ? 1 : 0;
-      };
-      const over = o.over ?? 1;
-      for (let v = Math.ceil(vmin / gap) * gap + gap * 0.5; v < vmax; v += gap) {
-        const us = crossings(poly, ca, sa, v);
-        if (us.length < 2) { flush(); continue; }
-        if (us.length > 2) {
-          flush();
-          for (let i = 0; i + 1 < us.length; i += 2) {
-            const ov = Math.min(1, ((us[i + 1] - us[i]) * k) / 40) * over / k;
-            const a = us[i] - this.rand(-1.5, 3) * ov, b = us[i + 1] + this.rand(-1.5, 3) * ov;
-            if (b - a > gap * 0.4) run = [at(a, v), at(b, v)], flush();
-          }
-          continue;
-        }
-        const u0 = us[0], u1 = us[1];
-        if (o.keep) {
-          const m = at((u0 + u1) / 2, v);
-          if (!o.keep(m[0], m[1])) { flush(); continue; }
-        }
-        const ov = Math.min(1, ((u1 - u0) * k) / 40) * over / k;
-        const a = u0 - this.rand(-1.6, 3.2) * ov, b = u1 + this.rand(-1.6, 3.2) * ov;
-        if (b - a < gap * 0.3) continue;
-        const vj = v + this.rand(-0.22, 0.22) * gap;
-        const A = dir > 0 ? at(a, vj) : at(b, vj), B = dir > 0 ? at(b, vj) : at(a, vj);
-        if (run.length) {
-          // the hook where the hand turns: a small loop bulging past the end of the stroke
-          const E = run[run.length - 1], hs = -dir * gap * 0.42;
-          run.push([(E[0] + A[0]) / 2 + ca * hs, (E[1] + A[1]) / 2 + sa * hs]);
-        }
-        run.push(A, B);
-        dir = -dir;
-        if (++n >= maxN || this.r() < 0.04) flush();
-      }
-      flush();
-      const prs = o.pr || [0.82, 0.64];
-      this.withDir(ang, () => groups.forEach((G, i) => {
-        if (!G.length) return;
-        const L = this.layer(role, o.lod ?? 1, o.alpha ?? 1, prs[i], false);
-        for (const pp of G) {
-          const q = this.tx(pp);
-          if (q.length >= 3) addPoly(L.path, q, 1);
-        }
-      }));
-    }
-
     // A pencilled dimension: a line with end ticks and a small hand-lettered label.
     dim(x1, y1, x2, y2, label, o = {}) {
       const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
@@ -570,86 +494,183 @@
       this.text('graphiteNote', str, x, y, (o.size ?? 15) * 1.2, { font: 'hand', weight: 400, align: o.align || 'left', rot: (o.rot || 0) - 0.015, lod: o.lod ?? 1 });
     }
 
-    // A shaded surface. tone: 0 = black, 1 = white (number or fn(x, y)).
-    // A coloured surface is crayon: an even first layer, pressed lighter where the light falls, then
-    // scribbled strokes that follow the surface, a darker crayon crossed over the shade, and a touch of
-    // white wax where it catches the light. A plain surface (white plastic, aluminium) is left as paper
-    // and modelled in graphite. Dark materials are black wax. Graphite hatching and, in the deepest
-    // shade, a rubbed smudge go over all of it, and the contour is drawn last.
+    // ---------- white pencil ----------
+    // a soft rub of white across a surface, a reflection on glass
+    sheen(pts, alpha, lod = 0.5) {
+      this.put('white', 'chalk', pts, lod, alpha, 0);
+    }
+    // The designer's last flick: a star of light where a corner catches the sun.
+    glint(x, y, s, lod = 0.5) {
+      const k = this.unit();
+      const L = s / k;
+      this.gouge('chalk', [[x - L, y], [x + L, y]], 1.5 / k, { smooth: false, taper: 0.02, pow: 0.9, lod });
+      this.gouge('chalk', [[x, y - L * 0.8], [x, y + L * 0.8]], 1.3 / k, { smooth: false, taper: 0.02, pow: 0.9, lod });
+      this.gouge('chalk', [[x - L * 0.3, y - L * 0.3], [x + L * 0.3, y + L * 0.3]], 0.9 / k, { smooth: false, taper: 0.05, pow: 0.9, lod });
+    }
+
+    // ---------- marker ----------
+    // Marker laid in fast parallel strokes of a chisel nib, in direction o.angle. A stroke goes down
+    // only where the surface under its middle is darker than o.theta (everywhere when theta is
+    // large), so on a lit face the strokes gather on the shadow side and thin out toward the light.
+    // Each stroke runs the full length of the surface, its ends following the outline, a little over
+    // it in places and short of it in others. Neighbouring strokes overlap, and their union is one
+    // translucent layer, smooth like wet marker; a few are gone over twice, which leaves the darker
+    // streaks of real marker.
+    marker(role, poly, T, o = {}) {
+      const k = this.unit();
+      const ang = o.angle ?? 0, ca = Math.cos(ang), sa = Math.sin(ang);
+      const nib = (o.nib ?? 11) / k;
+      const theta = o.theta ?? 9, soft = o.soft ?? 0.05;
+      const st = o.stage || 'm1', alpha = o.alpha ?? 0.4, lod = o.lod ?? 0, pt = o.pt ?? 1;
+      const over = (o.over ?? 2.5) / k;
+      const [vmin, vmax] = vRange(poly, ca, sa);
+      const at = (u, v) => [u * ca - v * sa, u * sa + v * ca];
+      const main = [], again = [];
+      const step = nib * 0.86;
+      // the chord at v, or the nearest one inside the outline
+      const chord = (v, um) => {
+        const us = crossings(poly, ca, sa, v);
+        let best = null;
+        for (let i = 0; i + 1 < us.length; i += 2) if (!best || Math.abs((us[i] + us[i + 1]) / 2 - um) < Math.abs((best[0] + best[1]) / 2 - um)) best = [us[i], us[i + 1]];
+        return best;
+      };
+      // where the strokes thin out toward the light they go in small runs, not one by one: the
+      // threshold wanders smoothly across the face
+      const ph = this.rand(0, 100), fr = this.rand(0.35, 0.55) / step;
+      const wander = (v) => Math.sin(v * fr + ph) * 0.6 + Math.sin(v * fr * 2.3 + ph * 1.7) * 0.4;
+      for (let v = vmin + step * this.rand(0.05, 0.45); v < vmax + step * 0.2; v += step * this.rand(0.82, 1.1)) {
+        const vc = Math.min(v, vmax - nib * 0.15);
+        const us = crossings(poly, ca, sa, vc);
+        for (let i = 0; i + 1 < us.length; i += 2) {
+          const u0 = us[i], u1 = us[i + 1];
+          if ((u1 - u0) * k < 2) continue;
+          const um = (u0 + u1) / 2, m = at(um, vc);
+          if (theta < 2 && !(T(m[0], m[1]) < theta + soft * wander(vc) + this.rand(-0.01, 0.01))) continue;
+          if (o.skip && o.skip(m)) continue;
+          const hw = nib * this.rand(0.5, 0.6);
+          // the outline where the two sides of the stroke cross it, so its ends lie along the edge
+          const A = chord(vc - hw, um) || [u0, u1], B = chord(vc + hw, um) || [u0, u1];
+          const lo = Math.max(A[0], B[0]) - Math.min(A[0], B[0]) > (u1 - u0) * 0.5, hi = Math.max(A[1], B[1]) - Math.min(A[1], B[1]) > (u1 - u0) * 0.5;
+          const a0 = lo ? u0 : A[0], a1 = lo ? u0 : B[0], b0 = hi ? u1 : A[1], b1 = hi ? u1 : B[1];
+          const e0 = over * this.rand(-0.7, 1), e1 = over * this.rand(-0.7, 1);
+          // now and then the hand stops short, and the stroke ends a little way in
+          const short = this.r() < (o.short ?? 0.1) ? (u1 - u0) * this.rand(0.04, 0.16) : 0;
+          const sp = [at(a0 - e0, vc - hw), at(b0 + e1 - short, vc - hw), at(b1 + e1 - short * 1.1, vc + hw), at(a1 - e0, vc + hw)];
+          main.push(sp);
+          if (this.r() < (o.again ?? 0.12)) {
+            // gone over again for part of its length, while the first pass was still wet
+            const L = b0 - a0, s0 = a0 + L * this.rand(0, 0.5), s1 = s0 + L * this.rand(0.25, 0.5);
+            again.push([at(s0, vc - hw * 0.8), at(s1, vc - hw * 0.8), at(s1, vc + hw * 0.8), at(s0, vc + hw * 0.8)]);
+          }
+        }
+      }
+      const aq = angQ(this.pageAngle(ang));
+      const add = (G, al) => {
+        if (!G.length) return;
+        const L = this.layer(st, role, lod, al, pt, aq);
+        for (const pp of G) {
+          const q = this.tx(pp);
+          if (q.length >= 3) addPoly(L.path, q, 1);
+        }
+      };
+      add(main, alpha);
+      add(again, alpha * 0.4);
+    }
+    // a cast shadow on the table: one dark marker swiped flat across under the machine
+    shadow(pts, lod = 0) {
+      const c = centroid(pts);
+      const g = pts.map(([x, y]) => [c[0] + (x - c[0]) * 1.04, c[1] + (y - c[1]) * 1.1]);
+      // strokes along the shadow's longest side, swiped a little past its ends
+      let best = 0, ang = 0;
+      for (let i = 0; i < g.length; i++) {
+        const a = g[i], b = g[(i + 1) % g.length], d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (d > best) { best = d; ang = Math.atan2(b[1] - a[1], b[0] - a[0]); }
+      }
+      this.marker('shadow', g, () => 0, { angle: ang, nib: 30, alpha: 0.7, stage: 'm2', lod, over: 4, again: 0.3, short: 0.04 });
+    }
+
+    // A shaded surface. tone: 0 = black, 1 = white (number or fn(x, y)). o.mang is the direction of
+    // the marker strokes: up and down on a vertical face, along the surface on others.
+    // The paper inside the outline is laid first, so the surface hides what is behind it. Then:
+    //   uncoloured (white plastic, aluminium): cool grey marker, toned only toward the shadow edge on
+    //     a lit face, a full layer and half a second on a turning one, two layers in shadow; the
+    //     brightest faces get white chalk on their lit side;
+    //   coloured: the machine's own colour, a layer over the face with a streak of paper left near
+    //     the light, a second on the shadow side, and cool grey over it in shadow;
+    //   dark: black marker, with a streak of paper left where it shines.
     face(poly, tone, o = {}) {
       const T = typeof tone === 'function' ? tone : () => tone;
       const c = centroid(poly);
       const t0 = T(c[0], c[1]);
       const k = this.unit();
       const size = Math.sqrt(Math.abs(area(poly))) * k;
-      const ang = o.angle ?? 0;
+      const ang = o.mang ?? o.angle ?? 0;
       const lod = o.lod ?? 0;
       const dark = !!o.dark || o.fill === 'ink';
-      let role = o.fill || (dark ? 'ink' : null);
-      // the face's extent on the page along its surface direction and across it: thin bands (rounded
-      // edges, rims) are coloured evenly, not scribbled
+      const role = o.fill || (dark ? 'ink' : null);
+      this.put('occ', 'paper', poly, lod, 1, 0);
       const cu = Math.cos(ang), su = Math.sin(ang);
       const [v0, v1] = vRange(poly, cu, su), [w0, w1] = vRange(poly, -su, cu);
-      const strokes = Math.min(v1 - v0, w1 - w0) * k > 9 && size > 7;
-      const prevSa = this.sa;
-      this.sa = this.pageAngle(ang);
-      if (dark) {
-        this.crayon(role, poly, 0.97 - 0.36 * clamp((t0 - 0.18) / 0.6, 0, 1), lod);
-        if (strokes) {
-          this.scribble(role, poly, { angle: ang + this.rand(-0.1, 0.1), gap: 3.6, pr: [0.98, 0.86] });
-          // light glancing off the wax
-          if (t0 > 0.5) this.scribble('light', poly, { angle: ang + 0.4, gap: 9, w: 2, pr: [0.4, 0.3], alpha: 0.22, keep: (x, y) => T(x, y) > 0.6 + this.r() * 0.2 });
-        }
+      const strokes = Math.min(v1 - v0, w1 - w0) * k > 8 && size > 14;
+      const nib = clamp(size * 0.075, 5, 12);
+      const M = (r, theta, alpha, st, x = {}) => this.marker(r, poly, T, { angle: ang, nib, theta, alpha, stage: st, lod, ...x });
+      // the face's lightest and darkest tones, so a streak of paper can be left on its lit side
+      let tmin = t0, tmax = t0;
+      for (const q of poly) { const t = T(q[0], q[1]); tmin = Math.min(tmin, t); tmax = Math.max(tmax, t); }
+      const streak = (q) => T(q[0], q[1]) > tmax - 0.22 * (tmax - tmin) && this.r() < 0.35;
+      const chalk = (from, alpha) => this.marker('chalk', poly, (x, y) => 1 - T(x, y), { angle: ang, nib: nib * 1.2, theta: 1 - from, alpha, stage: 'white', lod, pt: 0, again: 0 });
+      if (!strokes) {
+        // a narrow face (a rounded corner, a rim, a slice of a cylinder): one swipe, as deep as its tone
+        const d = clamp((0.86 - t0) / 0.55, 0, 1);
+        if (dark) this.put('m1', role, poly, lod, 0.92 - 0.25 * clamp((t0 - 0.3) / 0.5, 0, 1), 1);
+        else if (role) {
+          this.put('m1', role, poly, lod, 0.6 + 0.25 * d, 1);
+          if (d > 0.5) this.put('m2', 'cg', poly, lod, 0.4 * (d - 0.5) * 2, 1);
+        } else if (d > 0.04) this.put('m1', 'cg', poly, lod, 0.6 * d, 1);
+        else if (t0 > 0.86) this.put('white', 'chalk', poly, lod, 0.25, 0);
+      } else if (dark) {
+        M(role, 9, t0 > 0.5 ? 0.78 : 0.9, 'm1', { skip: t0 > 0.42 ? streak : null });
+        M(role, t0 + 0.02, 0.45, 'm2');
       } else if (role) {
-        this.crayon(role, poly, 0.66 - 0.3 * clamp((t0 - 0.32) / 0.62, 0, 1), lod);
-        if (strokes) {
-          this.scribble(role, poly, { angle: ang + this.rand(-0.12, 0.12), gap: 4.2, pr: [0.84, 0.66] });
-          if (o.hatch !== false) this.scribble(role + '~d', poly, { angle: ang + 0.55 + this.rand(-0.1, 0.1), gap: 5, pr: [0.78, 0.6], alpha: 0.62, keep: (x, y) => T(x, y) < 0.6 + this.r() * 0.16 });
-          if (t0 > 0.84) this.scribble('light', poly, { angle: ang - 0.3, gap: 6, w: 3, pr: [0.6, 0.45], alpha: 0.45, keep: (x, y) => T(x, y) > 0.86 + this.r() * 0.06 });
+        // the second layer is the same marker a few steps darker, as a designer keeps a run of each
+        if (t0 > 0.64) {
+          M(role, 9, 0.66, 'm1', { skip: streak });
+          M(role + '~d', t0 - 0.02, 0.34, 'm2');
+          if (t0 > 0.84) chalk(t0 + 0.04, 0.22);
+        } else {
+          // on grey paper the paper is the middle tone: a face turned from the light goes down in the
+          // darker marker, with cool grey over it in the deepest part
+          M(role + (t0 < 0.56 ? '~d' : ''), 9, 0.8, 'm1');
+          M(role + '~d', t0 + 0.06, 0.45, 'm2');
+          if (t0 < 0.56) M('cg', t0 + 0.04, 0.34, 'm2');
         }
+      } else if (t0 > 0.84) {
+        // the lightest faces, the tops: paper, a little grey at the shadow edge, chalk toward the light
+        M('cg', t0 - 0.07, 0.28, 'm1');
+        chalk(t0 + 0.02, 0.3);
+      } else if (t0 > 0.64) {
+        // lit faces keep most of their paper and are toned toward their shadow edge
+        M('cg', t0 - 0.02, 0.3, 'm1');
+        M('cg', t0 - 0.11, 0.26, 'm2');
+        if (t0 > 0.74) chalk(t0 + 0.09, 0.18);
+      } else if (t0 > 0.5) {
+        M('cg', 9, 0.34, 'm1', { skip: streak });
+        M('cg', t0 + 0.02, 0.32, 'm2');
       } else {
-        // left as paper, a cool grey pencil laid lightly over the turning faces
-        role = 'paper';
-        this.crayon('paper', poly, 0, lod);
-        const pr = 0.3 * clamp((0.82 - t0) / 0.45, 0, 1);
-        if (pr > 0.05) this.crayon('mist', poly, pr, lod, 1, false);
-        if (strokes && t0 < 0.78) this.scribble('mist', poly, { angle: ang, gap: 5.2, pr: [0.58, 0.44], alpha: 0.7, keep: (x, y) => T(x, y) < 0.74 + this.r() * 0.1 });
+        // shadow sides: two layers, and a darker grey in the deepest part
+        M('cg', 9, 0.42, 'm1');
+        M('cg', t0 + 0.12, 0.4, 'm2');
+        if (t0 < 0.42) M('cgd', t0 + 0.03, 0.34, 'm2');
       }
-      if (o.hatch !== false && !dark) {
-        const lim = role === 'paper' ? 0.8 : 0.66;
-        if (t0 < 0.5) this.smudge(poly, 0.35 + (0.5 - t0), 0.5);
-        if (size > 4) this.hatchG(poly, T, { lim, span: 0.46, lod: 1 });
-      }
-      this.sa = prevSa;
-      if (o.edge && o.edge > 0) this.sketch(poly, { lod: 0.5, contour: 1.15 + 0.4 * o.edge, construct: o.pencil !== false && size > 26 && this.r() < 0.7 });
-      else if (o.pencil !== false && size > 26) this.sketch(poly, { lod: 0.5 });
-      return role;
-    }
-    dots(role, poly, gap, r, lod = 1) {
-      let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
-      for (const p of poly) {
-        xmin = Math.min(xmin, p[0]); xmax = Math.max(xmax, p[0]);
-        ymin = Math.min(ymin, p[1]); ymax = Math.max(ymax, p[1]);
-      }
-      let row = 0;
-      for (let y = ymin + gap / 2; y < ymax; y += gap, row++) {
-        for (let x = xmin + gap / 2 + (row % 2) * gap * 0.5; x < xmax; x += gap) {
-          if (!inside(poly, x, y)) continue;
-          const d = [];
-          for (let kk = 0; kk < 8; kk++) d.push([x + r * Math.cos((kk * Math.PI) / 4), y + r * Math.sin((kk * Math.PI) / 4)]);
-          this.add(lineRole(role), d, lod, 1, isGraphite(lineRole(role)) ? undefined : 0.86, false);
-        }
-      }
-    }
-    text(role, str, x, y, size, o = {}) {
-      if (role === 'ink' && o.font !== 'hand') role = 'graphiteE';
-      this.layers.push({ kind: 'text', role, g: isGraphite(role), pr: isGraphite(role) ? GRAPHITE[role] ?? 0.7 : 0.9, alpha: 1, lod: o.lod ?? 0.5, str, x, y, size, font: o.font || 'mono', align: o.align || 'center', rot: o.rot || 0, weight: o.weight || 500, italic: !!o.italic, track: o.track || 0, M: this.M, base: o.base || 'middle' });
+      if (o.edge && o.edge > 0) this.sketch(poly, { lod: 0.5, contour: 1.0 + 0.35 * o.edge, construct: o.pencil !== false && size > 30 && this.r() < 0.85 });
+      else if (o.pencil !== false && size > 30) this.sketch(poly, { lod: 0.5 });
+      return role || 'paper';
     }
   }
 
   Plate.notes = true;
   Plate.sketchy = true;
-  Plate.style = 'pencil';
+  Plate.style = 'marker';
 
   const FONTS = {
     mono: '"IBM Plex Mono", ui-monospace, Menlo, monospace',
@@ -706,123 +727,124 @@
     for (const k in A.rgb) rgb[k] = mix(A.rgb[k], B.rgb[k] || A.rgb[k], t);
     return makePal(rgb);
   }
-  // A role's crayon. 'x~d' is the darker crayon an illustrator crosses over x in shade: the same hue
-  // pushed toward a deep violet-brown, as coloured-pencil artists shade with a complement.
-  const SHADE = [58, 44, 66];
-  function rgbOf(role, pal) {
-    if (role[0] === '#') return pal.mapHex ? parseColour(pal.mapHex(role)) : hex(role);
-    return (pal.rgb && pal.rgb[role]) || (pal.rgb && pal.rgb.ink) || [40, 36, 34];
-  }
+  // 'x~d' is the darker marker of the same family as x: its colour pushed toward a cool dark grey
+  const DEEP = [46, 48, 56];
+  const deepCache = new WeakMap();
   function colourOf(role, pal) {
     const t = role.indexOf('~');
-    if (t > 0) return css(mix(rgbOf(role.slice(0, t), pal), SHADE, 0.42));
+    if (t > 0) {
+      const base = role.slice(0, t);
+      let m = deepCache.get(pal);
+      if (!m) deepCache.set(pal, (m = {}));
+      return m[base] || (m[base] = css(mix(parseColour(colourOf(base, pal)), DEEP, 0.38)));
+    }
     if (role[0] === '#') return pal.mapHex ? pal.mapHex(role) : role;
     return pal[role] || pal.ink;
   }
 
   // ---------- replay ----------
-  const PR = [];
-  for (let i = 0; i <= 20; i++) PR.push(`rgb(${Math.round((i / 20) * 255)},0,0)`);
-  const PRA = new Map();
-  const prAngStyle = (pr, aq) => {
-    const key = Math.round(clamp(pr, 0, 1) * 20) * 32 + aq;
-    let s = PRA.get(key);
-    if (!s) PRA.set(key, (s = `rgb(${Math.round(clamp(pr, 0, 1) * 255)},0,${aq * 8})`));
+  const DS = new Map();
+  // the pressure canvas: red is marker density, blue the stroke direction
+  const denStyle = (pt, aq) => {
+    const key = Math.round(clamp(pt, 0, 1) * 20) * 32 + aq;
+    let s = DS.get(key);
+    if (!s) DS.set(key, (s = `rgb(${Math.round(clamp(pt, 0, 1) * 255)},0,${aq * 8})`));
     return s;
   };
+  // green is pencil, black or white
   const GR = [];
   for (let i = 0; i <= 20; i++) GR.push(`rgb(0,${Math.round((i / 20) * 255)},0)`);
-  const prStyle = (pr) => PR[Math.round(clamp(pr, 0, 1) * 20)];
   const grStyle = (pr) => GR[Math.round(clamp(pr, 0, 1) * 20)];
 
-  // The edge of the colouring as it advances across a drawing: ragged, like the line where someone
-  // stopped colouring in, in the plate's own 1000 × 1000 frame.
-  function revealPath(r, seed) {
+  // The wet front of the marker as it sweeps across a drawing, left to right: the ends of strokes,
+  // each a different length, in the plate's own 1000 × 1000 frame.
+  function sweepPath(r, seed) {
     const path = new Path2D();
-    const x0 = -140 + r * 1280, ph = (seed % 97) * 0.13;
-    path.moveTo(-4000, -3000);
-    for (let y = -3000; y <= 4000; y += 18) {
-      const tooth = (Math.abs(((y * 0.021 + ph) % 2 + 2) % 2 - 1) - 0.5) * 34;
-      const x = x0 + tooth + 26 * Math.sin(y * 0.0063 + ph * 3) + 9 * Math.sin(y * 0.047 + ph);
+    const x0 = -420 + r * 1840, ph = (seed % 97) * 0.37;
+    path.moveTo(-5000, -1500);
+    for (let y = -1500, i = 0; y <= 2500; y += 16, i++) {
+      const h = Math.sin(i * 12.9898 + ph) * 43758.5453;
+      const x = x0 + 80 * (h - Math.floor(h)) + 30 * Math.sin(y * 0.004 + ph) - 0.12 * (y - 500);
       path.lineTo(x, y);
+      path.lineTo(x, y + 16);
     }
-    path.lineTo(-4000, 4000);
+    path.lineTo(-5000, 2516);
     path.closePath();
     return path;
   }
 
-  // Replay a plate into a dual context D (D.C colour, D.P pressure). alpha is how far its colour has
-  // been laid in (a ragged front sweeping across it), pencil how far its drawing has come; opt.fade
-  // makes alpha a plain transparency instead, for glass and motion blur.
-  function drawPlate(D, plate, pal, alpha, detail, pencil = alpha, opt) {
+  // How far each stage has come. A machine arrives in the order a designer draws it: pencil (pencil
+  // 0 → 1) first, construction lines and then contours; then (ink 0 → 1) the first marker layer
+  // sweeps across it, the second follows on the shadow side, and the white pencil flicks on last.
+  // Run backwards, the same order takes a drawing apart.
+  function stages(ink, pencil, detail) {
+    return {
+      occ: Math.min(1, pencil * 1.6),
+      con: smooth(0, 0.35, pencil) * (1 - 0.85 * smooth(1.8, 3.6, detail)),
+      // contours drawn for the whole machine would turn into bars seen close up: they lighten as you zoom
+      line: smooth(0.12, 0.6, pencil) * (1 - 0.5 * smooth(2.5, 7, detail)),
+      note: pencil,
+      m1: smooth(0.02, 0.55, ink),
+      flat: smooth(0.02, 0.55, ink),
+      m2: smooth(0.3, 0.8, ink),
+      white: smooth(0.8, 0.96, ink),
+    };
+  }
+
+  // Replay a plate into a dual context D (D.C colour, D.P how it was made). opt.fade makes ink a
+  // plain transparency instead, for glass and motion blur.
+  function drawPlate(D, plate, pal, ink, detail, pencil = ink, opt) {
     const C = D.C, P = D.P;
     const fade = opt && opt.fade;
-    const partial = !fade && alpha < 0.997;
-    const reveal = partial && alpha > 0.003 ? revealPath(alpha, plate.seed || 1) : null;
-    const colA = fade ? alpha : alpha > 0.003 ? 1 : 0;
-    const paperCol = pal.paper;
+    const A = fade ? null : stages(ink, pencil, detail);
+    // marker stages sweep in behind a wet front rather than fading
+    const sw = {};
+    const sweep = (st) => {
+      if (fade) return null;
+      const r = st === 'm2' ? A.m2 : st === 'm1' || st === 'flat' ? A.m1 : 1;
+      if (r >= 0.997) return null;
+      return sw[st === 'flat' ? 'm1' : st] || (sw[st === 'flat' ? 'm1' : st] = sweepPath(r, plate.seed || 1));
+    };
     for (const L of plate.layers) {
-      const lodA = lodAlpha(L.g && !SHADING[L.role] ? L.lod * 0.4 : L.lod, detail);
-      if (L.g && !SHADING[L.role]) {
-        // the drawing: construction strokes come first, the contour after them
-        if (L.role === 'graphiteNote' && !Plate.notes) continue;
-        let a = (L.role === 'graphite2' ? smooth(0, 0.42, pencil) * (1 - smooth(1.8, 3.6, detail)) : L.role === 'graphiteNote' ? pencil : smooth(0.16, 0.7, pencil)) * lodA * L.alpha;
-        if (fade) a *= alpha;
-        if (a < 0.004) continue;
-        if (L.role === 'graphiteNote' && L.kind === 'text') {
+      const st = L.st;
+      if (st === 'note' && !Plate.notes) continue;
+      const pen = PEN[st];
+      let a = fade ? ink : A[st];
+      if (!fade && (st === 'm1' || st === 'm2' || st === 'flat')) a = a > 0.003 ? 1 : 0;
+      a *= lodAlpha(pen ? L.lod * 0.4 : L.lod, detail) * L.alpha;
+      if (a < 0.004) continue;
+      if (pen) {
+        if (st === 'note' && L.kind === 'text') {
           // a note is written where the paper was rubbed clean for it first
-          C.globalAlpha = P.globalAlpha = a;
-          C.strokeStyle = paperCol;
-          P.strokeStyle = PR[0];
-          drawText(C, L, L.size * 0.5);
-          drawText(P, L, L.size * 0.5);
+          C.globalAlpha = P.globalAlpha = a * 0.8;
+          C.strokeStyle = pal.paper;
+          P.strokeStyle = '#000';
+          drawText(C, L, L.size * 0.45);
+          drawText(P, L, L.size * 0.45);
         }
+        C.globalAlpha = a * (L.role === 'chalk' ? 0.92 : Math.min(1, L.pt * 1.05));
+        C.fillStyle = colourOf(L.role, pal);
         P.globalCompositeOperation = 'lighter';
         P.globalAlpha = a;
-        P.fillStyle = grStyle(L.pr);
-        if (L.kind === 'path') P.fill(L.path);
-        else drawText(P, L);
+        P.fillStyle = grStyle(L.pt);
+        if (L.kind === 'path') { C.fill(L.path); P.fill(L.path); }
+        else { drawText(C, L); drawText(P, L); }
         P.globalCompositeOperation = 'source-over';
         continue;
       }
-      // a surface not yet coloured still hides what is behind it, as a drawn outline would
-      if (partial && L.occ && L.kind === 'path') {
-        const ka = Math.min(1, pencil * 1.4) * lodA;
-        if (ka > 0.004) {
-          C.globalAlpha = P.globalAlpha = ka;
-          C.fillStyle = paperCol;
-          P.fillStyle = PR[0];
-          C.fill(L.path);
-          P.fill(L.path);
-        }
-      }
-      let a = colA * lodA * L.alpha;
-      // hatching drawn for normal size would turn into bars seen close up: it lifts away as you zoom
-      if (L.lod >= 1 && L.g) a *= 1 - 0.92 * smooth(1.8, 4.2, detail);
-      if (a < 0.004) continue;
-      if (reveal) {
-        C.save(); P.save();
-        C.clip(reveal); P.clip(reveal);
-      }
-      if (L.g) {
-        P.globalCompositeOperation = 'lighter';
-        P.globalAlpha = a;
-        P.fillStyle = grStyle(L.pr);
-        P.fill(L.path);
-        P.globalCompositeOperation = 'source-over';
+      const clip = st === 'occ' ? null : sweep(st);
+      if (clip) { C.save(); P.save(); C.clip(clip); P.clip(clip); }
+      C.globalAlpha = P.globalAlpha = a;
+      if (st === 'occ') {
+        C.fillStyle = pal.paper;
+        P.fillStyle = '#000';
       } else {
-        C.globalAlpha = P.globalAlpha = a;
         C.fillStyle = colourOf(L.role, pal);
-        P.fillStyle = prAngStyle(L.pr, L.aq || 0);
-        if (L.kind === 'path') {
-          C.fill(L.path);
-          P.fill(L.path);
-        } else {
-          drawText(C, L);
-          drawText(P, L);
-        }
+        P.fillStyle = denStyle(L.pt, L.aq || 0);
       }
-      if (reveal) { C.restore(); P.restore(); }
+      if (L.kind === 'path') { C.fill(L.path); P.fill(L.path); }
+      else { drawText(C, L); drawText(P, L); }
+      if (clip) { C.restore(); P.restore(); }
     }
     C.globalAlpha = 1;
     P.globalAlpha = 1;
@@ -837,5 +859,5 @@
     ctx.fill();
   }
 
-  global.Ink = { rng, clamp, smooth, area, centroid, inside, catmull, resampleOpen, gougePoly, Plate, drawPlate, fillPoly, lodAlpha, hex, mix, css, makePal, mixPal, parseColour, prStyle, grStyle, FONTS };
+  global.Ink = { rng, clamp, smooth, area, centroid, inside, catmull, resampleOpen, gougePoly, Plate, drawPlate, fillPoly, lodAlpha, hex, mix, css, makePal, mixPal, parseColour, grStyle, denStyle, sweepPath, FONTS };
 })(window);

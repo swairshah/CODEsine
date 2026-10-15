@@ -3,27 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sketchbook Machines</title>
+<title>iLoop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Architects+Daughter&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Architects+Daughter&display=swap">
 <style>
-  /* One sheet of drawing paper, on purpose: this is a sketchbook. The machines are drawn in graphite and
-     coloured in wax crayon; the page around them is printed like an old primer card.
+  /* A designer's presentation sketch on grey marker paper: pencil, cool grey and coloured marker,
+     white pencil for the light, and a bold block of colour behind each machine. The page around it
+     is lettered like the presentation board it would be pinned to.
      Layout: a full-bleed sheet; caption top-left, tools top-right, a year rail along the foot. */
   :root {
-    --paper: #efe7d6;
-    --warm: #dcc6a2;
-    --light: #fbf8f1;
-    --ink: #2e2a28;
-    --umber: #4d3628;
-    --earth: #7d5b3d;
-    --mist: #98a1ab;
-    --graphite: #45474d;
-    --graphite2: #8d8f94;
-    --red: #b8483a;
-    --rule: #45474d55;
-    --f-display: "Old Standard TT", "Iowan Old Style", Georgia, serif;
+    --paper: #b1b1ae;
+    --blank: #ebeae5;
+    --warm: #d6d0c0;
+    --light: #f3f2ee;
+    --ink: #1d1d20;
+    --umber: #3b3a38;
+    --earth: #6c6a66;
+    --mist: #8e939a;
+    --cg: #5d6169;
+    --cgd: #383b42;
+    --pen: #151517;
+    --chalk: #fbfaf6;
+    --shadow: #303137;
+    --graphite: #2c2c30;
+    --accent: #e0397f;
+    --rule: #1d1d2066;
+    --f-display: "Archivo Narrow", "Helvetica Neue", Arial, sans-serif;
     --f-hand: "Architects Daughter", "Bradley Hand", cursive;
     --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
     color-scheme: light;
@@ -58,25 +64,28 @@
     font-size: 0.7rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--red);
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
   }
-  .meta .sep { margin: 0 0.6em; }
+  .meta .sep { margin: 0 0.6em; color: var(--earth); }
+  /* the year is underlined in the marker behind the machine */
+  .meta #m-year { box-shadow: inset 0 -0.45em 0 var(--accent); padding: 0 0.15em; transition: box-shadow 0.4s; }
   h1 {
     margin: 0;
     font-family: var(--f-display);
     font-weight: 700;
-    color: #3a3330;
-    font-size: clamp(1.9rem, 4.2vw, 2.9rem);
-    line-height: 1;
+    color: var(--ink);
+    font-size: clamp(2rem, 4.4vw, 3.1rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
     text-wrap: balance;
   }
   .line {
     margin: 2px 0 0;
     font-family: var(--f-display);
-    font-style: italic;
-    font-size: 1.04rem;
-    line-height: 1.35;
+    font-size: 1.06rem;
+    line-height: 1.3;
     color: var(--umber);
     max-width: 30rem;
   }
@@ -85,7 +94,7 @@
     font: 400 0.92rem/1.3 var(--f-hand);
     color: var(--graphite);
   }
-  .next b { font-weight: 400; color: var(--ink); text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 3px; }
+  .next b { font-weight: 400; color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 3px; text-underline-offset: 3px; }
 
   .tools {
     position: fixed;
@@ -94,23 +103,23 @@
     display: flex;
     gap: 6px;
   }
-  /* the tools are little boxes ruled in pencil; pressed ones are coloured in */
+  /* the tools are little boxes drawn in pencil; pressed ones are filled in with black marker */
   .tools button {
     min-width: 38px;
     height: 38px;
     padding: 0 10px;
-    border: 1.5px solid var(--graphite);
-    border-radius: 4px 7px 5px 6px / 6px 4px 7px 5px;
+    border: 1.5px solid var(--ink);
+    border-radius: 3px 5px 4px 4px / 4px 3px 5px 4px;
     background: transparent;
-    color: var(--graphite);
+    color: var(--ink);
     font: 500 0.95rem/1 var(--f-mono);
     cursor: pointer;
     transition: background 0.25s, color 0.25s;
   }
-  .tools button:hover { background: rgba(232, 184, 63, 0.38); }
-  .tools button:focus-visible, .rail button:focus-visible { outline: 2px dashed var(--red); outline-offset: 2px; }
+  .tools button:hover { background: rgba(251, 250, 246, 0.35); }
+  .tools button:focus-visible, .rail button:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; }
   .tools button span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
-  .tools button[aria-pressed="true"] { background: rgba(184, 72, 58, 0.78); color: var(--light); border-color: var(--umber); }
+  .tools button[aria-pressed="true"] { background: var(--ink); color: var(--chalk); border-color: var(--ink); }
   /* the tools are symbols: arrows, play and pause, the notes' lines, a speaker */
   .tools button { display: grid; place-items: center; min-width: 40px; padding: 0 9px; }
   .tools button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -137,7 +146,7 @@
   .yt-card { display: none; margin: 0; padding: 6px; background: var(--paper); border: 1px solid var(--ink); border-radius: 2px; }
   .yt-card.on { display: block; }
   .yt-card iframe { display: block; width: 200px; height: 200px; }
-  .yt-card figcaption { width: 200px; margin-top: 4px; font: 400 0.6rem/1.3 var(--f-mono); color: var(--earth); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .yt-card figcaption { width: 200px; margin-top: 4px; font: 400 0.6rem/1.3 var(--f-mono); color: var(--umber); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .hint {
     position: fixed;
@@ -172,7 +181,7 @@
     padding: 10px 2px 6px;
     background: none;
     border: 0;
-    color: var(--earth);
+    color: var(--umber);
     font: 400 0.68rem/1.25 var(--f-mono);
     cursor: pointer;
     display: grid;
@@ -186,27 +195,29 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.8;
+    opacity: 0.85;
   }
   .rail button:hover, .rail button.on { color: var(--ink); }
-  .rail button.on .y { color: var(--red); }
-  .rail button.on .y { font-weight: 600; }
+  .rail button.on .y { font-weight: 600; box-shadow: inset 0 -0.45em 0 var(--accent); padding: 0 0.2em; }
   .track { position: absolute; top: -5px; left: calc(50% / 13); right: calc(50% / 13); height: 9px; pointer-events: none; }
-  .cursor { position: absolute; top: -1px; width: 3px; height: 11px; margin-left: -1.5px; background: var(--red); border-radius: 2px; }
+  .cursor { position: absolute; top: -1px; width: 3px; height: 11px; margin-left: -1.5px; background: var(--ink); border-radius: 2px; }
 
   @media (max-width: 900px) { .rail button .n { display: none; } }
   @media (max-width: 640px) {
-    .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 66px); }
-    .tools { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 14px); flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 32px); }
-    .tools button { min-width: 34px; height: 34px; padding: 0 8px; }
+    .cap { left: 16px; right: 16px; max-width: none; top: calc(env(safe-area-inset-top, 0px) + 60px); }
+    .tools { top: auto; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); justify-content: space-between; }
+    .tools button { min-width: 44px; height: 44px; padding: 0 8px; }
     .line { font-size: 0.95rem; }
-    .rail { left: 8px; right: 8px; }
+    /* on a phone the timeline runs along the top, and the buttons along the bottom, under the thumb */
+    .rail { left: 8px; right: 8px; top: 0; bottom: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; border-top: 0; border-bottom: 1px solid var(--rule); }
+    .track { top: auto; bottom: -5px; }
+    .hint, .yt-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
     .rail button { font-size: 0.56rem; padding-inline: 0; }
   }
 </style>
 </head>
 <body>
-<canvas id="stage" aria-label="A pencil and crayon drawing of a computer. Zoom in to travel into its screen and find the next machine."></canvas>
+<canvas id="stage" aria-label="A marker sketch of a computer on grey paper, in the style of a product designer's presentation drawing. Zoom in to travel into it and find the next machine."></canvas>
 
 <header class="cap" id="cap" aria-live="polite">
   <p class="meta"><span id="m-year">1976</span><span class="sep">·</span><span id="m-idx">01</span> of <span id="m-total">13</span><span class="sep">·</span><span id="m-kind">Circuit board</span></p>
@@ -216,6 +227,7 @@
 </header>
 
 <div class="tools">
+  <button type="button" id="b-home" aria-label="Home" title="Back to the iLoop front page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h4.2v-5h2.6v5h4.2v-9"/></svg></button>
   <button type="button" id="b-out" aria-label="Previous machine" title="Previous machine (←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></button>
   <button type="button" id="b-in" aria-label="Next machine" title="Next machine (→)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   <button type="button" id="b-play" aria-pressed="false" aria-label="Play" title="Play the whole loop (P)"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5.5v13l10.5-6.5z"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg></button>
@@ -231,15 +243,15 @@
   <div class="track"><div class="cursor" id="cursor"></div></div>
 </footer>
 
-<script src="js/ink.js?v=20261014b"></script>
-<script src="js/paper.js?v=20261014b"></script>
-<script src="js/geo.js?v=20261014b"></script>
-<script src="js/kit.js?v=20261014b"></script>
+<script src="js/ink.js?v=20261014c"></script>
+<script src="js/paper.js?v=20261014c"></script>
+<script src="js/geo.js?v=20261014c"></script>
+<script src="js/kit.js?v=20261014c"></script>
 <script src="js/soundtrack.js?v=20261014b"></script>
 <script src="js/sound.js?v=20261014b"></script>
-<script src="js/machines/early.js?v=20261014b"></script>
-<script src="js/machines/mid.js?v=20261014b"></script>
-<script src="js/machines/late.js?v=20261014b"></script>
-<script src="js/app.js?v=20261014b"></script>
+<script src="js/machines/early.js?v=20261014c"></script>
+<script src="js/machines/mid.js?v=20261014c"></script>
+<script src="js/machines/late.js?v=20261014c"></script>
+<script src="js/app.js?v=20261014c"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ An endless zoom through thirteen Apple machines, from the Apple I to the Mac min
 | --- | --- | --- |
 | [`iLoop/`](iLoop/) | Clean ink engraving and linocut, like a banknote. This is the original. | |
 | [`iLoop-watercolor/`](iLoop-watercolor/) | Watercolour washes under a fine ink line. | cel-scooter-two-layer, shin-hanga-snowy-bicycle-crossing, touristmap-sandcastle-beach |
-| [`iLoop-pencil/`](iLoop-pencil/) | A graphite sketch, coloured in with wax crayon. | half-coloured-tabby-radiator, primer-y-is-for-yoyo, tinted-postcard-fair-bull |
+| [`iLoop-pencil/`](iLoop-pencil/) | An industrial designer's presentation sketch on grey marker paper: pencil construction lines, cool grey and coloured marker, white pencil highlights, and a bold block of colour behind each machine. | |
 | [`iLoop-graphic/`](iLoop-graphic/) | A bold screenprinted poster in the Bauhaus and constructivist manner. | bauhaus-rotary-phone-dial, constructivist-power-drill-diagonal, screenprint-helmet-visor |
 | [`iLoop-graphic-clean/`](iLoop-graphic-clean/) | The graphic posters drawn clean: flat vector shapes in each machine's real colours, with no halftone or misregistration. | |
 | [`iLoop-real/`](iLoop-real/) | Photographed: each machine modelled in millimetres and lit in a product studio, its screen at its real resolution. | |

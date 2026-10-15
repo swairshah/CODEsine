@@ -15,11 +15,13 @@
       const m = new Model(this.view, { fit: this.fit, center: this.center });
       this.model = m;
       this.make(m, Kit);
-      if (m.screen && this.glare !== false) {
-        m.part('glass');
-        m.op((p) => p.withM(m.screen.M, () => glare(p, m.screen.w, m.screen.h)));
-      }
       m.render(1000 + idx * 131);
+      // the screen is only known once the machine is drawn: its reflections go on a sheet of glass
+      if (m.screen && this.glare !== false) {
+        const p = new Ink.Plate(7000 + idx * 13);
+        p.withM(m.screen.M, () => glare(p, m.screen.w, m.screen.h));
+        m.parts.push({ name: 'glass', plate: p, ops: [], c: [500, 500] });
+      }
       this.parts = m.parts;
       this.marks = m.marks;
       this.screen = m.screen;
@@ -36,12 +38,21 @@
   }
 
   // ---------- marks shared by many machines ----------
+  // Reflections on the glass, the way a designer puts them on a screen: two bands swept diagonally
+  // across it, a soft white rub with a few strokes of white pencil along each.
   function glare(p, W, H) {
-    const L = Math.min(W, H);
-    for (let i = 0; i < 3; i++) {
-      const o = 0.1 + i * 0.07;
-      p.gouge('light', [[W * o, 2], [W * o - L * 0.14, L * 0.22], [2, H * (o + 0.04) + L * 0.14]], [L * 0.03, L * 0.012, L * 0.008][i], { lod: 0.5, taper: 0.02 });
-    }
+    const L = Math.min(W, H), k = p.unit();
+    const d = [-0.48, 1];
+    p.withClip([0, 0, W, H], () => {
+      for (const [o, bw, len, a, n] of [[0.12, 0.16, 1.25, 0.2, 4], [0.36, 0.05, 0.95, 0.15, 2]]) {
+        const x0 = W * o, x1 = x0 + L * bw, l = L * len;
+        p.sheen([[x0, 0], [x1, 0], [x1 + d[0] * l, d[1] * l], [x0 + d[0] * l, d[1] * l]], a);
+        for (let i = 0; i < n; i++) {
+          const sx = x0 + (x1 - x0) * ((i + 0.5) / n), f = p.rand(0.45, 0.95);
+          p.pencil([[sx, 0], [sx + d[0] * l * f, d[1] * l * f]], { role: 'chalk', w: p.rand(0.8, 1.5) / k, over: 0, wob: 0.2, lod: 0.5, alpha: 0.75 });
+        }
+      }
+    });
   }
 
   // A screen on a face. rect is in the face's units; ui = [W, H] are the screen's own units.

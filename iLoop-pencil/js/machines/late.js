@@ -516,6 +516,8 @@
         p.fill('ink', foot);
       }, [[-4.6, 0, -4.6], [4.6, 0, 4.6]]);
       tableLine(m, [-13, 0, 9], [13, 0, 9]);
+      // its shadow on the table, a dark marker swipe
+      shadowOp(m, rr2(x0, x0, W4, W4, 2.6, 4).map(([px, pz]) => [px, 0, pz]), 26, 12);
       // inside, from the back: the ports, the blower and its heatsink fins, the storage, the M4
       const B = x0 + 0.4; // board corner in world units; u runs right, v runs toward you
       const at = (u, v, y = 0.9) => [B + u, y, B + v];

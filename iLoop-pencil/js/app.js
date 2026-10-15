@@ -55,7 +55,7 @@
   function levelLn(k) {
     const dev = DEV[mod(k, N)].build();
     // an assembly has a lot to show, so it takes a long scroll
-    if (dev.next.type === 'assemble') return dev.colors || DEV[mod(k + 1, N)].build().colors ? 6.5 : 4.2;
+    if (dev.next.type === 'assemble') return coloursOf(dev) || coloursOf(DEV[mod(k + 1, N)].build()) ? 6.5 : 4.2;
     return -Math.log(Af.scaleOf(portalMap(dev)));
   }
 
@@ -64,24 +64,57 @@
   function readPalette() {
     const cs = getComputedStyle(document.documentElement);
     const g = (n) => hex(cs.getPropertyValue(n).trim() || '#000000');
-    BASE = makePal({ paper: g('--paper'), warm: g('--warm'), light: g('--light'), ink: g('--ink'), umber: g('--umber'), earth: g('--earth'), mist: g('--mist'), tint: g('--earth'), tint2: g('--earth'), graphite: g('--graphite'), graphite2: g('--graphite2') });
-    ctx.pen.paper = BASE.rgb.paper;
+    BASE = makePal({ paper: g('--paper'), blank: g('--blank'), warm: g('--warm'), light: g('--light'), ink: g('--ink'), umber: g('--umber'), earth: g('--earth'), mist: g('--mist'), tint: g('--earth'), tint2: g('--earth'), cg: g('--cg'), cgd: g('--cgd'), pen: g('--pen'), chalk: g('--chalk'), shadow: g('--shadow'), back: g('--cg') });
   }
+
+  // ---------- marker colours ----------
+  // The marker set this version draws with. Behind each machine is a loose block of one bold marker,
+  // chosen to set off the machine's own colour; neighbours never share one, so every step of the loop
+  // changes colour, and the loop closes from chartreuse back to fuchsia.
+  const M = { fuchsia: '#e0397f', cyan: '#1ca5db', coral: '#f06a50', lemon: '#f3d23a', chartreuse: '#a6cb36', violet: '#8650cc', mint: '#36bc94', cobalt: '#3a60d2' };
+  // Each machine's own colour as a marker, where the pencil version's crayon is not right for it, and
+  // the block behind it: its marker, its shape (a band, a block or a swoosh), its angle in degrees,
+  // its centre within the machine's bounds, and its length and thickness against the machine's size.
+  const MARK = {
+    'Apple I': { tint: '#3d8c5b', back: { col: M.fuchsia, shape: 'band', ang: -22, c: [0.5, 0.46], len: 1.08, thick: 0.4 } },
+    'Apple II': { tint: '#d2c19a', back: { col: M.cyan, shape: 'block', ang: -6, c: [0.4, 0.36], len: 0.74, thick: 0.6 } },
+    'Macintosh 128K': { tint: '#d5c9a6', tint2: '#a99b79', back: { col: M.coral, shape: 'band', ang: -32, c: [0.56, 0.4], len: 1.0, thick: 0.3 } },
+    'PowerBook 100': { tint: '#4a4946', back: { col: M.lemon, shape: 'swoosh', ang: -10, c: [0.5, 0.5], len: 1.15, thick: 0.34, bow: 0.12 } },
+    'iMac G3': { tint: '#0b91ac', back: { col: M.chartreuse, shape: 'block', ang: 6, c: [0.36, 0.34], len: 0.74, thick: 0.62 } },
+    iPod: { tint: '#aaaeb3', back: { col: M.violet, shape: 'band', ang: -68, c: [0.5, 0.5], len: 0.95, thick: 0.42 } },
+    iPhone: { tint: '#b7b6b1', back: { col: M.fuchsia, shape: 'swoosh', ang: -62, c: [0.52, 0.5], len: 1.0, thick: 0.4, bow: 0.1 } },
+    'MacBook Air': { tint: '#d6b273', back: { col: M.mint, shape: 'band', ang: -16, c: [0.5, 0.42], len: 1.1, thick: 0.34 } },
+    'Apple Watch': { tint: '#e5a593', back: { col: M.lemon, shape: 'block', ang: -8, c: [0.5, 0.45], len: 0.6, thick: 0.72 } },
+    'Apple M1': { tint: '#2e7350', back: { col: M.cobalt, shape: 'swoosh', ang: 26, c: [0.48, 0.4], len: 1.1, thick: 0.5, bow: -0.14 } },
+    'iMac 24″': { tint: '#4c84d6', tint2: '#d98a6e', colors: ['#6db487', '#f2c74a', '#f08a4b', '#ea7f8e', '#a38bd8', '#c3c5c8', '#4c84d6'], back: { col: M.coral, shape: 'band', ang: -26, c: [0.52, 0.38], len: 1.05, thick: 0.34 } },
+    'MacBook Pro 14″': { tint: '#5d5e62', back: { col: M.cyan, shape: 'block', ang: -5, c: [0.4, 0.36], len: 0.74, thick: 0.56 } },
+    'Mac mini': { tint: '#bfc0c2', back: { col: M.chartreuse, shape: 'swoosh', ang: -16, c: [0.5, 0.36], len: 1.15, thick: 0.46, bow: 0.16 } },
+  };
+  const markOf = (dev) => MARK[dev.name] || {};
+  const coloursOf = (dev) => markOf(dev).colors || dev.colors;
   function withTint(pal, dev, over) {
-    let t = over || hex(dev.tint), t2 = hex(dev.tint2 || dev.tint);
+    const mk = markOf(dev);
+    let t = over || hex(mk.tint || dev.tint), t2 = hex(mk.tint2 || dev.tint2 || dev.tint);
     if (pal.tintTo) { t = mix(t, pal.tintTo, pal.tintAmt); t2 = mix(t2, pal.tintTo, pal.tintAmt); }
     if (pal.tintFn) { t = mix(t, pal.tintFn(t), pal.tintAmt); t2 = mix(t2, pal.tintFn(t2), pal.tintAmt); }
     const p = Object.create(pal);
     p.tint = css(t);
     p.tint2 = css(t2);
     p.rgb = Object.assign({}, pal.rgb, { tint: t, tint2: t2 });
+    if (mk.back) {
+      let b = hex(mk.back.col);
+      if (pal.tintTo) b = mix(b, pal.tintTo, pal.tintAmt);
+      if (pal.tintFn) b = mix(b, pal.tintFn(b), pal.tintAmt);
+      p.back = css(b);
+      p.rgb.back = b;
+    }
     return p;
   }
   // Etched into a die, the next machine is printed in reverse: light lines on dark silicon.
   function invertPal(pal, dev, amt) {
     if (amt <= 0) return pal;
     const bg = hex(dev.next.inkBg || dev.next.bg), fg = hex(dev.next.fg);
-    const target = makePal({ paper: bg, warm: mix(bg, fg, 0.08), light: mix(bg, fg, 0.16), ink: fg, umber: mix(fg, bg, 0.12), earth: mix(fg, bg, 0.3), mist: mix(bg, fg, 0.5), tint: fg, tint2: fg, graphite: mix(fg, bg, 0.35), graphite2: mix(fg, bg, 0.55) });
+    const target = makePal({ paper: bg, blank: mix(bg, fg, 0.12), warm: mix(bg, fg, 0.08), light: mix(bg, fg, 0.16), ink: fg, umber: mix(fg, bg, 0.12), earth: mix(fg, bg, 0.3), mist: mix(bg, fg, 0.5), tint: fg, tint2: fg, cg: mix(bg, fg, 0.55), cgd: mix(bg, fg, 0.75), pen: fg, chalk: mix(fg, bg, 0.3), shadow: mix(bg, [0, 0, 0], 0.4), back: mix(bg, fg, 0.25) });
     const out = mixPal(pal, target, amt);
     out.tintTo = fg;
     out.tintAmt = amt;
@@ -159,9 +192,79 @@
     ctx.globalAlpha = 1;
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
+  // ---------- the colour behind ----------
+  // A loose block of bold marker behind each machine, as a designer lifts a drawing off the page: a
+  // few broad chisel strokes laid side by side along a band, a block or a swoosh, each starting and
+  // stopping a little differently, some gone over twice. Built once per machine, in a frame of its
+  // own whose x runs along the strokes, so it can be swiped in along them.
+  function backOf(dev) {
+    if (dev.back !== undefined) return dev.back;
+    const spec = markOf(dev).back;
+    const bb = dev.model && dev.model.bbox;
+    if (!spec || !bb) return (dev.back = null);
+    const S = Math.max(bb[2] - bb[0], bb[3] - bb[1]);
+    const len = S * spec.len * 1.3, hw = (S * spec.thick * 1.2) / 2, bow = S * (spec.bow || 0);
+    const cx = bb[0] + (bb[2] - bb[0]) * spec.c[0], cy = bb[1] + (bb[3] - bb[1]) * spec.c[1];
+    const a = (spec.ang * Math.PI) / 180;
+    const frame = Af.chain(Af.T(cx, cy), Af.R(a), Af.T(-len / 2, 0));
+    const p = new Ink.Plate(dev.index * 71 + 5);
+    const r = p.r;
+    // the band's middle line and its thickness along its length
+    const mid = (u) => {
+      const f = u / len;
+      if (spec.shape === 'swoosh') return [u, bow * Math.sin(Math.PI * f) * 2 - bow, hw * (0.3 + 0.7 * Math.pow(Math.sin(Math.PI * clamp(f, 0.001, 0.999)), 0.7))];
+      if (spec.shape === 'block') return [u, 0, hw];
+      return [u, -hw * 0.18 * (f - 0.5), hw];
+    };
+    const nib = clamp(hw * 0.3, 16, 44);
+    const main = [], again = [];
+    const n = Math.max(3, Math.round((2 * hw) / (nib * 0.84)));
+    // each stroke starts and stops a little differently from its neighbour, and the ends of the block
+    // lean the way the hand moved
+    const lean = (spec.shape === 'block' ? 0.03 : 0.07) * len * (r() < 0.5 ? 1 : -1);
+    let w0 = r(), w1 = r();
+    for (let j = 0; j < n; j++) {
+      const f = (j + 0.5) / n, v = -1 + 2 * f + (r() - 0.5) * 0.06;
+      w0 = 0.5 * w0 + 0.5 * r();
+      w1 = 0.5 * w1 + 0.5 * r();
+      const u0 = len * 0.015 + lean * f + len * 0.05 * w0, u1 = len * 0.985 + lean * f - len * 0.05 * w1;
+      const pts = [];
+      for (let k = 0; k <= 12; k++) {
+        const u = u0 + ((u1 - u0) * k) / 12, [x, y, t] = mid(u);
+        pts.push([x, y + v * t]);
+      }
+      const poly = Ink.gougePoly(pts, nib * (1.05 + r() * 0.2), { smooth: false, taper: 0.62, pow: 0.2 });
+      if (!poly) continue;
+      main.push(poly);
+      if (r() < 0.3) again.push(poly);
+    }
+    const aq = Math.round(((((a % Math.PI) + Math.PI) % Math.PI) / Math.PI) * 32) % 32;
+    for (const [G, al] of [[main, 0.84], [again, 0.3]]) for (const poly of G) p.put('m1', 'back', poly, 0, al, 1, aq);
+    return (dev.back = { plate: p, frame, len });
+  }
+  // amt 0 → 1 swipes the block in along its strokes, and back out again
+  function drawBack(dev, cam, pal, amt) {
+    if (amt < 0.003) return;
+    const b = backOf(dev);
+    if (!b) return;
+    const m = Af.mul(cam, b.frame);
+    setM(m);
+    ctx.save();
+    if (amt < 0.997) {
+      ctx.beginPath();
+      ctx.rect(-4000, -4000, 4000 + (b.len + 160) * easeOut(amt), 8000);
+      ctx.clip();
+    }
+    drawPlate(ctx, b.plate, pal, 1, detailOf(m), 1);
+    ctx.restore();
+  }
+  // The block is the last thing a designer adds, after the white pencil.
+  const backAfter = (ink) => smooth(0.9, 1, ink);
+
   // A machine standing still, with whatever its screen shows.
-  function drawAtRest(dev, cam, pal0, ink = 1, pencil = ink) {
+  function drawAtRest(dev, cam, pal0, ink = 1, pencil = ink, back = backAfter(ink)) {
     const pal = withTint(pal0, dev);
+    drawBack(dev, cam, pal, back);
     drawParts(dev, cam, pal, () => ({ ink, pencil }));
     drawExtras(dev, cam, pal, ink);
     drawGlass(dev, cam, pal, ink);
@@ -208,8 +311,10 @@
     clipTo(clipM, round);
     ctx.fill();
     ctx.globalAlpha = 1;
-    if (onScreen) drawMachine(nxt, childCam, lookPal(pal0, look, amt), ink, pencil, depth + 1);
-    else drawAtRest(nxt, childCam, dev.next.fg ? invertPal(pal0, dev, 1 - ease(t)) : pal0, ink * smooth(0.22, 0.62, t), pencil * smooth(0.03, 0.3, t));
+    // on a screen the machine is drawn as that screen would show it; the colour behind it is swiped
+    // in only as it becomes a drawing on the paper again
+    if (onScreen) drawMachine(nxt, childCam, lookPal(pal0, look, amt), ink, pencil, depth + 1, depth ? 0 : smooth(0.72, 1, t));
+    else drawAtRest(nxt, childCam, dev.next.fg ? invertPal(pal0, dev, 1 - ease(t)) : pal0, ink * smooth(0.3, 0.88, t), pencil * smooth(0.04, 0.4, t));
     ctx.restore();
   }
   // ---------- easter eggs that are events, not pictures ----------
@@ -403,6 +508,7 @@
       ctx.fillStyle = css(mix(hex(dev.next.eggBg), BASE.rgb.paper, smooth(0.25, 0.75, u)));
       ctx.fill();
       ctx.restore();
+      drawBack(nxt, childCam, npal, smooth(0.9, 1, u));
       // the envelope: a white Mail envelope, front on, that becomes the manila one lying on the table
       const E0 = [[170, 330], [830, 330], [830, 730], [170, 730]];
       const E1 = nxt.model.envelope.map((q) => nxt.model.P(q));
@@ -487,6 +593,7 @@
         ctx.arc(500, 500, lerp(0, 820, smooth(0.28, 0.85, u)), 0, 2 * Math.PI);
         ctx.fill();
       }
+      drawBack(nxt, childCam, npal, real);
       // the band slides in from both ends, the case closes round the face
       if (build > 0.003) {
         drawParts(nxt, childCam, npal, (part) => {
@@ -614,8 +721,8 @@
     },
   };
 
-  function drawMachine(dev, cam, pal0, ink = 1, pencil = ink, depth = 0) {
-    drawAtRest(dev, cam, pal0, ink, pencil);
+  function drawMachine(dev, cam, pal0, ink = 1, pencil = ink, depth = 0, back) {
+    drawAtRest(dev, cam, pal0, ink, pencil, back);
     if (depth < 2 && dev.next.type === 'screen') drawPortalChild(dev, cam, 0, pal0, ink, pencil, depth);
   }
 
@@ -641,6 +748,7 @@
       const sw = easeInOut(smooth(0.55, 0.92, t));
       const off = sw * W * 1.04;
       const camS = Af.mul(Af.T(-off, 0), cam);
+      drawBack(dev, camS, pal, 1 - smooth(0.02, 0.3, t));
       drawParts(dev, camS, pal, (part) => ({ ...peeled(part), ink: peeled(part).ink / Math.max(bodyA, 1e-6) }));
       drawExtras(dev, camS, pal, 1 - smooth(0.25, 0.8, t));
       if (sw > 0.001) {
@@ -655,6 +763,9 @@
       }
       return;
     }
+    // going inside, the colour behind goes first; zooming into a screen it stays until the machine
+    // itself is taken away
+    drawBack(dev, cam, pal, dev.next.type === 'screen' ? bodyA : 1 - smooth(0.02, 0.3, t));
     drawParts(dev, cam, pal, peeled);
     drawExtras(dev, cam, pal, bodyA * (1 - smooth(0.25, 0.8, t)));
     drawPortalChild(dev, cam, t, BASE, 1, 1, 0);
@@ -670,13 +781,14 @@
     let npal = withTint(BASE, nxt);
     if (t <= SPLIT) {
       const cam = Af.mul(rest(), Af.pow(Af.mul(H, Af.inv(Mf)), t / SPLIT));
+      drawBack(dev, cam, pal, 1 - smooth(0.05, 0.5, t / SPLIT));
       drawParts(dev, cam, pal, (part) => (part.name === 'focus' ? null : { ink: 1 - 0.55 * smooth(0.5, 1, t / SPLIT) }));
       return;
     }
     const u = (t - SPLIT) / (1 - SPLIT);
-    if (nxt.colors) {
+    if (coloursOf(nxt)) {
       // run through the machine's colours while it comes together, ending on its own
-      const c = nxt.colors, k = smooth(0.22, 0.86, u) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(k));
+      const c = coloursOf(nxt), k = smooth(0.22, 0.86, u) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(k));
       npal = withTint(BASE, nxt, mix(hex(c[i]), hex(c[i + 1]), k - i));
     }
     // An exploded assembly pulls back quickly, and further than usual, so the whole diagram fits.
@@ -686,6 +798,7 @@
     const Z = Af.chain(Af.T(500, 500), Af.S(back), Af.T(-500, -500));
     const camC = Af.chain(rest(), Z, Af.pow(Af.mul(H, Af.inv(Ma)), 1 - cu));
     const camP = Af.chain(camC, Ma, Af.inv(Mf));
+    drawBack(nxt, camC, npal, smooth(0.9, 1, u));
     drawParts(dev, camP, pal, () => ({ ink: 0.45 * (1 - smooth(0, 0.18, u)) }), (p) => p.name !== 'focus');
     const flight = (part) => {
       if (!part.fly) return { ink: smooth(0, 0.35, u), pencil: smooth(0, 0.2, u) };
@@ -709,7 +822,7 @@
       if (i === lastCore) drawParts(dev, camP, pal, () => ({ ink: 1 - smooth(0.12, 0.45, u) }), (p) => p.name === 'focus');
     });
     const settled = smooth(0.9, 1, u);
-    const hello = nxt.colors ? smooth(0.78, 0.84, u) * (1 - smooth(0.94, 1, u)) : 0;
+    const hello = coloursOf(nxt) ? smooth(0.78, 0.84, u) * (1 - smooth(0.94, 1, u)) : 0;
     if (hello > 0.01) drawExtras(nxt, camC, npal, 1, { hello, write: smooth(0.8, 0.93, u) });
     else drawExtras(nxt, camC, npal, settled);
     const shown = settled * (1 - hello);
@@ -839,6 +952,8 @@
   // the notes start hidden; turning them on is remembered
   setNotes(store.get('iloop-notes') === '1');
   notesBtn.addEventListener('click', () => setNotes(document.body.classList.contains('notes-off'), true));
+  // home: back to the front page, where every version of the loop starts
+  $('b-home').addEventListener('click', () => { location.href = '../index.html'; });
   const mark = (btn, name, on) => {
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.setAttribute('aria-label', `${name} ${on ? 'on' : 'off'}`);
@@ -850,19 +965,41 @@
     touched();
   });
   // music and the voice clips are switched separately
-  const musicBtn = $('b-music');
+  const musicBtn = $('b-music'), bitesBtn = $('b-bites');
   soundSwitch(musicBtn, 'Music', (on) => Sound.setMusic(on), 'iloop-music');
-  soundSwitch($('b-bites'), 'Voice clips', (on) => Sound.setBites(on));
-  // The music is on unless you have turned it off. A browser lets a page make sound only after the
-  // first click, tap or key (scrolling does not count), so it starts then.
-  if (window.Sound && store.get('iloop-music') !== '0') {
-    mark(musicBtn, 'Music', true);
+  soundSwitch(bitesBtn, 'Voice clips', (on) => Sound.setBites(on), 'iloop-bites');
+  // Music and voice clips are on unless you have turned them off. A browser lets a page make sound
+  // only after the first click, tap or key (scrolling does not count), so they start then.
+  const want = { music: store.get('iloop-music') !== '0', bites: store.get('iloop-bites') !== '0' };
+  if (window.Sound && (want.music || want.bites)) {
+    mark(musicBtn, 'Music', want.music);
+    mark(bitesBtn, 'Voice clips', want.bites);
     const WAKE = ['pointerdown', 'pointerup', 'touchend', 'keydown'];
     const wake = () => {
       for (const e of WAKE) removeEventListener(e, wake, true);
-      if (musicBtn.getAttribute('aria-pressed') === 'true' && !Sound.music) Sound.setMusic(true);
+      const m = musicBtn.getAttribute('aria-pressed') === 'true', b = bitesBtn.getAttribute('aria-pressed') === 'true';
+      if ((m && !Sound.music) || (b && !Sound.bites)) Sound.set(m || Sound.music, b || Sound.bites);
     };
     for (const e of WAKE) addEventListener(e, wake, true);
+  }
+
+  // A tick under the finger when a button is pressed: a short vibration where the browser has one,
+  // and on an iPhone, which gives pages none, a hidden native switch, whose toggle iOS answers with a tap.
+  if (matchMedia('(pointer: coarse)').matches) {
+    let tick = null;
+    if (navigator.vibrate) tick = () => { try { navigator.vibrate(8); } catch (e) {} };
+    else {
+      const label = document.createElement('label'), box = document.createElement('input');
+      box.type = 'checkbox';
+      box.setAttribute('switch', '');
+      box.tabIndex = -1;
+      label.append(box);
+      label.setAttribute('aria-hidden', 'true');
+      label.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      document.body.append(label);
+      tick = () => label.click();
+    }
+    document.addEventListener('click', (e) => { if (e.isTrusted && e.target.closest && e.target.closest('.tools button, .rail button')) tick(); }, true);
   }
 
   function togglePlay() {
@@ -894,6 +1031,8 @@
       ui.title.textContent = d.name;
       // the buttons take on the interface of the machine you are looking at
       document.body.dataset.era = d.era || 'print';
+      // the page is marked up in the colour behind the machine
+      if (markOf(d).back) document.body.style.setProperty('--accent', markOf(d).back.col);
       ui.line.textContent = d.line;
       ui.verb.textContent = d.verb;
       ui.next.textContent = `${nx.name}, ${nx.year}`;

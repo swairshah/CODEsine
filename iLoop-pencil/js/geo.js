@@ -354,6 +354,8 @@
       const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
       this.s = s;
       const [fx, fy] = this.fitCenter;
+      // where the machine stands in its frame, for the colour behind it
+      this.bbox = [fx - ((x1 - x0) * s) / 2, fy - ((y1 - y0) * s) / 2, fx + ((x1 - x0) * s) / 2, fy + ((y1 - y0) * s) / 2];
       const P = (q) => {
         const c = this.cam(q);
         return [fx + (c[0] - cx) * s, fy + (c[1] - cy) * s];
@@ -422,11 +424,14 @@
         }
         return clamp(t, 0, 1);
       };
+      // marker strokes run up and down a vertical face, and along the surface on any other
+      const mang = vertical && !f.seam ? atan2(Uy, Ux) : angle;
       if (!mat.none) {
         p.face(pts, tone, {
           fill: mat.fill,
           dark: mat.dark,
           angle,
+          mang,
           gap: mat.gap ?? 7,
           w: mat.w ?? 1.9,
           hatch: mat.hatch,
@@ -435,7 +440,7 @@
           edge: f.edge === 0 || f.seam ? 0 : f.edge ?? mat.edge ?? 1.1,
         });
       }
-      // edges: a fine bright line where an edge turns toward the light, a dark one where it turns away
+      // edges: white pencil where an edge turns toward the light, a dark pencil accent where it turns away
       if (!f.seam && f.edge !== 0 && !mat.none && pts.length >= 3) {
         const l3 = this.cam(LIGHT), ll = Math.hypot(l3[0], l3[1]) || 1;
         const Lx = l3[0] / ll, Ly = l3[1] / ll;
@@ -451,8 +456,19 @@
           const ux = ex / len, uy = ey / len, trim = Math.min(4, len * 0.15), inset = 1.8;
           const A = [a[0] + ux * trim - nx * inset, a[1] + uy * trim - ny * inset];
           const B = [b[0] - ux * trim - nx * inset, b[1] - uy * trim - ny * inset];
-          if (lit > 0.25) p.gouge(dark ? 'paper' : 'light', [A, B], (dark ? 1.6 : 2.2) * lit, { smooth: false, taper: 0.12, lod: 0.5 });
+          if (lit > 0.25) p.pencil([A, B], { role: 'chalk', w: (dark ? 1.3 : 1.8) * Math.min(1, lit + 0.2), over: -Math.min(8, len * 0.08), wob: 0.25, lod: 0.5, alpha: dark ? 0.75 : 1 });
           else if (lit < -0.3 && !dark) p.gouge('ink', [A, B], 1.3 * -lit, { smooth: false, taper: 0.12, lod: 0.5 });
+        }
+        // a glint on the corner of a big upward face that is nearest the light
+        let size = 0;
+        for (const q of pts) size = Math.max(size, Math.hypot(q[0] - cx, q[1] - cy));
+        if (f.n[1] > 0.6 && size > 90 && t0 > 0.5) {
+          let best = null, bd = -Infinity;
+          for (const q of pts) {
+            const d = (q[0] - cx) * Lx + (q[1] - cy) * Ly - 0.3 * (q[1] - cy);
+            if (d > bd) { bd = d; best = q; }
+          }
+          if (best) p.glint(best[0], best[1], 9);
         }
       }
       if (f.deco && f.frame) {
@@ -494,7 +510,7 @@
         Q.t = t;
         Q.m = qm;
         // each quad is crayoned with the strokes running down the loft, so they carry on from quad to quad
-        p.face(pts, t, { fill: qm.fill, dark: qm.dark, angle: loftAngle, edge: 0, pencil: false });
+        p.face(pts, t, { fill: qm.fill, dark: qm.dark, angle: loftAngle, mang: loftAngle, edge: 0, pencil: false });
       }
       // contour lines: along each section and each meridian, weighted by darkness
       for (const Q of vis) {
