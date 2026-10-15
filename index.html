@@ -114,9 +114,9 @@
     background: linear-gradient(160deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, 0) 70%, rgba(0, 0, 0, 0.08));
     box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.55), inset -2px -2px 0 rgba(0, 0, 0, 0.14);
   }
-  .btn:active, .btn.pressed { --dx: var(--lift); --dy: var(--lift); box-shadow: 0 0 0 var(--soft); }
-  .btn:active::after, .btn.pressed::after { box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.14); }
-  @media (hover: hover) { .btn:hover:not(:active):not(.pressed) { box-shadow: var(--lift) var(--lift) 0 var(--red); } }
+  .btn:active, .opt:active .btn, .opt.pressed .btn { --dx: var(--lift); --dy: var(--lift); box-shadow: 0 0 0 var(--soft); }
+  .btn:active::after, .opt:active .btn::after, .opt.pressed .btn::after { box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.14); }
+  @media (hover: hover) { .btn:hover:not(:active), .opt:hover:not(:active):not(.pressed) .btn { box-shadow: var(--lift) var(--lift) 0 var(--red); } }
   .btn:focus-visible { box-shadow: var(--lift) var(--lift) 0 var(--red); }
   .btn img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
@@ -143,17 +143,27 @@
     margin: 140px 0 0 40px; /* a little below the film's middle, where the line leaves it */
     pointer-events: none;
   }
+  /* a card, and under it what it is */
   .opt {
-    aspect-ratio: 4 / 3;
+    display: grid;
+    gap: 8px;
+    color: var(--soft);
+    text-decoration: none;
     opacity: 0;
     transform: translateY(-10px) scale(0.85);
-    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1), translate 0.08s ease, box-shadow 0.08s ease;
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+    -webkit-tap-highlight-color: transparent;
   }
+  .opt:focus-visible { outline: none; }
+  .opt:focus-visible .btn { box-shadow: var(--lift) var(--lift) 0 var(--red); }
+  .face { aspect-ratio: 4 / 3; }
+  .lab { font: 400 0.84rem/1 var(--f-display); letter-spacing: 0.07em; text-transform: uppercase; text-align: center; white-space: nowrap; }
+  .opt:hover .lab, .opt:focus-visible .lab, .opt.pressed .lab { color: var(--red); }
   .open .fan { pointer-events: auto; }
   .open .opt {
     opacity: 1;
     transform: none;
-    transition: opacity 0.25s ease calc(100ms + var(--n) * 40ms), transform 0.35s cubic-bezier(.2,.8,.2,1) calc(100ms + var(--n) * 40ms), translate 0.08s ease, box-shadow 0.08s ease;
+    transition: opacity 0.25s ease calc(100ms + var(--n) * 40ms), transform 0.35s cubic-bezier(.2,.8,.2,1) calc(100ms + var(--n) * 40ms);
   }
   .opt img { position: absolute; inset: 0; transform: scale(1.32); transition: opacity 0.35s ease, transform 0.5s cubic-bezier(.2,.8,.2,1); }
   .opt img.next { opacity: 0; }
@@ -165,7 +175,7 @@
     .item { grid-template-columns: minmax(0, 1fr); gap: 18px; }
     .tree { flex-direction: column; align-items: center; min-height: 0; }
     .reel { width: 132px; }
-    .fan { display: none; grid-template-columns: repeat(2, 132px); column-gap: 56px; row-gap: 22px; margin: 44px 0 0; }
+    .fan { display: none; grid-template-columns: repeat(2, 132px); column-gap: 56px; row-gap: 20px; margin: 44px 0 0; }
     .open .fan { display: grid; }
   }
   @media (max-width: 400px) {
@@ -193,12 +203,12 @@
           <img id="film" src="home/iloop-poster.webp" data-gif="home/iloop.gif" width="300" height="474" alt="">
         </button>
         <nav class="fan" id="fan" aria-label="Versions of iLoop">
-          <a class="btn opt" style="--n:0" href="iLoop-real/" aria-label="Real: photographic, rendered live"><img alt="" data-v="real" decoding="async"></a>
-          <a class="btn opt" style="--n:1" href="iLoop/" aria-label="Engraving: ink and linocut"><img alt="" data-v="engraving" decoding="async"></a>
-          <a class="btn opt" style="--n:2" href="iLoop-watercolor/" aria-label="Watercolour: wash and pen"><img alt="" data-v="watercolor" decoding="async"></a>
-          <a class="btn opt" style="--n:3" href="iLoop-pencil/" aria-label="Pencil: marker sketch on grey paper"><img alt="" data-v="pencil" decoding="async"></a>
-          <a class="btn opt" style="--n:4" href="iLoop-graphic/" aria-label="Graphic: screenprint"><img alt="" data-v="graphic" decoding="async"></a>
-          <a class="btn opt" style="--n:5" href="iLoop-graphic-clean/" aria-label="Graphic, clean: flat vector inks"><img alt="" data-v="graphic-clean" decoding="async"></a>
+          <a class="opt" style="--n:0" href="iLoop-graphic-clean/"><span class="btn face"><img alt="" data-v="graphic-clean" decoding="async"></span><span class="lab">graphic</span></a>
+          <a class="opt" style="--n:1" href="iLoop-real/"><span class="btn face"><img alt="" data-v="real" decoding="async"></span><span class="lab">photoreal</span></a>
+          <a class="opt" style="--n:2" href="iLoop/"><span class="btn face"><img alt="" data-v="engraving" decoding="async"></span><span class="lab">etched</span></a>
+          <a class="opt" style="--n:3" href="iLoop-watercolor/"><span class="btn face"><img alt="" data-v="watercolor" decoding="async"></span><span class="lab">watercolor</span></a>
+          <a class="opt" style="--n:4" href="iLoop-pencil/"><span class="btn face"><img alt="" data-v="pencil" decoding="async"></span><span class="lab">marker</span></a>
+          <a class="opt" style="--n:5" href="iLoop-graphic/"><span class="btn face"><img alt="" data-v="graphic" decoding="async"></span><span class="lab">graphic-messy</span></a>
         </nav>
       </div>
     </article>
@@ -271,7 +281,7 @@
       const f = box(reel), c = 10;
       lines.replaceChildren();
       opts.forEach((o, n) => {
-        const k = settled(o);
+        const k = settled(o.querySelector('.face'));
         let d;
         if (wide.matches) {
           const px = f.r, py = f.t + f.h * 0.5, cx = k.l + k.w / 2;
